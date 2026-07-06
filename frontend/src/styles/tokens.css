@@ -1,0 +1,49 @@
+:root {
+  --color-primary: #C43D3D;
+  --color-bg-main: #FBF7F0;
+  --color-bg-secondary: #F5EFE3;
+  --color-bg-card: #F5E8D8;
+  --color-bg-white: #FFFFFF;
+  --color-text-primary: #3D2B1F;
+  --color-text-secondary: #8B7355;
+  --color-text-muted: #9B8C7C;
+  --color-border: #D4C5A9;
+  --color-dark-bg: #1A1A2E;
+  --color-dark-surface: #16213E;
+  --color-dark-text: #E0E0E0;
+
+  --font-family-cn: "SourceHanSans", "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  --font-xs: 11px;
+  --font-sm: 12px;
+  --font-base: 13px;
+  --font-md: 14px;
+  --font-lg: 15px;
+  --font-xl: 16px;
+  --font-2xl: 20px;
+  --font-3xl: 22px;
+  --font-4xl: 24px;
+  --font-5xl: 28px;
+  --font-6xl: 32px;
+  --font-7xl: 40px;
+
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+}
+
+body {
+  font-family: var(--font-family-cn);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-main);
+  margin: 0;
+  padding: 0;
+}
