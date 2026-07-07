@@ -23,6 +23,13 @@ router.post('/', (req, res) => {
   res.status(201).json(template);
 });
 
+router.put('/:id', (req, res) => {
+  const { type, category, name, description } = req.body;
+  db.prepare(`UPDATE templates SET type=?, category=?, name=?, description=? WHERE id=?`).run(type, category, name, description, req.params.id);
+  const template = db.prepare('SELECT * FROM templates WHERE id = ?').get(req.params.id);
+  res.json(template);
+});
+
 router.delete('/:id', (req, res) => {
   db.prepare('DELETE FROM templates WHERE id = ?').run(req.params.id);
   res.json({ deleted: true });

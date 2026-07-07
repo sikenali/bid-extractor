@@ -38,4 +38,9 @@ router.put('/:id', (req, res) => {
   res.json(project);
 });
 
+router.delete('/:id', (req, res) => {
+  db.prepare('DELETE FROM projects WHERE id = ?').run(req.params.id);
+  res.json({ deleted: true });
+});
+
 export default router;

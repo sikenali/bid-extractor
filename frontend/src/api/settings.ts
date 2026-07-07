@@ -15,7 +15,7 @@ export async function getExportSettings(): Promise<{ format: string; include_tab
   return response.data;
 }
 
-export async function setExportSettings(data: { format: string; include_table_of_contents?: number; page_numbers?: number }): Promise<void> {
+export async function setExportSettings(data: { format: string; include_table_of_contents?: number; page_numbers?: number; header_footer?: number }): Promise<void> {
   await apiClient.put('/settings/export', data);
 }
 

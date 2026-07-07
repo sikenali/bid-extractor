@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import TopNav from '@/components/layout/TopNav.vue';
 import FileUploader from '@/components/upload/FileUploader.vue';
+
+function handleUploaded(file: File) {
+  console.log('File uploaded:', file.name);
+}
 </script>
 
 <template>
@@ -11,12 +15,6 @@ import FileUploader from '@/components/upload/FileUploader.vue';
     </div>
   </div>
 </template>
-
-<script lang="ts">
-function handleUploaded(file: File) {
-  console.log('File uploaded:', file.name);
-}
-</script>
 
 <style scoped>
 .upload-view {

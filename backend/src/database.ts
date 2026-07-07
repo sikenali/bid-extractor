@@ -65,7 +65,8 @@ export function initializeDatabase() {
     id INTEGER PRIMARY KEY CHECK (id = 1),
     format TEXT DEFAULT 'docx',
     include_table_of_contents INTEGER DEFAULT 1,
-    page_numbers INTEGER DEFAULT 1
+    page_numbers INTEGER DEFAULT 1,
+      header_footer INTEGER DEFAULT 1
   )`);
 
   db.exec(`CREATE TABLE IF NOT EXISTS theme_config (

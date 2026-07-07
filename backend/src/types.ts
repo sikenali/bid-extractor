@@ -44,4 +44,5 @@ export interface ExportSetting {
   format: 'docx' | 'markdown';
   includeTableOfContents: boolean;
   pageNumbers: boolean;
+  headerFooter: boolean;
 }

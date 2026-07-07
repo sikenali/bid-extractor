@@ -68,7 +68,7 @@ function zoomOut() {
         </div>
 
         <div class="toolbar-right">
-          <button class="nav-btn" title="搜索"><span class="icon">&#xeb�;</span></button>
+          <button class="nav-btn" title="搜索"><span class="icon">&#xeb75;</span></button>
           <button class="nav-btn download-btn" title="下载"><span class="icon">&#xec54;</span></button>
         </div>
       </div>

@@ -50,6 +50,10 @@ router.get('/:id/status', (req, res) => {
   res.json({ id: req.params.id, status: 'ready' });
 });
 
+router.get('/:id/result', (req, res) => {
+  res.json({ id: req.params.id, text: '', extracts: {} });
+});
+
 router.delete('/:id', (req, res) => {
   const filePath = path.join(UPLOAD_DIR, req.params.id);
   if (fs.existsSync(filePath)) {
