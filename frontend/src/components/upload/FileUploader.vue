@@ -3,7 +3,9 @@ import { ref } from 'vue';
 
 const props = withDefaults(defineProps<{
   loading?: boolean;
-}>(), { loading: false });
+  percent?: number;
+  fileName?: string;
+}>(), { loading: false, percent: 0, fileName: '' });
 
 const emit = defineEmits<{
   uploaded: [file: File]
@@ -44,6 +46,7 @@ function triggerFileInput() {
   const el = document.getElementById('fileInput') as HTMLInputElement;
   el?.click();
 }
+
 </script>
 
 <template>
@@ -65,14 +68,21 @@ function triggerFileInput() {
       <p class="upload-hint">支持 PDF、DOCX、DOC 格式，单个文件不超过 50MB</p>
     </template>
     <template v-else>
-      <p class="upload-title">正在解析: {{ selectedFile?.name }}</p>
+      <p class="upload-title">正在解析: {{ props.fileName }}</p>
     </template>
 
     <div v-if="props.loading" class="progress-wrapper">
       <div class="progress-track">
-        <div class="progress-bar"></div>
+        <div class="progress-bar" :style="{ width: props.percent + '%' }">
+          <div class="shimmer"></div>
+        </div>
       </div>
-      <p class="progress-text">解析中...</p>
+      <p class="progress-text">{{ Math.round(props.percent) }}% · 文件解析中...</p>
+      <div class="progress-steps">
+        <span class="step" :class="{ active: props.percent >= 30 }">上传</span>
+        <span class="step" :class="{ active: props.percent >= 60 }">解析</span>
+        <span class="step" :class="{ active: props.percent >= 90 }">提取</span>
+      </div>
     </div>
 
     <input
@@ -152,26 +162,62 @@ function triggerFileInput() {
 }
 .progress-track {
   width: 100%;
-  height: 6px;
+  height: 8px;
   background-color: var(--color-bg-secondary);
-  border-radius: 3px;
+  border-radius: 9999px;
   overflow: hidden;
 }
 .progress-bar {
   height: 100%;
-  width: 40%;
-  background: linear-gradient(90deg, var(--color-primary), #e85d5d);
-  border-radius: 3px;
-  animation: progressShimmer 1.5s ease-in-out infinite;
+  background-color: var(--color-primary);
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+  position: relative;
 }
-@keyframes progressShimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(250%); }
+.shimmer {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
 }
 .progress-text {
   font-size: 13px;
   color: var(--color-text-secondary);
   margin: 0;
+}
+.progress-steps {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+.step {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.step::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-border);
+  transition: background-color 0.3s;
+}
+.step.active {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+.step.active::before {
+  background-color: var(--color-primary);
 }
 .upload-btn {
   height: 44px;
