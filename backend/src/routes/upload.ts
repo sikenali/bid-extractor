@@ -62,4 +62,22 @@ router.delete('/:id', (req, res) => {
   res.json({ deleted: true });
 });
 
+router.get('/:id/download', (req, res) => {
+  const filePath = path.join(UPLOAD_DIR, req.params.id);
+  if (!fs.existsSync(filePath)) {
+    res.status(404).json({ error: 'File not found' });
+    return;
+  }
+  res.sendFile(filePath);
+});
+
+router.get('/file/:filename', (req, res) => {
+  const filePath = path.join(UPLOAD_DIR, req.params.filename);
+  if (!fs.existsSync(filePath)) {
+    res.status(404).json({ error: 'File not found' });
+    return;
+  }
+  res.sendFile(filePath);
+});
+
 export default router;
