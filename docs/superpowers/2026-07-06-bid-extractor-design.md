@@ -1,4 +1,4 @@
-# Bid Extractor (回旋标/文取猩) - Design Document
+# Bid Extractor (文取猩/文取猩) - Design Document
 
 **Date:** 2026-07-06
 **Status:** Approved
@@ -6,7 +6,7 @@
 
 ## Overview
 
-A bidding document extraction tool called "回旋标" (Boomerang) / "文取猩" that parses tender/bidding documents (PDF, DOCX, DOC) and extracts structured project information using configurable regex rules and keywords.
+A bidding document extraction tool called "文取猩" (Boomerang) / "文取猩" that parses tender/bidding documents (PDF, DOCX, DOC) and extracts structured project information using configurable regex rules and keywords.
 
 ## Tech Stack
 
@@ -100,7 +100,7 @@ A bidding document extraction tool called "回旋标" (Boomerang) / "文取猩" 
 ### Top Navigation Bar
 - Height: 64px, padding: 0 24px
 - Logo: 40x40px red circle with RemixIcon
-- Brand: "回旋标 Boomerang" (SourceHanSans Bold 22px + Regular 12px)
+- Brand: "文取猩 Boomerang" (SourceHanSans Bold 22px + Regular 12px)
 - Right: Help button, Settings button (RemixIcon)
 
 ### Settings Sidebar

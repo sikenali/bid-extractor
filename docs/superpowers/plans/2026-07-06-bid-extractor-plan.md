@@ -952,7 +952,7 @@ Create `/home/jingle/opc/bid-extractor/frontend/index.html`:
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>回旋标 - 招标文件提取工具</title>
+    <title>文取猩 - 招标文件提取工具</title>
   </head>
   <body>
     <div id="app"></div>
@@ -1201,7 +1201,7 @@ const router = useRouter();
         <div class="logo-icon">
           <span class="ri-file-text-line"></span>
         </div>
-        <span class="brand-cn">回旋标</span>
+        <span class="brand-cn">文取猩</span>
         <span class="brand-en">Boomerang</span>
       </div>
     </div>
@@ -1766,7 +1766,7 @@ function selectTheme(themeType: string) {
             <div class="theme-preview" :style="{ backgroundColor: theme.previewBg }">
               <div class="preview-nav">
                 <div class="preview-logo"></div>
-                <span class="preview-brand">回旋标</span>
+                <span class="preview-brand">文取猩</span>
               </div>
               <div class="preview-body">
                 <div class="preview-sidebar"></div>
