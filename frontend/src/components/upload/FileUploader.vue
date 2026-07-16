@@ -98,7 +98,6 @@ function triggerFileInput() {
       <span class="icon ri-upload-2-line"></span>
       <span>选择文件</span>
     </div>
-    <p class="drop-hint">或拖拽文件到此处</p>
   </div>
 </template>
 

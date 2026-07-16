@@ -139,25 +139,23 @@ function handleDownload() {
       </div>
 
       <div class="preview-content">
-        <div class="pdf-page" :style="{ transform: `scale(${zoomLevel / 100})`, width: '650px' }">
-          <div v-if="loading" class="preview-loading">
-            <span class="icon ri-loader-line spin-icon"></span>
-            <span>加载中...</span>
-          </div>
-          <div v-else-if="errorMsg" class="preview-error">
-            <span class="icon ri-error-warning-line"></span>
-            <span>{{ errorMsg }}</span>
-          </div>
-          <div v-else-if="isDocx && fileUrl" class="doc-content">
-            <VueOfficeDocx :src="fileUrl" />
-          </div>
-          <div v-else-if="isPdf && fileUrl" class="doc-content">
-            <embed :src="fileUrl" type="application/pdf" width="570px" height="800px" />
-          </div>
-          <div v-else class="doc-content preview-placeholder">
-            <span class="icon ri-file-text-line"></span>
-            <p>暂无预览内容</p>
-          </div>
+        <div v-if="loading" class="preview-loading">
+          <span class="icon ri-loader-line spin-icon"></span>
+          <span>加载中...</span>
+        </div>
+        <div v-else-if="errorMsg" class="preview-error">
+          <span class="icon ri-error-warning-line"></span>
+          <span>{{ errorMsg }}</span>
+        </div>
+        <div v-else-if="isDocx && fileUrl" class="doc-content">
+          <VueOfficeDocx :src="fileUrl" />
+        </div>
+        <div v-else-if="isPdf && fileUrl" class="doc-content">
+          <embed :src="fileUrl" type="application/pdf" width="100%" height="800px" />
+        </div>
+        <div v-else class="doc-content preview-placeholder">
+          <span class="icon ri-file-text-line"></span>
+          <p>暂无预览内容</p>
         </div>
       </div>
     </div>
@@ -187,16 +185,16 @@ function handleDownload() {
 .total-pages { color: var(--color-text-muted); }
 .toolbar-divider { width: 1px; height: 24px; background-color: var(--color-bg-card); margin: 0 12px; }
 .zoom-level { font-size: 13px; font-weight: 500; color: var(--color-text-primary); min-width: 44px; text-align: center; }
-.preview-content { background-color: #E8E0D0; padding: 32px; display: flex; justify-content: center; min-height: 500px; }
-.pdf-page { background-color: white; border-radius: 8px; box-shadow: 0 4px 24px rgba(61, 43, 31, 0.12); transition: transform 0.2s; transform-origin: top center; position: relative; overflow: hidden; }
+.preview-content { padding: 32px; display: flex; justify-content: center; min-height: 500px; }
 .preview-loading, .preview-error { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 80px 40px; color: var(--color-text-muted); font-size: 14px; }
 .preview-loading .icon, .preview-error .icon { font-size: 32px; }
 .spin-icon { animation: spin 1.5s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.doc-content { padding: 32px 40px; min-height: 600px; }
-.preview-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--color-text-muted); min-height: 600px; }
+.doc-content { width: 100%; }
+.preview-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--color-text-muted); min-height: 400px; }
 .preview-placeholder .icon { font-size: 40px; font-family: "remixicon", sans-serif; font-style: normal; }
 .preview-placeholder p { font-size: 14px; margin: 0; }
-:deep(.docx) { padding: 0 !important; background: white !important; }
+:deep(.docx) { padding: 0 !important; background: transparent !important; }
 :deep(.docx section) { box-shadow: none !important; margin: 0 !important; }
+:deep(.docx .docx) { background: white !important; }
 </style>

@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import TopNav from '@/components/layout/TopNav.vue';
-import PreviewModal from '@/components/preview/PreviewModal.vue';
 import { getProject } from '@/api/projects';
+import { getParseStatus } from '@/api/upload';
 
 const route = useRoute();
 
-const showPreview = ref(false);
+const activeSection = ref('info');
 
 const sidebarItems = [
   { key: 'info', label: '项目信息', sublabel: '招标文件提取', icon: 'ri-file-list-3-line', active: true },
@@ -16,48 +16,89 @@ const sidebarItems = [
   { key: 'score', label: '评分标准', sublabel: '标书排版', icon: 'ri-layout-line', active: false }
 ];
 
-const tableData = ref([
-  { field: '项目名称', value: 'XX市智慧城市建设项目（一期）基础设施及平台建设', page: 'P.3' },
-  { field: '项目编号', value: 'SC-ZC-2024-0815', page: 'P.1' },
-  { field: '投标截止时间', value: '2024年10月15日 14:30（北京时间）', page: 'P.5' },
-  { field: '投标地点', value: 'XX市公共资源交易中心 3楼 301 开标室', page: 'P.5' },
-  { field: '交付时间', value: '合同签订后 180 个日历日内完成交付', page: 'P.12' },
-  { field: '交付地点', value: 'XX市大数据中心机房（XX路188号）', page: 'P.12' },
-  { field: '投标保证金', value: '人民币 伍拾万元整（¥500,000.00）', page: 'P.8' }
-]);
+interface ExtractedField {
+  field: string;
+  value: string;
+  page: string;
+}
 
-const currentPage = ref(1);
-const totalPages = ref(3);
+const tableData = ref<ExtractedField[]>([]);
+const fileInfo = ref({
+  name: '',
+  size: 0,
+  pageCount: 0
+});
 
-const projectName = ref('');
+const extractStatus = ref({
+  status: 'pending',
+  progress: 0,
+  filename: ''
+});
+
+const currentSectionData = computed(() => {
+  switch (activeSection.value) {
+    case 'info':
+      return tableData.value;
+    case 'business':
+    case 'tech':
+    case 'score':
+      return [];
+    default:
+      return tableData.value;
+  }
+});
 
 onMounted(async () => {
-  const id = route.params.id as string;
-  if (id) {
+  const projectId = route.params.id as string;
+  const jobId = route.query.jobId as string;
+  if (projectId) {
     try {
-      const project = await getProject(id);
-      projectName.value = project.name;
+      const project = await getProject(projectId);
+      fileInfo.value.name = project.name;
+
+      // Load parse status using jobId from query params
+      if (jobId) {
+        const statusData = await getParseStatus(jobId);
+        extractStatus.value = {
+          status: statusData.status,
+          progress: statusData.progress,
+          filename: statusData.filename || fileInfo.value.name
+        };
+
+        if (statusData.result?.extracts) {
+          const extracts = statusData.result.extracts as Record<string, unknown>;
+          tableData.value = Object.entries(extracts).map(([field, value]) => ({
+            field,
+            value: String(value),
+            page: 'P.1'
+          }));
+        }
+      }
     } catch {
-      projectName.value = 'XX市智慧城市建设项目招标文件.pdf';
+      fileInfo.value.name = 'XX市智慧城市建设项目招标文件.pdf';
     }
   }
 });
 
 function handleCopy(field: string) {
-  navigator.clipboard.writeText(tableData.value.find(d => d.field === field)?.value || '');
-}
-
-function handleEdit(field: string) {
-  const val = tableData.value.find(d => d.field === field)?.value;
-  const newVal = prompt(`编辑 ${field}:`, val);
-  if (newVal) {
-    const row = tableData.value.find(d => d.field === field);
-    if (row) row.value = newVal;
+  const row = tableData.value.find(d => d.field === field);
+  if (row) {
+    navigator.clipboard.writeText(row.value);
   }
 }
 
-function goPage(p: number) {
-  if (p >= 1 && p <= totalPages.value) currentPage.value = p;
+function handleEdit(field: string) {
+  const row = tableData.value.find(d => d.field === field);
+  if (row) {
+    const newVal = prompt(`编辑 ${field}:`, row.value);
+    if (newVal) {
+      row.value = newVal;
+    }
+  }
+}
+
+function selectSection(section: string) {
+  activeSection.value = section;
 }
 </script>
 
@@ -70,7 +111,8 @@ function goPage(p: number) {
           v-for="item in sidebarItems"
           :key="item.key"
           class="extract-nav-item"
-          :class="{ active: item.active }"
+          :class="{ active: activeSection === item.key }"
+          @click="selectSection(item.key)"
         >
           <div class="nav-icon-wrap">
             <span class="icon" :class="item.icon"></span>
@@ -85,17 +127,17 @@ function goPage(p: number) {
       <div class="extract-content">
         <div class="file-info-bar">
           <span class="icon ri-file-pdf-line file-icon"></span>
-          <span class="file-name">{{ projectName || 'XX市智慧城市建设项目招标文件.pdf' }}</span>
-          <span class="file-meta">12.8 MB · 共 86 页</span>
-          <div class="status-tag">
-            <span class="icon ri-checkbox-circle-fill"></span>
-            <span>提取完成</span>
+          <span class="file-name">{{ extractStatus.filename || fileInfo.name || '招标文件.pdf' }}</span>
+          <span class="file-meta">{{ (fileInfo.size / 1024 / 1024).toFixed(1) }} MB · 共 {{ fileInfo.pageCount || '—' }} 页</span>
+          <div class="status-tag" :class="{ extracting: extractStatus.status === 'parsing' }">
+            <span class="icon" :class="extractStatus.status === 'parsed' ? 'ri-checkbox-circle-fill' : 'ri-loader-4-line'"></span>
+            <span>{{ extractStatus.status === 'parsed' ? '提取完成' : extractStatus.status === 'parsing' ? '提取中...' : '等待提取' }}</span>
           </div>
         </div>
 
         <div class="content-action-bar">
           <div class="action-group">
-            <button class="btn-outline" @click="showPreview = true">
+            <button class="btn-outline">
               <span class="icon ri-eye-line"></span>
               <span>预览</span>
             </button>
@@ -117,7 +159,7 @@ function goPage(p: number) {
               </tr>
             </thead>
             <tbody>
-              <template v-for="(row, idx) in tableData" :key="row.field">
+              <template v-for="(row, idx) in currentSectionData" :key="row.field">
                 <tr v-if="idx > 0" class="row-spacer"><td colspan="4"></td></tr>
                 <tr class="data-row">
                   <td class="col-field">{{ row.field }}</td>
@@ -135,23 +177,20 @@ function goPage(p: number) {
                   </td>
                 </tr>
               </template>
+              <tr v-if="currentSectionData.length === 0" class="empty-row">
+                <td colspan="4" class="empty-cell">暂无提取数据，请先上传招标文件</td>
+              </tr>
             </tbody>
           </table>
         </div>
 
         <div class="bottom-bar">
           <div class="pagination">
-            <button class="page-btn" :disabled="currentPage <= 1" @click="goPage(currentPage - 1)">
+            <button class="page-btn" disabled>
               <span class="icon ri-arrow-left-s-line"></span>
             </button>
-            <button
-              v-for="p in totalPages"
-              :key="p"
-              class="page-num"
-              :class="{ active: currentPage === p }"
-              @click="goPage(p)"
-            >{{ p }}</button>
-            <button class="page-btn" :disabled="currentPage >= totalPages" @click="goPage(currentPage + 1)">
+            <button class="page-num active">1</button>
+            <button class="page-btn" disabled>
               <span class="icon ri-arrow-right-s-line"></span>
             </button>
           </div>
@@ -162,11 +201,6 @@ function goPage(p: number) {
         </div>
       </div>
     </div>
-    <PreviewModal
-      v-model:visible="showPreview"
-      :filename="projectName || '招标文件.docx'"
-      @close="showPreview = false"
-    />
   </div>
 </template>
 
@@ -194,12 +228,13 @@ function goPage(p: number) {
   padding: 12px 16px;
   border-radius: 12px;
   cursor: pointer;
+  transition: all 0.2s;
+}
+.extract-nav-item:hover {
+  background-color: rgba(0,0,0,0.03);
 }
 .extract-nav-item.active {
   background-color: var(--color-primary);
-}
-.extract-nav-item:not(.active):hover {
-  background-color: rgba(0,0,0,0.03);
 }
 .nav-icon-wrap {
   width: 32px;
@@ -287,16 +322,30 @@ function goPage(p: number) {
   background-color: #D4EDDA;
   border-radius: 9999px;
 }
+.status-tag.extracting {
+  background-color: #FFF3CD;
+}
 .status-tag .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 14px;
   color: #2D8A4E;
 }
+.status-tag.extracting .icon {
+  color: #856404;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 .status-tag span:last-child {
   font-size: 12px;
   font-weight: 500;
   color: #2D8A4E;
+}
+.status-tag.extracting span:last-child {
+  color: #856404;
 }
 
 .content-action-bar {
@@ -356,14 +405,15 @@ function goPage(p: number) {
   border-collapse: collapse;
 }
 .extract-table th {
-  padding: 16px 24px;
+  padding: 12px 16px;
+  height: 42px;
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
   background-color: #F5EFE3;
   text-align: left;
 }
-.col-field { width: 180px; }
+.col-field { width: 160px; }
 .col-value { width: auto; }
 .col-page { width: 100px; }
 .col-action { width: 124px; text-align: center; }
@@ -399,8 +449,8 @@ function goPage(p: number) {
   gap: 12px;
 }
 .icon-btn {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   background-color: #F0E8D8;
   border: none;
   border-radius: 8px;
@@ -412,11 +462,17 @@ function goPage(p: number) {
 .icon-btn .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
-  font-size: 16px;
+  font-size: 14px;
   color: #8B7355;
 }
 .icon-btn:hover {
   background-color: #E8DCC8;
+}
+.empty-row td {
+  padding: 48px 0;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
 }
 
 .bottom-bar {

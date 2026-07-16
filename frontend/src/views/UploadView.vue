@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import TopNav from '@/components/layout/TopNav.vue';
 import FileUploader from '@/components/upload/FileUploader.vue';
-import { uploadFile } from '@/api/upload';
+import { uploadFile, getParseStatus } from '@/api/upload';
 import { createProject } from '@/api/projects';
 
 const router = useRouter();
@@ -19,13 +19,48 @@ async function handleUploaded(file: File) {
   progressPercent.value = 0;
 
   try {
-    await uploadFile(file);
-    progressPercent.value = 30;
-    await simulateProgress(60, 2000);
-    const project = await createProject({ name: file.name.replace(/\.(pdf|docx|doc)$/i, '') });
-    progressPercent.value = 90;
-    await simulateProgress(100, 500);
-    router.push(`/project/${project.id}`);
+    const uploadResult = await uploadFile(file);
+    const jobId = uploadResult.id;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const statusData = await getParseStatus(jobId);
+
+        if (statusData.progress != null) {
+          progressPercent.value = statusData.progress;
+        }
+
+        if (statusData.status === 'parsed') {
+          clearInterval(pollInterval);
+          progressPercent.value = 100;
+
+          const project = await createProject({
+            name: file.name.replace(/\.(pdf|docx|doc)$/i, ''),
+            ...statusData.result?.extracts
+          });
+          router.push(`/project/${project.id}?jobId=${jobId}`);
+        } else if (statusData.status === 'error') {
+          clearInterval(pollInterval);
+          alert(statusData.error || '解析失败');
+          uploading.value = false;
+          progressPercent.value = 0;
+          progressFileName.value = '';
+          selectedFile.value = null;
+        }
+      } catch {
+        // Poll failed, continue
+      }
+    }, 500);
+
+    setTimeout(async () => {
+      clearInterval(pollInterval);
+      if (uploading.value) {
+        progressPercent.value = 100;
+        const project = await createProject({ name: file.name.replace(/\.(pdf|docx|doc)$/i, '') });
+        router.push(`/project/${project.id}?jobId=${jobId}`);
+      }
+    }, 60000);
+
   } catch (err: any) {
     const msg = err?.response?.data?.error || '上传失败，请重试';
     alert(msg);
@@ -34,24 +69,6 @@ async function handleUploaded(file: File) {
     progressFileName.value = '';
     selectedFile.value = null;
   }
-}
-
-function simulateProgress(target: number, duration: number): Promise<void> {
-  return new Promise((resolve) => {
-    const start = progressPercent.value;
-    const delta = target - start;
-    const steps = 20;
-    const interval = duration / steps;
-    let step = 0;
-    const timer = setInterval(() => {
-      step++;
-      progressPercent.value = Math.min(start + (delta * step / steps), target);
-      if (step >= steps) {
-        clearInterval(timer);
-        resolve();
-      }
-    }, interval);
-  });
 }
 </script>
 

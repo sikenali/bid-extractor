@@ -8,6 +8,21 @@ export interface UploadResult {
   status: string;
 }
 
+export interface ParseStatus {
+  id: string;
+  status: string;
+  progress: number;
+  filename: string;
+  fileSize?: number;
+  error?: string;
+  result?: {
+    status: string;
+    text?: string;
+    extracts?: Record<string, unknown>;
+    error?: string;
+  };
+}
+
 export async function uploadFile(file: File): Promise<UploadResult> {
   const formData = new FormData();
   formData.append('file', file);
@@ -17,7 +32,7 @@ export async function uploadFile(file: File): Promise<UploadResult> {
   return response.data;
 }
 
-export async function getFileStatus(id: string): Promise<{ id: string; status: string }> {
-  const response = await apiClient.get(`/upload/${id}/status`);
+export async function getParseStatus(id: string): Promise<ParseStatus> {
+  const response = await apiClient.get<ParseStatus>(`/upload/${id}/status`);
   return response.data;
 }

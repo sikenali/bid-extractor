@@ -14,7 +14,7 @@ const router = useRouter();
       </div>
     </div>
     <div class="nav-right">
-      <button class="nav-expand-btn" title="帮助">
+      <button class="nav-expand-btn" title="帮助" @click="router.push('/project')">
         <span class="icon ri-question-line"></span>
         <span class="btn-label">帮助</span>
       </button>
