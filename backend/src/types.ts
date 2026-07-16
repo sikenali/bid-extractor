@@ -1,17 +1,3 @@
-export interface Project {
-  id: string;
-  name: string;
-  biddingNumber: string;
-  tenderOrg: string;
-  budget?: number;
-  deadline?: string;
-  location?: string;
-  scope?: string;
-  status: 'uploaded' | 'parsing' | 'parsed' | 'error';
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface ExtractionRule {
   id: string;
   fieldName: string;

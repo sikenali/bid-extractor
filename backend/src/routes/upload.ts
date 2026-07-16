@@ -16,20 +16,6 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-interface ParseJob {
-  id: string;
-  filename: string;
-  filePath: string;
-  fileSize: number;
-  status: 'uploading' | 'parsing' | 'parsed' | 'error';
-  progress: number;
-  result?: any;
-  error?: string;
-  startTime?: number;
-}
-
-const jobs: Map<string, ParseJob> = new Map();
-
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
   filename: (req, file, cb) => {
@@ -54,104 +40,42 @@ router.post('/', upload.single('file'), async (req, res) => {
     return;
   }
 
-  const jobId = req.file.filename;
-  const job: ParseJob = {
-    id: jobId,
-    filename: req.file.originalname,
-    filePath: req.file.path,
-    fileSize: req.file.size,
-    status: 'parsing',
-    progress: 0,
-    startTime: Date.now()
-  };
-  jobs.set(jobId, job);
+  try {
+    const rules = db.prepare('SELECT field_name, pattern FROM extraction_rules WHERE enabled = 1').all();
+    const rulesList = rules.map((r: any) => ({
+      name: r.field_name,
+      pattern: r.pattern
+    }));
 
-  (async () => {
-    try {
-      const rules = db.prepare('SELECT field_name, pattern FROM extraction_rules WHERE enabled = 1').all();
-      const rulesList = rules.map((r: any) => ({
-        name: r.field_name,
-        pattern: r.pattern
-      }));
-      job.progress = 20;
+    const result = await parseDocument(req.file.path);
 
-      const result = await parseDocument(req.file!.path);
-
-      if (result.status === 'error') {
-        job.status = 'error';
-        job.error = result.error;
-        job.progress = 100;
-      } else {
-        job.status = 'parsed';
-        job.progress = 100;
-        job.result = result;
-      }
-    } catch (err: any) {
-      job.status = 'error';
-      job.error = err.message;
-      job.progress = 100;
+    if (result.status === 'error') {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({
+        error: result.error || '解析失败'
+      });
     }
-  })();
 
-  res.status(201).json({
-    id: jobId,
-    filename: req.file.originalname,
-    path: req.file.path,
-    size: req.file.size,
-    status: 'parsing'
-  });
+    res.status(201).json({
+      id: req.file.filename,
+      filename: req.file.originalname,
+      size: req.file.size,
+      result: result
+    });
+  } catch (err: any) {
+    if (fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: err.message || '解析过程中发生错误' });
+  }
 });
 
 router.get('/:id/status', (req, res) => {
-  const job = jobs.get(req.params.id);
-  if (!job) {
-    res.status(404).json({ error: 'Job not found' });
-    return;
-  }
-
-  let displayProgress = job.progress;
-  if (job.status === 'parsing' && job.startTime) {
-    const elapsed = Date.now() - job.startTime;
-    if (elapsed > 3000 && displayProgress < 80) {
-      displayProgress = Math.min(displayProgress + (elapsed / 10000), 80);
-    }
-  }
-
   res.json({
-    id: job.id,
-    status: job.status,
-    progress: displayProgress,
-    filename: job.filename,
-    fileSize: job.fileSize,
-    error: job.error,
-    result: job.result
+    id: req.params.id,
+    status: 'not_found',
+    message: '请使用 /api/upload 直接获取解析结果'
   });
-});
-
-router.get('/:id/result', (req, res) => {
-  const job = jobs.get(req.params.id);
-  if (!job) {
-    res.status(404).json({ error: 'Job not found' });
-    return;
-  }
-  res.json({
-    id: job.id,
-    status: job.status,
-    result: job.result,
-    error: job.error
-  });
-});
-
-router.delete('/:id', (req, res) => {
-  const job = jobs.get(req.params.id);
-  if (job) {
-    const filePath = path.join(UPLOAD_DIR, req.params.id);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-    jobs.delete(req.params.id);
-  }
-  res.json({ deleted: true });
 });
 
 router.get('/file/:filename', (req, res) => {

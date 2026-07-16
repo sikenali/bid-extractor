@@ -10,7 +10,7 @@ const router = createRouter({
       component: () => import('@/views/UploadView.vue')
     },
     {
-      path: '/project/:id?',
+      path: '/project',
       name: 'Project',
       component: () => import('@/views/ProjectView.vue')
     },

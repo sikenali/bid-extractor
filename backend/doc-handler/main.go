@@ -1,14 +1,14 @@
 package main
 
 import (
-	"archive/zip"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/unidoc/unioffice/v2/document"
 )
 
 type ParseRequest struct {
@@ -28,65 +28,33 @@ type ParseResponse struct {
 	Error    string                 `json:"error,omitempty"`
 }
 
+func paragraphText(p document.Paragraph) string {
+	var sb strings.Builder
+	for _, r := range p.Runs() {
+		sb.WriteString(r.Text())
+	}
+	return sb.String()
+}
+
 func extractDocxText(filePath string) (string, error) {
-	r, err := zip.OpenReader(filePath)
+	doc, err := document.Open(filePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to open docx: %w", err)
 	}
-	defer r.Close()
+	defer doc.Close()
 
-	for _, f := range r.File {
-		if f.Name == "word/document.xml" {
-			rc, err := f.Open()
-			if err != nil {
-				return "", err
-			}
-			defer rc.Close()
-
-			data, err := io.ReadAll(rc)
-			if err != nil {
-				return "", err
-			}
-
-			content := string(data)
-			re := regexp.MustCompile(`<w:t[^>]*>([^<]+)</w:t>`)
-			matches := re.FindAllStringSubmatch(content, -1)
-			var parts []string
-			for _, m := range matches {
-				parts = append(parts, m[1])
-			}
-			return strings.Join(parts, ""), nil
-		}
-	}
-	return "", fmt.Errorf("word/document.xml not found in docx")
-}
-
-func extractPdfText(filePath string) (string, error) {
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return "", err
-	}
-	content := string(data)
-	re := regexp.MustCompile(`\((.*?)\)`)
-	matches := re.FindAllStringSubmatch(content, -1)
 	var parts []string
-	for _, m := range matches {
-		if len(m[1]) > 2 {
-			parts = append(parts, m[1])
-		}
-	}
-	if len(parts) == 0 {
-		re2 := regexp.MustCompile(`BT([\s\S]*?)ET`)
-		btMatches := re2.FindAllStringSubmatch(content, -1)
-		for _, m := range btMatches {
-			tRe := regexp.MustCompile(`Td\s*\(([^)]*)\)`)
-			tMatches := tRe.FindAllStringSubmatch(m[1], -1)
-			for _, t := range tMatches {
-				parts = append(parts, t[1])
-			}
+	for _, para := range doc.Paragraphs() {
+		text := strings.TrimSpace(paragraphText(para))
+		if text != "" {
+			parts = append(parts, text)
 		}
 	}
 	return strings.Join(parts, "\n"), nil
+}
+
+func extractPdfText(filePath string) (string, error) {
+	return "", fmt.Errorf("PDF parsing not yet implemented, please convert to .docx")
 }
 
 func extractText(filePath string) (string, error) {
@@ -111,7 +79,6 @@ func applyRules(text string, rules []Rule) map[string]interface{} {
 		}
 		re, err := regexp.Compile(rule.Pattern)
 		if err != nil {
-			extracts[rule.Name] = fmt.Sprintf("invalid pattern: %s", err.Error())
 			continue
 		}
 		matches := re.FindStringSubmatch(text)
@@ -125,8 +92,8 @@ func applyRules(text string, rules []Rule) map[string]interface{} {
 }
 
 func main() {
-	var req ParseRequest
 	decoder := json.NewDecoder(os.Stdin)
+	var req ParseRequest
 	if err := decoder.Decode(&req); err != nil {
 		resp := ParseResponse{Status: "error", Error: "invalid input: " + err.Error()}
 		output, _ := json.Marshal(resp)

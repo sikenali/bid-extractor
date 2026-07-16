@@ -2,7 +2,6 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import TopNav from '@/components/layout/TopNav.vue';
-import { getProject } from '@/api/projects';
 import { getParseStatus } from '@/api/upload';
 
 const route = useRoute();
@@ -10,7 +9,7 @@ const route = useRoute();
 const activeSection = ref('info');
 
 const sidebarItems = [
-  { key: 'info', label: '项目信息', sublabel: '招标文件提取', icon: 'ri-file-list-3-line', active: true },
+  { key: 'info', label: '提取结果', sublabel: '招标文件解析', icon: 'ri-file-list-3-line', active: true },
   { key: 'business', label: '商务条款', sublabel: '标书生成', icon: 'ri-file-paper-2-line', active: false },
   { key: 'tech', label: '技术条款', sublabel: '标书检查', icon: 'ri-search-eye-line', active: false },
   { key: 'score', label: '评分标准', sublabel: '标书排版', icon: 'ri-layout-line', active: false }
@@ -49,31 +48,28 @@ const currentSectionData = computed(() => {
 });
 
 onMounted(async () => {
-  const projectId = route.params.id as string;
   const jobId = route.query.jobId as string;
-  if (projectId) {
+  if (jobId) {
     try {
-      const project = await getProject(projectId);
-      fileInfo.value.name = project.name;
+      const statusData = await getParseStatus(jobId);
+      extractStatus.value = {
+        status: statusData.status,
+        progress: statusData.progress,
+        filename: statusData.filename || ''
+      };
 
-      // Load parse status using jobId from query params
-      if (jobId) {
-        const statusData = await getParseStatus(jobId);
-        extractStatus.value = {
-          status: statusData.status,
-          progress: statusData.progress,
-          filename: statusData.filename || fileInfo.value.name
-        };
-
-        if (statusData.result?.extracts) {
-          const extracts = statusData.result.extracts as Record<string, unknown>;
-          tableData.value = Object.entries(extracts).map(([field, value]) => ({
-            field,
-            value: String(value),
-            page: 'P.1'
-          }));
-        }
+      if (statusData.result?.extracts) {
+        const extracts = statusData.result.extracts as Record<string, unknown>;
+        tableData.value = Object.entries(extracts).map(([field, value]) => ({
+          field,
+          value: String(value),
+          page: 'P.1'
+        }));
       }
+
+      fileInfo.value.name = statusData.filename || '招标文件.pdf';
+      fileInfo.value.size = statusData.fileSize || 0;
+      fileInfo.value.pageCount = statusData.result?.pageCount || 0;
     } catch {
       fileInfo.value.name = 'XX市智慧城市建设项目招标文件.pdf';
     }

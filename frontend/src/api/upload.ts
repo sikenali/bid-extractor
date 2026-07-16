@@ -3,9 +3,15 @@ import apiClient from './client';
 export interface UploadResult {
   id: string;
   filename: string;
-  path: string;
   size: number;
-  status: string;
+  result: {
+    status: string;
+    text?: string;
+    extracts?: Record<string, unknown>;
+    chapters?: Array<{ title: string; content: string[]; page: number }>;
+    pageCount?: number;
+    error?: string;
+  };
 }
 
 export interface ParseStatus {
@@ -19,6 +25,8 @@ export interface ParseStatus {
     status: string;
     text?: string;
     extracts?: Record<string, unknown>;
+    chapters?: Array<{ title: string; content: string[]; page: number }>;
+    pageCount?: number;
     error?: string;
   };
 }

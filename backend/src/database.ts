@@ -1,7 +1,6 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -19,24 +18,10 @@ db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
 function uid() {
-  return `'${uuidv4()}'`;
+  return crypto.randomUUID();
 }
 
 export function initializeDatabase() {
-  db.exec(`CREATE TABLE IF NOT EXISTS projects (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    bidding_number TEXT,
-    tender_org TEXT,
-    budget REAL,
-    deadline TEXT,
-    location TEXT,
-    scope TEXT,
-    status TEXT DEFAULT 'uploaded',
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
-  )`);
-
   db.exec(`CREATE TABLE IF NOT EXISTS extraction_rules (
     id TEXT PRIMARY KEY,
     field_name TEXT NOT NULL,
