@@ -81,6 +81,12 @@ export function initializeDatabase() {
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category) VALUES (${uid()}, '投标保证金', '投标\\\\s*保证金[：:]\\\\s*(?:人民币\\\\s*)?[¥￥]?\\\\s*(\\\\d,+(?:\\\\.\\\\d{2})?)\\\\s*元?', 'regex')`);
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category) VALUES (${uid()}, '投标截止时间', '投标\\\\s*(?:截止|递交).*?时间[：:]\\\\s*(\\\\d{4}年\\\\d{1,2}月\\\\d{1,2}日\\\\s*\\\\d{1,2}:\\\\d{2})', 'regex')`);
 
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category) VALUES (${uid()}, '废标', '', 'keyword')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category) VALUES (${uid()}, '无效投标', '', 'keyword')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category) VALUES (${uid()}, '实质性响应', '', 'keyword')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category) VALUES (${uid()}, '★号条款', '', 'keyword')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category) VALUES (${uid()}, '否决投标', '', 'keyword')`);
+
   db.exec(`INSERT INTO templates (id, type, category, name, description) VALUES (${uid()}, 'bidding', 'government', '政府采购货物类', '适用于货物类采购项目')`);
   db.exec(`INSERT INTO templates (id, type, category, name, description) VALUES (${uid()}, 'bidding', 'engineering', '工程施工类', '适用于工程施工招标')`);
   db.exec(`INSERT INTO templates (id, type, category, name, description) VALUES (${uid()}, 'bidding', 'it_service', '信息化服务类', '适用于IT服务采购')`);
