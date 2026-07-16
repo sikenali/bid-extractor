@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
+const props = withDefaults(defineProps<{
+  loading?: boolean;
+}>(), { loading: false });
+
 const emit = defineEmits<{
   uploaded: [file: File]
 }>();
 
 const isDragging = ref(false);
+const selectedFile = ref<File | null>(null);
 
 function handleDragOver(e: DragEvent) {
   e.preventDefault();
@@ -20,19 +25,22 @@ function handleDrop(e: DragEvent) {
   e.preventDefault();
   isDragging.value = false;
   const files = e.dataTransfer?.files;
-  if (files && files.length > 0) {
+  if (files && files.length > 0 && !props.loading) {
+    selectedFile.value = files[0];
     emit('uploaded', files[0]);
   }
 }
 
 function handleFileSelect(event: Event) {
   const input = event.target as HTMLInputElement;
-  if (input.files && input.files.length > 0) {
+  if (input.files && input.files.length > 0 && !props.loading) {
+    selectedFile.value = input.files[0];
     emit('uploaded', input.files[0]);
   }
 }
 
 function triggerFileInput() {
+  if (props.loading) return;
   const el = document.getElementById('fileInput') as HTMLInputElement;
   el?.click();
 }
@@ -41,27 +49,45 @@ function triggerFileInput() {
 <template>
   <div
     class="upload-area"
-    :class="{ dragging: isDragging }"
+    :class="{ dragging: isDragging, loading: props.loading }"
     @dragover="handleDragOver"
     @dragleave="handleDragLeave"
     @drop="handleDrop"
   >
     <div class="upload-icon-wrapper">
-      <span class="icon">&#xe88c;</span>
+      <span class="icon ri-book-2-line"></span>
     </div>
-    <h3 class="upload-title">上传招标文件</h3>
-    <p class="upload-hint">支持 PDF、DOCX、DOC 格式，单个文件不超过 50MB</p>
-    <div class="upload-btn" @click="triggerFileInput">
-      <span class="icon">&#xeb13;</span>
-      <span>选择文件</span>
+
+    <template v-if="!props.loading">
+      <p class="upload-title">
+        {{ selectedFile ? `已选择: ${selectedFile.name}` : '上传招标文件' }}
+      </p>
+      <p class="upload-hint">支持 PDF、DOCX、DOC 格式，单个文件不超过 50MB</p>
+    </template>
+    <template v-else>
+      <p class="upload-title">正在解析: {{ selectedFile?.name }}</p>
+    </template>
+
+    <div v-if="props.loading" class="progress-wrapper">
+      <div class="progress-track">
+        <div class="progress-bar"></div>
+      </div>
+      <p class="progress-text">解析中...</p>
     </div>
+
     <input
       id="fileInput"
       type="file"
       class="file-input"
       accept=".pdf,.docx,.doc"
+      :disabled="props.loading"
       @change="handleFileSelect"
     />
+
+    <div v-if="!props.loading" class="upload-btn" @click="triggerFileInput">
+      <span class="icon ri-upload-2-line"></span>
+      <span>选择文件</span>
+    </div>
     <p class="drop-hint">或拖拽文件到此处</p>
   </div>
 </template>
@@ -81,12 +107,14 @@ function triggerFileInput() {
   transition: all 0.3s;
   position: relative;
 }
-
 .upload-area.dragging {
   border-color: var(--color-primary);
   background-color: rgba(196, 61, 61, 0.05);
 }
-
+.upload-area.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
 .upload-icon-wrapper {
   width: 80px;
   height: 80px;
@@ -96,30 +124,55 @@ function triggerFileInput() {
   align-items: center;
   justify-content: center;
 }
-
 .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
 }
-
 .upload-icon-wrapper .icon {
   font-size: 36px;
   color: var(--color-primary);
 }
-
 .upload-title {
   font-size: 20px;
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 0;
 }
-
 .upload-hint {
   font-size: 14px;
   color: var(--color-text-muted);
   margin: 0;
 }
-
+.progress-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 300px;
+}
+.progress-track {
+  width: 100%;
+  height: 6px;
+  background-color: var(--color-bg-secondary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, var(--color-primary), #e85d5d);
+  border-radius: 3px;
+  animation: progressShimmer 1.5s ease-in-out infinite;
+}
+@keyframes progressShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+.progress-text {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
 .upload-btn {
   height: 44px;
   padding: 12px 32px;
@@ -133,22 +186,22 @@ function triggerFileInput() {
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  transition: all 0.2s;
 }
-
+.upload-btn:hover {
+  opacity: 0.9;
+}
 .upload-btn .icon {
   font-size: 18px;
 }
-
 .file-input {
   position: absolute;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   opacity: 0;
   cursor: pointer;
   top: 0;
   left: 0;
 }
-
 .drop-hint {
   font-size: 12px;
   color: var(--color-border);
