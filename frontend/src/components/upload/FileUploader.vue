@@ -14,6 +14,21 @@ const emit = defineEmits<{
 const isDragging = ref(false);
 const selectedFile = ref<File | null>(null);
 
+function validateFile(file: File): boolean {
+  const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+  if (ext !== '.docx') {
+    if (ext === '.pdf') {
+      alert('暂不支持 PDF 格式，敬请期待～');
+    } else if (ext === '.doc') {
+      alert('不支持 .doc 格式，请转换成 Docx 格式后再上传～');
+    } else {
+      alert('仅支持 .docx 格式');
+    }
+    return false;
+  }
+  return true;
+}
+
 function handleDragOver(e: DragEvent) {
   e.preventDefault();
   isDragging.value = true;
@@ -29,7 +44,11 @@ function handleDrop(e: DragEvent) {
   const files = e.dataTransfer?.files;
   if (files && files.length > 0 && !props.loading) {
     selectedFile.value = files[0];
-    emit('uploaded', files[0]);
+    if (validateFile(files[0])) {
+      emit('uploaded', files[0]);
+    } else {
+      selectedFile.value = null;
+    }
   }
 }
 
@@ -37,7 +56,12 @@ function handleFileSelect(event: Event) {
   const input = event.target as HTMLInputElement;
   if (input.files && input.files.length > 0 && !props.loading) {
     selectedFile.value = input.files[0];
-    emit('uploaded', input.files[0]);
+    if (validateFile(input.files[0])) {
+      emit('uploaded', input.files[0]);
+    } else {
+      selectedFile.value = null;
+      input.value = '';
+    }
   }
 }
 
@@ -65,7 +89,7 @@ function triggerFileInput() {
       <p class="upload-title">
         {{ selectedFile ? `已选择: ${selectedFile.name}` : '上传招标文件' }}
       </p>
-      <p class="upload-hint">支持 PDF、DOCX、DOC 格式，单个文件不超过 50MB</p>
+      <p class="upload-hint">仅支持 DOCX 格式，单个文件不超过 50MB</p>
     </template>
     <template v-else>
       <p class="upload-title">正在解析: {{ props.fileName }}</p>
@@ -89,7 +113,7 @@ function triggerFileInput() {
       id="fileInput"
       type="file"
       class="file-input"
-      accept=".pdf,.docx,.doc"
+      accept=".docx"
       :disabled="props.loading"
       @change="handleFileSelect"
     />

@@ -19,6 +19,7 @@ interface ExtractedField {
   field: string;
   value: string;
   page: string;
+  groupName: string;
 }
 
 const tableData = ref<ExtractedField[]>([]);
@@ -34,21 +35,13 @@ const extractStatus = ref({
   filename: ''
 });
 
-const currentSectionData = computed(() => {
-  switch (activeSection.value) {
-    case 'info':
-      return tableData.value;
-    case 'business':
-    case 'tech':
-    case 'score':
-      return [];
-    default:
-      return tableData.value;
-  }
+const filteredData = computed(() => {
+  return tableData.value.filter(d => d.groupName === activeSection.value);
 });
 
 onMounted(async () => {
   const jobId = route.query.jobId as string;
+
   if (jobId) {
     try {
       const statusData = await getParseStatus(jobId);
@@ -63,15 +56,17 @@ onMounted(async () => {
         tableData.value = Object.entries(extracts).map(([field, value]) => ({
           field,
           value: String(value),
-          page: 'P.1'
+          page: 'P.1',
+          groupName: 'info'
         }));
       }
 
-      fileInfo.value.name = statusData.filename || '招标文件.pdf';
+      fileInfo.value.name = statusData.filename || '招标文件';
       fileInfo.value.size = statusData.fileSize || 0;
       fileInfo.value.pageCount = statusData.result?.pageCount || 0;
-    } catch {
-      fileInfo.value.name = 'XX市智慧城市建设项目招标文件.pdf';
+    } catch (err: any) {
+      console.error('Failed to load job:', err);
+      fileInfo.value.name = jobId;
     }
   }
 });
@@ -124,7 +119,7 @@ function selectSection(section: string) {
         <div class="file-info-bar">
           <span class="icon ri-file-pdf-line file-icon"></span>
           <span class="file-name">{{ extractStatus.filename || fileInfo.name || '招标文件.pdf' }}</span>
-          <span class="file-meta">{{ (fileInfo.size / 1024 / 1024).toFixed(1) }} MB · 共 {{ fileInfo.pageCount || '—' }} 页</span>
+          <span class="file-meta">{{ (fileInfo.size / 1024 / 1024).toFixed(1) }} MB · {{ fileInfo.pageCount > 0 ? '共 ' + fileInfo.pageCount + ' 页' : '' }}</span>
           <div class="status-tag" :class="{ extracting: extractStatus.status === 'parsing' }">
             <span class="icon" :class="extractStatus.status === 'parsed' ? 'ri-checkbox-circle-fill' : 'ri-loader-4-line'"></span>
             <span>{{ extractStatus.status === 'parsed' ? '提取完成' : extractStatus.status === 'parsing' ? '提取中...' : '等待提取' }}</span>
@@ -155,7 +150,7 @@ function selectSection(section: string) {
               </tr>
             </thead>
             <tbody>
-              <template v-for="(row, idx) in currentSectionData" :key="row.field">
+              <template v-for="(row, idx) in filteredData" :key="row.field">
                 <tr v-if="idx > 0" class="row-spacer"><td colspan="4"></td></tr>
                 <tr class="data-row">
                   <td class="col-field">{{ row.field }}</td>
@@ -173,7 +168,7 @@ function selectSection(section: string) {
                   </td>
                 </tr>
               </template>
-              <tr v-if="currentSectionData.length === 0" class="empty-row">
+              <tr v-if="filteredData.length === 0" class="empty-row">
                 <td colspan="4" class="empty-cell">暂无提取数据，请先上传招标文件</td>
               </tr>
             </tbody>

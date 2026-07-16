@@ -3,7 +3,7 @@ import { ref, watch } from 'vue';
 
 const props = defineProps<{
   visible: boolean;
-  activeTab: string;
+  activeTab?: string;
 }>();
 
 const emit = defineEmits<{
