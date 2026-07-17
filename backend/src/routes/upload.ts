@@ -16,11 +16,21 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
+interface TableRow {
+  cells: string[];
+}
+
+interface DocTable {
+  rows: TableRow[];
+}
+
 interface ParseResult {
   status: string;
   text?: string;
   extracts?: Record<string, unknown>;
+  groups?: Record<string, string>;
   chapters?: Array<{ title: string; content: string[]; page: number }>;
+  tables?: DocTable[];
   pageCount?: number;
   error?: string;
 }
@@ -30,13 +40,9 @@ const jobStore = new Map<string, { filename: string; size: number; result: Parse
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
   filename: (req, file, cb) => {
-    const now = new Date();
-    const yyyymmdd = now.getFullYear() +
-      String(now.getMonth() + 1).padStart(2, '0') +
-      String(now.getDate()).padStart(2, '0');
-    const rand = Math.floor(Math.random() * 90000000 + 10000000);
     const ext = path.extname(file.originalname);
-    cb(null, `${yyyymmdd}${rand}${ext}`);
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`;
+    cb(null, uniqueName);
   }
 });
 
@@ -68,15 +74,17 @@ router.post('/', upload.single('file'), async (req, res) => {
       });
     }
 
+    const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+
     jobStore.set(req.file.filename, {
-      filename: req.file.originalname,
+      filename: originalName,
       size: req.file.size,
       result: result
     });
 
     res.status(201).json({
       id: req.file.filename,
-      filename: req.file.originalname,
+      filename: originalName,
       size: req.file.size,
       status: 'parsed',
       result: result

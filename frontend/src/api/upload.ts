@@ -1,5 +1,13 @@
 import apiClient from './client';
 
+export interface TableRow {
+  cells: string[];
+}
+
+export interface DocTable {
+  rows: TableRow[];
+}
+
 export interface UploadResult {
   id: string;
   filename: string;
@@ -8,7 +16,9 @@ export interface UploadResult {
     status: string;
     text?: string;
     extracts?: Record<string, unknown>;
+    groups?: Record<string, string>;
     chapters?: Array<{ title: string; content: string[]; page: number }>;
+    tables?: DocTable[];
     pageCount?: number;
     error?: string;
   };
@@ -25,7 +35,9 @@ export interface ParseStatus {
     status: string;
     text?: string;
     extracts?: Record<string, unknown>;
+    groups?: Record<string, string>;
     chapters?: Array<{ title: string; content: string[]; page: number }>;
+    tables?: DocTable[];
     pageCount?: number;
     error?: string;
   };

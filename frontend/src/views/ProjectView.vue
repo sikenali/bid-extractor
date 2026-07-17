@@ -2,18 +2,116 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import TopNav from '@/components/layout/TopNav.vue';
+import PreviewModal from '@/components/preview/PreviewModal.vue';
 import { getParseStatus } from '@/api/upload';
+import { getExportSettings } from '@/api/settings';
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType } from 'docx';
 
 const route = useRoute();
 
+const previewVisible = ref(false);
+const fileId = ref('');
+
 const activeSection = ref('info');
+const currentPage = ref(1);
+const pageSize = ref(10);
 
 const sidebarItems = [
-  { key: 'info', label: '提取结果', sublabel: '招标文件解析', icon: 'ri-file-list-3-line', active: true },
-  { key: 'business', label: '商务条款', sublabel: '标书生成', icon: 'ri-file-paper-2-line', active: false },
-  { key: 'tech', label: '技术条款', sublabel: '标书检查', icon: 'ri-search-eye-line', active: false },
-  { key: 'score', label: '评分标准', sublabel: '标书排版', icon: 'ri-layout-line', active: false }
+  { key: 'info', label: '项目信息', sublabel: '招标文件基本信息', icon: 'ri-file-list-3-line' },
+  { key: 'business', label: '商务条款', sublabel: '招标文件商务偏离表', icon: 'ri-file-paper-2-line' },
+  { key: 'tech', label: '技术条款', sublabel: '招标文件技术偏离表', icon: 'ri-search-eye-line' },
+  { key: 'score', label: '评分标准', sublabel: '专家评分标准表', icon: 'ri-layout-line' }
 ];
+
+const sectionFields: Record<string, { field: string; page: string }[]> = {
+  info: [
+    { field: '项目名称', page: '' },
+    { field: '项目编号', page: '' },
+    { field: '采购人', page: '' },
+    { field: '采购代理', page: '' },
+    { field: '采购方式', page: '' },
+    { field: '资金来源', page: '' },
+    { field: '预算金额', page: '' },
+    { field: '投标截止时间', page: '' },
+    { field: '开标时间', page: '' },
+    { field: '投标地点', page: '' },
+    { field: '踏勘时间', page: '' },
+    { field: '交付时间', page: '' },
+    { field: '交付地点', page: '' },
+    { field: '投标保证金', page: '' },
+    { field: '合同包号', page: '' },
+    { field: '分包情况', page: '' },
+    { field: '采购需求', page: '' },
+  ],
+  business: [
+    { field: '付款方式', page: '' },
+    { field: '付款进度', page: '' },
+    { field: '质保期', page: '' },
+    { field: '履约保证金', page: '' },
+    { field: '交货期', page: '' },
+    { field: '投标有效期', page: '' },
+    { field: '合同签订', page: '' },
+    { field: '营业执照', page: '' },
+    { field: '民事责任', page: '' },
+    { field: '财务要求', page: '' },
+    { field: '纳税要求', page: '' },
+    { field: '社会保障', page: '' },
+    { field: '信用记录', page: '' },
+    { field: '声明函', page: '' },
+    { field: '无违法记录', page: '' },
+    { field: '关联关系', page: '' },
+    { field: '联合体', page: '' },
+    { field: '分包转包', page: '' },
+    { field: '中小企业', page: '' },
+    { field: '项目管理人员', page: '' },
+    { field: '知识产权', page: '' },
+    { field: '保密要求', page: '' },
+    { field: '争议解决', page: '' },
+    { field: '不可抗力', page: '' },
+    { field: '违约责任', page: '' },
+    { field: '发票要求', page: '' },
+    { field: '验收条款', page: '' },
+    { field: '售后服务', page: '' },
+    { field: '备品备件', page: '' },
+  ],
+  tech: [
+    { field: '技术规格', page: '' },
+    { field: '技术参数', page: '' },
+    { field: '技术指标', page: '' },
+    { field: '技术方案', page: '' },
+    { field: '性能要求', page: '' },
+    { field: '功能要求', page: '' },
+    { field: '配置清单', page: '' },
+    { field: '安装调试', page: '' },
+    { field: '软硬件要求', page: '' },
+    { field: '接口要求', page: '' },
+    { field: '安全要求', page: '' },
+    { field: '质量要求', page: '' },
+    { field: '验收标准', page: '' },
+    { field: '服务要求', page: '' },
+    { field: '服务内容', page: '' },
+    { field: '培训要求', page: '' },
+    { field: '技术资料', page: '' },
+    { field: '运维要求', page: '' },
+  ],
+  score: [
+    { field: '评标办法', page: '' },
+    { field: '评分标准细则', page: '' },
+    { field: '评分表', page: '' },
+    { field: '评分项', page: '' },
+    { field: '分值', page: '' },
+    { field: '满分', page: '' },
+    { field: '合格分数线', page: '' },
+    { field: '价格评分', page: '' },
+    { field: '技术评分', page: '' },
+    { field: '商务评分', page: '' },
+    { field: '客观分', page: '' },
+    { field: '主观分', page: '' },
+    { field: '价格扣除', page: '' },
+    { field: '优先采购', page: '' },
+    { field: '评审因素', page: '' },
+  ],
+};
 
 interface ExtractedField {
   field: string;
@@ -23,6 +121,18 @@ interface ExtractedField {
 }
 
 const tableData = ref<ExtractedField[]>([]);
+const docTables = ref<{ rows: { cells: string[] }[] }[]>([]);
+const activeScoreTab = ref(0);
+
+const scoreKeywords = ['评分', '得分', '分值', '分数', '评审', '明细', '权重', '价格', '商务', '技术'];
+const scoreTables = computed(() => {
+  return docTables.value.filter(tbl => {
+    if (tbl.rows.length < 2) return false;
+    const headers = tbl.rows[0].cells.map(c => c.trim());
+    return headers.some(h => scoreKeywords.some(kw => h.includes(kw)));
+  });
+});
+
 const fileInfo = ref({
   name: '',
   size: 0,
@@ -35,9 +145,91 @@ const extractStatus = ref({
   filename: ''
 });
 
-const filteredData = computed(() => {
-  return tableData.value.filter(d => d.groupName === activeSection.value);
+const sectionData = computed(() => {
+  const fields = sectionFields[activeSection.value] || [];
+  const extractedMap = new Map(
+    tableData.value.filter(d => d.groupName === activeSection.value).map(d => [d.field, d])
+  );
+  return fields.map(f => {
+    const extracted = extractedMap.get(f.field);
+    return {
+      field: f.field,
+      value: extracted?.value || '-',
+      page: extracted?.page || f.page || '-',
+      groupName: activeSection.value
+    };
+  });
 });
+
+const totalRows = computed(() => sectionData.value.length);
+const totalPages = computed(() => Math.max(1, Math.ceil(totalRows.value / pageSize.value)));
+
+const paginatedData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return sectionData.value.slice(start, start + pageSize.value);
+});
+
+function extractScore(raw: string): string {
+  const m = raw.match(/(\d+(?:\.\d+)?)\s*分/);
+  if (m) return m[1] + '分';
+  const n = raw.match(/(\d+(?:\.\d+)?)/);
+  if (n) return n[1] + '分';
+  return '-';
+}
+
+function parseScoreTable(tables: { rows: { cells: string[] }[] }[]): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const tbl of tables) {
+    if (tbl.rows.length < 2) continue;
+    const headerRow = tbl.rows[0].cells.map(c => c.trim());
+    const scoreCols: { colIdx: number; key: string }[] = [];
+    const scoreKeys = ['技术评分', '商务评分', '价格评分'];
+    for (let ci = 0; ci < headerRow.length; ci++) {
+      for (const key of scoreKeys) {
+        if (headerRow[ci].includes(key)) {
+          scoreCols.push({ colIdx: ci, key });
+          break;
+        }
+      }
+    }
+    if (scoreCols.length === 0) continue;
+    for (let ri = 1; ri < tbl.rows.length; ri++) {
+      const row = tbl.rows[ri].cells.map(c => c.trim());
+      if (!row[0] || (row[0] !== '分值' && row[0] !== '分数' && row[0] !== '得分')) continue;
+      for (const { colIdx, key } of scoreCols) {
+        if (row[colIdx]) {
+          const m = row[colIdx].match(/(\d+(?:\.\d+)?)/);
+          if (m) result[key] = m[1] + '分';
+        }
+      }
+    }
+  }
+  return result;
+}
+
+const scoreCards = computed(() => {
+  const cards = [
+    { key: 'tech', field: '技术评分', label: '技术评分', color: '#4f6ef7', bg: '#eef1fe', icon: 'ri-flask-line' },
+    { key: 'business', field: '商务评分', label: '商务评分', color: '#22c55e', bg: '#e8faf0', icon: 'ri-briefcase-line' },
+    { key: 'price', field: '价格评分', label: '价格评分', color: '#ef4444', bg: '#fef0ef', icon: 'ri-price-tag-3-line' },
+  ];
+
+  const tableScores = parseScoreTable(docTables.value);
+  const data = sectionData.value;
+  const extractedMap = new Map(data.map(d => [d.field, d.value]));
+
+  return cards.map(c => {
+    const raw = tableScores[c.field] || extractScore(extractedMap.get(c.field) || '');
+    const num = parseFloat(raw);
+    const percent = isNaN(num) ? 0 : Math.min(num, 100);
+    return { ...c, value: raw || '-', percent };
+  });
+});
+
+function goPage(page: number) {
+  currentPage.value = Math.max(1, Math.min(page, totalPages.value));
+}
+void goPage;
 
 onMounted(async () => {
   const jobId = route.query.jobId as string;
@@ -45,6 +237,7 @@ onMounted(async () => {
   if (jobId) {
     try {
       const statusData = await getParseStatus(jobId);
+      fileId.value = statusData.id || jobId;
       extractStatus.value = {
         status: statusData.status,
         progress: statusData.progress,
@@ -53,12 +246,17 @@ onMounted(async () => {
 
       if (statusData.result?.extracts) {
         const extracts = statusData.result.extracts as Record<string, unknown>;
+        const groups = (statusData.result.groups || {}) as Record<string, string>;
         tableData.value = Object.entries(extracts).map(([field, value]) => ({
           field,
           value: String(value),
           page: 'P.1',
-          groupName: 'info'
+          groupName: groups[field] || 'info'
         }));
+      }
+
+      if (statusData.result?.tables) {
+        docTables.value = statusData.result.tables as { rows: { cells: string[] }[] }[];
       }
 
       fileInfo.value.name = statusData.filename || '招标文件';
@@ -91,6 +289,83 @@ function handleEdit(field: string) {
 function selectSection(section: string) {
   activeSection.value = section;
 }
+
+function handlePreview() {
+  previewVisible.value = true;
+}
+
+async function handleExport() {
+  let format = 'docx';
+  try {
+    const settings = await getExportSettings();
+    format = settings.format;
+  } catch {}
+
+  const rows = tableData.value;
+  const baseName = (extractStatus.value.filename || fileInfo.value.name || '导出').replace(/\.[^.]+$/, '');
+
+  if (format === 'markdown') {
+    exportMarkdown(rows, baseName);
+  } else {
+    await exportDocx(rows, baseName);
+  }
+}
+
+function exportMarkdown(rows: ExtractedField[], baseName: string) {
+  let md = '# 提取结果\n\n';
+  md += '| 字段 | 内容 |\n';
+  md += '|------|------|\n';
+  for (const row of rows) {
+    md += `| ${row.field} | ${row.value.replace(/\n/g, ' ')} |\n`;
+  }
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  triggerDownload(blob, `${baseName}.md`);
+}
+
+async function exportDocx(rows: ExtractedField[], baseName: string) {
+  const tableRows = rows.map(row => new TableRow({
+    children: [
+      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: row.field, bold: true })] })] }),
+      new TableCell({ children: [new Paragraph({ children: [new TextRun(row.value) ] })] }),
+    ],
+  }));
+
+  const doc = new Document({
+    sections: [{
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text: '提取结果', bold: true, size: 32 })],
+        }),
+        new Paragraph({ spacing: { after: 200 }, children: [] }),
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '字段', bold: true })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '内容', bold: true })] })] }),
+              ],
+            }),
+            ...tableRows,
+          ],
+        }),
+      ],
+    }],
+  });
+
+  const blob = await Packer.toBlob(doc);
+  triggerDownload(blob, `${baseName}.docx`);
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 </script>
 
 <template>
@@ -116,29 +391,41 @@ function selectSection(section: string) {
       </div>
 
       <div class="extract-content">
-        <div class="file-info-bar">
-          <span class="icon ri-file-pdf-line file-icon"></span>
-          <span class="file-name">{{ extractStatus.filename || fileInfo.name || '招标文件.pdf' }}</span>
-          <span class="file-meta">{{ (fileInfo.size / 1024 / 1024).toFixed(1) }} MB · {{ fileInfo.pageCount > 0 ? '共 ' + fileInfo.pageCount + ' 页' : '' }}</span>
-          <div class="status-tag" :class="{ extracting: extractStatus.status === 'parsing' }">
-            <span class="icon" :class="extractStatus.status === 'parsed' ? 'ri-checkbox-circle-fill' : 'ri-loader-4-line'"></span>
-            <span>{{ extractStatus.status === 'parsed' ? '提取完成' : extractStatus.status === 'parsing' ? '提取中...' : '等待提取' }}</span>
+        <div class="extract-top-row">
+          <div v-if="activeSection === 'score'" class="score-cards">
+            <div
+              v-for="card in scoreCards"
+              :key="card.key"
+              class="score-card"
+              :style="{ '--card-accent': card.color, '--card-bg': card.bg }"
+            >
+              <div class="score-card-icon">
+                <span class="icon" :class="card.icon"></span>
+              </div>
+              <div class="score-card-body">
+                <div class="score-card-label">{{ card.label }}</div>
+                <div class="score-card-value">{{ card.value }}</div>
+              </div>
+              <div class="score-card-bar">
+                <div class="score-card-fill" :style="{ width: card.percent + '%' }"></div>
+              </div>
+            </div>
+          </div>
+          <div class="content-action-bar">
+            <div class="action-group">
+              <button class="btn-outline" @click="handlePreview">
+                <span class="icon ri-eye-line"></span>
+                <span>预览</span>
+              </button>
+              <button class="btn-primary" @click="handleExport">
+                <span class="icon ri-download-2-line"></span>
+                <span>导出</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        <div class="content-action-bar">
-          <div class="action-group">
-            <button class="btn-outline">
-              <span class="icon ri-eye-line"></span>
-              <span>预览</span>
-            </button>
-            <button class="btn-primary">
-              <span class="icon ri-download-2-line"></span>
-              <span>导出</span>
-            </button>
-          </div>
-        </div>
-
+        <template v-if="activeSection !== 'score'">
         <div class="table-container">
           <table class="extract-table">
             <thead>
@@ -150,7 +437,7 @@ function selectSection(section: string) {
               </tr>
             </thead>
             <tbody>
-              <template v-for="(row, idx) in filteredData" :key="row.field">
+              <template v-for="(row, idx) in paginatedData" :key="row.field">
                 <tr v-if="idx > 0" class="row-spacer"><td colspan="4"></td></tr>
                 <tr class="data-row">
                   <td class="col-field">{{ row.field }}</td>
@@ -168,31 +455,93 @@ function selectSection(section: string) {
                   </td>
                 </tr>
               </template>
-              <tr v-if="filteredData.length === 0" class="empty-row">
+              <tr v-if="paginatedData.length === 0" class="empty-row">
                 <td colspan="4" class="empty-cell">暂无提取数据，请先上传招标文件</td>
               </tr>
             </tbody>
           </table>
         </div>
+        </template>
 
-        <div class="bottom-bar">
+        <template v-else>
+        <div v-if="scoreTables.length === 0" class="empty-state">暂无评分表格数据</div>
+        <template v-else-if="scoreTables.length === 1">
+          <div class="doc-table-wrap">
+            <div class="table-container doc-table">
+              <table class="extract-table">
+                <thead>
+                  <tr><th v-for="(cell, ci) in scoreTables[0].rows[0].cells" :key="ci" class="doc-th">{{ cell }}</th></tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(row, ri) in scoreTables[0].rows.slice(1)" :key="ri" class="data-row">
+                    <td v-for="(cell, ci) in row.cells" :key="ci" class="doc-td">{{ cell }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </template>
+        <template v-else>
+          <div class="score-tab-bar">
+            <button
+              v-for="(_tbl, ti) in scoreTables"
+              :key="ti"
+              class="score-tab"
+              :class="{ active: activeScoreTab === ti }"
+              @click="activeScoreTab = ti"
+            >
+              评分表 {{ ti + 1 }}
+            </button>
+          </div>
+          <div class="doc-table-wrap">
+            <div class="table-container doc-table">
+              <table class="extract-table">
+                <thead>
+                  <tr><th v-for="(cell, ci) in scoreTables[activeScoreTab].rows[0].cells" :key="ci" class="doc-th">{{ cell }}</th></tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(row, ri) in scoreTables[activeScoreTab].rows.slice(1)" :key="ri" class="data-row">
+                    <td v-for="(cell, ci) in row.cells" :key="ci" class="doc-td">{{ cell }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </template>
+        </template>
+
+        <div v-if="activeSection !== 'score'" class="bottom-bar">
           <div class="pagination">
-            <button class="page-btn" disabled>
+            <span class="page-info">共 {{ totalRows }} 条</span>
+            <select class="page-size-select" :value="pageSize" @change="pageSize = Number(($event.target as HTMLSelectElement).value); currentPage = 1">
+              <option :value="5">5条/页</option>
+              <option :value="10">10条/页</option>
+              <option :value="20">20条/页</option>
+              <option :value="50">50条/页</option>
+            </select>
+            <button class="page-btn" :disabled="currentPage <= 1" @click="goPage(currentPage - 1)">
               <span class="icon ri-arrow-left-s-line"></span>
             </button>
-            <button class="page-num active">1</button>
-            <button class="page-btn" disabled>
+            <template v-for="p in totalPages" :key="p">
+              <button v-if="p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2"
+                class="page-num" :class="{ active: currentPage === p }" @click="goPage(p)">{{ p }}</button>
+              <span v-else-if="p === currentPage - 3 || p === currentPage + 3" class="page-ellipsis">...</span>
+            </template>
+            <button class="page-btn" :disabled="currentPage >= totalPages" @click="goPage(currentPage + 1)">
               <span class="icon ri-arrow-right-s-line"></span>
             </button>
           </div>
-          <button class="btn-extract">
-            <span class="icon ri-magic-line"></span>
-            <span>一键提取</span>
-          </button>
         </div>
       </div>
     </div>
   </div>
+
+  <PreviewModal
+    :visible="previewVisible"
+    :filename="extractStatus.filename || fileInfo.name"
+    :file-id="fileId"
+    @close="previewVisible = false"
+  />
 </template>
 
 <style scoped>
@@ -279,64 +628,6 @@ function selectSection(section: string) {
   flex-direction: column;
   gap: 24px;
   overflow-y: auto;
-}
-
-.file-info-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background-color: #F0E8D8;
-  border-radius: 12px;
-}
-.file-icon {
-  font-family: "remixicon", sans-serif;
-  font-style: normal;
-  font-size: 20px;
-  color: var(--color-primary);
-}
-.file-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--color-text-primary);
-}
-.file-meta {
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-.status-tag {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 12px;
-  background-color: #D4EDDA;
-  border-radius: 9999px;
-}
-.status-tag.extracting {
-  background-color: #FFF3CD;
-}
-.status-tag .icon {
-  font-family: "remixicon", sans-serif;
-  font-style: normal;
-  font-size: 14px;
-  color: #2D8A4E;
-}
-.status-tag.extracting .icon {
-  color: #856404;
-  animation: spin 1s linear infinite;
-}
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-.status-tag span:last-child {
-  font-size: 12px;
-  font-weight: 500;
-  color: #2D8A4E;
-}
-.status-tag.extracting span:last-child {
-  color: #856404;
 }
 
 .content-action-bar {
@@ -513,22 +804,153 @@ function selectSection(section: string) {
   color: white;
   font-weight: 600;
 }
-.btn-extract {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 32px;
-  background: linear-gradient(90deg, #C43D3D, #A83232);
-  border: none;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 600;
-  color: white;
+.page-info {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-right: 4px;
+}
+.page-size-select {
+  font-size: 13px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
   cursor: pointer;
 }
-.btn-extract .icon {
+.page-ellipsis {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  padding: 0 4px;
+}
+
+.extract-top-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.extract-top-row .content-action-bar {
+  margin-left: auto;
+}
+.score-cards {
+  display: flex;
+  gap: 10px;
+}
+.score-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--card-accent, #e5e7eb);
+  background-color: var(--card-bg, #f9fafb);
+}
+.score-card-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background-color: var(--card-accent, #4f6ef7);
+}
+.score-card-icon .icon {
+  color: #fff;
   font-family: "remixicon", sans-serif;
   font-style: normal;
-  font-size: 18px;
+  font-size: 12px;
+}
+.score-card-body {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.score-card-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.score-card-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--card-accent, #111827);
+  white-space: nowrap;
+}
+.score-card-bar {
+  width: 40px;
+  height: 3px;
+  border-radius: 2px;
+  background-color: #e5e7eb;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.score-card-fill {
+  height: 100%;
+  border-radius: 2px;
+  background-color: var(--card-accent, #4f6ef7);
+  transition: width 0.3s ease;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+.doc-table-wrap {
+  margin-bottom: 24px;
+}
+.doc-table-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 8px;
+}
+.doc-table th,
+.doc-th,
+.doc-td {
+  padding: 10px 14px;
+  font-size: 13px;
+  vertical-align: middle;
+  border: 1px solid var(--color-border, #e5e7eb);
+  text-align: left;
+}
+.doc-th {
+  font-weight: 600;
+  background-color: #F5EFE3;
+  color: var(--color-text-primary);
+}
+.doc-td {
+  color: #5C4A3A;
+}
+
+.score-tab-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.score-tab {
+  padding: 6px 16px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  background: var(--color-bg-card, #fff);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted, #6b7280);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.score-tab:hover {
+  border-color: var(--color-primary, #4f6ef7);
+  color: var(--color-primary, #4f6ef7);
+}
+.score-tab.active {
+  border-color: var(--color-primary, #4f6ef7);
+  background-color: var(--color-primary, #4f6ef7);
+  color: #fff;
 }
 </style>

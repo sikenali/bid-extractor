@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { getRules, addRule, updateRule, deleteRule } from '@/api/rules';
 import RuleDialog from '@/components/settings/RuleDialog.vue';
@@ -13,27 +13,25 @@ interface Rule {
   groupName: string;
 }
 
-const activeGroup = ref('bidding');
+const activeSection = ref('info');
 
-const groups = [
-  { key: 'bidding', label: '招标模板' },
-  { key: 'proposal', label: '投标模板' },
-  { key: 'custom', label: '自定义' }
+const tabItems = [
+  { key: 'info', label: '项目信息', sublabel: '招标文件基本信息' },
+  { key: 'business', label: '商务条款', sublabel: '招标文件商务偏离表' },
+  { key: 'tech', label: '技术条款', sublabel: '招标文件技术偏离表' },
+  { key: 'score', label: '评分标准', sublabel: '专家评分标准表' }
 ];
 
 const rulesByGroup = ref<Record<string, Rule[]>>({
-  bidding: [],
-  proposal: [],
-  custom: []
+  info: [],
+  business: [],
+  tech: [],
+  score: []
 });
 
 const showRuleDialog = ref(false);
 const dialogMode = ref<'regex' | 'keyword'>('regex');
 const editingRule = ref<{ id: string; fieldName: string; pattern: string } | null>(null);
-
-const tabContainerRef = ref<HTMLElement | null>(null);
-const indicatorStyle = ref({ left: '0px', width: '0px' });
-const isInitialized = ref(false);
 
 async function loadRules(group: string) {
   try {
@@ -45,40 +43,15 @@ async function loadRules(group: string) {
 }
 
 async function loadAllRules() {
-  for (const g of groups.map(g => g.key)) {
+  for (const g of ['info', 'business', 'tech', 'score']) {
     await loadRules(g);
   }
 }
 
-onMounted(() => {
-  loadAllRules();
-  nextTick(() => {
-    positionIndicator();
-    setTimeout(() => { isInitialized.value = true; }, 150);
-  });
-});
+onMounted(loadAllRules);
 
-function positionIndicator() {
-  const container = tabContainerRef.value;
-  if (!container) return;
-  const activeEl = container.querySelector(`[data-tab-key="${activeGroup.value}"]`) as HTMLElement | null;
-  if (!activeEl) return;
-  const containerRect = container.getBoundingClientRect();
-  const elRect = activeEl.getBoundingClientRect();
-  indicatorStyle.value = {
-    left: `${elRect.left - containerRect.left}px`,
-    width: `${elRect.width}px`,
-  };
-}
-
-function selectGroup(key: string) {
-  activeGroup.value = key;
-  loadRules(key);
-  nextTick(positionIndicator);
-}
-
-async function handleAddRule() {
-  dialogMode.value = 'regex';
+async function handleAddRule(mode: 'regex' | 'keyword') {
+  dialogMode.value = mode;
   editingRule.value = null;
   showRuleDialog.value = true;
 }
@@ -96,7 +69,7 @@ async function handleRuleSubmit(data: { fieldName: string; pattern: string; cate
         fieldName: data.fieldName,
         pattern: data.pattern,
         category: data.category,
-        groupName: activeGroup.value
+        groupName: activeSection.value
       });
       ElMessage.success('规则已更新');
     } else {
@@ -105,11 +78,11 @@ async function handleRuleSubmit(data: { fieldName: string; pattern: string; cate
         pattern: data.pattern,
         enabled: true,
         category: data.category,
-        groupName: activeGroup.value
+        groupName: activeSection.value
       });
       ElMessage.success('规则已添加');
     }
-    await loadRules(activeGroup.value);
+    await loadRules(activeSection.value);
   } catch {
     ElMessage.error('操作失败');
   }
@@ -121,123 +94,165 @@ async function handleDeleteRule(id: string) {
     await ElMessageBox.confirm('确定要删除此规则吗？', '确认删除');
     await deleteRule(id);
     ElMessage.success('规则已删除');
-    await loadRules(activeGroup.value);
+    await loadRules(activeSection.value);
   } catch {
     // cancelled
   }
+}
+
+function selectTab(key: string) {
+  activeSection.value = key;
 }
 </script>
 
 <template>
   <div class="settings-content">
+    <div class="tab-content">
     <h2 class="page-title">规则设置</h2>
-    <p class="page-desc">管理字段提取规则，按分类组织知识库</p>
-
-    <div ref="tabContainerRef" class="tab-bar">
-      <div class="tab-indicator" :class="{ animated: isInitialized }" :style="indicatorStyle"></div>
-      <div
-        v-for="tab in groups"
-        :key="tab.key"
-        class="tab-item"
-        :data-tab-key="tab.key"
-        :class="{ active: activeGroup === tab.key }"
-        @click="selectGroup(tab.key)"
-      >
-        {{ tab.label }}
-      </div>
-    </div>
-
+    <p class="page-desc">配置提取规则、正则表达式及关键字匹配</p>
     <div class="rule-section">
       <div class="section-header">
-        <div class="section-title">
-          <div class="section-icon"><span class="icon ri-code-line"></span></div>
-          <div>
-            <h3>{{ groups.find(g => g.key === activeGroup)?.label }} · 提取规则</h3>
-            <p>共 {{ (rulesByGroup[activeGroup] || []).length }} 条规则</p>
+        <div class="tabs-inner">
+          <div
+            v-for="item in tabItems"
+            :key="item.key"
+            class="tab-item"
+            :class="{ active: activeSection === item.key }"
+            @click="selectTab(item.key)"
+          >
+            <div class="tab-label">{{ item.label }}</div>
+            <div class="tab-sublabel">{{ item.sublabel }}</div>
           </div>
         </div>
-        <button class="btn-add-rule" @click="handleAddRule">
-          <span class="icon ri-add-line"></span>
-          <span>添加规则</span>
-        </button>
-      </div>
-
-      <div class="rule-table-wrapper">
-        <table class="rule-table">
-          <thead>
-            <tr>
-              <th>字段名称</th>
-              <th>规则类型</th>
-              <th>正则表达式</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="rule in rulesByGroup[activeGroup]" :key="rule.id">
-              <td>{{ rule.fieldName }}</td>
-              <td>
-                <span class="type-tag" :class="rule.category">
-                  {{ rule.category === 'keyword' ? '关键字' : '正则' }}
-                </span>
-              </td>
-              <td>
-                <code v-if="rule.pattern" class="pattern">{{ rule.pattern }}</code>
-                <span v-else class="empty-pattern">—</span>
-              </td>
-              <td>
-                <div class="action-buttons">
-                  <button class="btn-action" title="编辑" @click="handleEditRule(rule)"><span class="icon ri-pencil-line"></span></button>
-                  <button class="btn-action btn-delete" title="删除" @click="handleDeleteRule(rule.id)"><span class="icon ri-delete-bin-line"></span></button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div v-if="!(rulesByGroup[activeGroup] || []).length" class="empty-state">
-          暂无规则，点击上方按钮添加
+        <div class="header-actions">
+          <button class="btn-add-rule" @click="handleAddRule('regex')">
+            <span class="icon ri-code-line"></span>
+            <span>正则规则</span>
+          </button>
+          <button class="btn-add-rule btn-add-keyword" @click="handleAddRule('keyword')">
+            <span class="icon ri-text-line"></span>
+            <span>关键字规则</span>
+          </button>
         </div>
       </div>
-    </div>
 
-    <RuleDialog
-      v-model:visible="showRuleDialog"
-      :mode="dialogMode"
-      :edit-rule="editingRule"
-      @close="showRuleDialog = false"
-      @submit="handleRuleSubmit"
-    />
+          <div class="rule-table-wrapper">
+            <table class="rule-table">
+              <thead>
+                <tr>
+                  <th>字段名称</th>
+                  <th>规则类型</th>
+                  <th>正则表达式</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="rule in rulesByGroup[activeSection]" :key="rule.id">
+                  <td :title="rule.fieldName">{{ rule.fieldName }}</td>
+                  <td>
+                    <span class="type-tag" :class="rule.category">
+                      {{ rule.category === 'keyword' ? '关键字' : '正则' }}
+                    </span>
+                  </td>
+                  <td :title="rule.pattern">
+                    <code v-if="rule.pattern" class="pattern">{{ rule.pattern }}</code>
+                    <span v-else class="empty-pattern">—</span>
+                  </td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-action" title="编辑" @click="handleEditRule(rule)"><span class="icon ri-pencil-line"></span></button>
+                      <button class="btn-action btn-delete" title="删除" @click="handleDeleteRule(rule.id)"><span class="icon ri-delete-bin-line"></span></button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div v-if="!(rulesByGroup[activeSection] || []).length" class="empty-state">
+              暂无规则，点击上方按钮添加
+            </div>
+          </div>
+        </div>
+
+        <RuleDialog
+          v-model:visible="showRuleDialog"
+          :mode="dialogMode"
+          :edit-rule="editingRule"
+          @close="showRuleDialog = false"
+          @submit="handleRuleSubmit"
+/>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.settings-content { flex: 1; padding: 32px; }
+.settings-content {
+  flex: 1;
+  padding: 32px;
+  max-width: 1600px;
+}
+
+.tabs-inner {
+  display: inline-flex;
+  gap: 4px;
+  background: #F0E8D5;
+  border-radius: 12px;
+  padding: 4px;
+}
+.tab-item {
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-align: center;
+}
+.tab-item:hover {
+  background: rgba(255,255,255,0.5);
+}
+.tab-item.active {
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.tab-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #8B7355;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.tab-item.active .tab-label {
+  color: #3D2B1F;
+  font-weight: 600;
+}
+.tab-sublabel {
+  font-size: 10px;
+  color: #B8A58C;
+  line-height: 1.3;
+  margin-top: 1px;
+  white-space: nowrap;
+}
+.tab-item.active .tab-sublabel {
+  color: #8B7355;
+}
+
+.tab-content {}
 .page-title { font-size: 24px; font-weight: bold; color: var(--color-text-primary); margin: 0 0 4px 0; }
 .page-desc { font-size: 14px; color: var(--color-text-muted); margin: 0 0 24px 0; }
-
-.tab-bar { display: inline-flex; background-color: var(--color-bg-card); border-radius: 12px; padding: 4px; margin-bottom: 24px; position: relative; }
-.tab-indicator { position: absolute; top: 4px; bottom: 4px; background-color: var(--color-primary); border-radius: 8px; z-index: 0; pointer-events: none; transition: left 0.3s ease-out, width 0.3s ease-out; }
-.tab-indicator.animated { transition: left 0.3s ease-out, width 0.3s ease-out; }
-.tab-item { position: relative; z-index: 1; padding: 8px 24px; border-radius: 8px; font-size: 13px; cursor: pointer; color: var(--color-text-secondary); transition: color 0.2s; }
-.tab-item.active { color: white; font-weight: 600; }
-
-.rule-section { border: 0.7px solid var(--color-border); border-radius: 16px; padding: 24px; margin-bottom: 24px; background-color: white; }
-.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.section-title { display: flex; align-items: center; gap: 12px; }
-.section-icon { width: 36px; height: 36px; background-color: var(--color-bg-card); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-.section-icon .icon { font-family: "remixicon", sans-serif; font-style: normal; font-size: 18px; color: var(--color-text-secondary); }
-.section-title h3 { font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin: 0 0 4px 0; }
-.section-title p { font-size: 12px; color: var(--color-text-muted); margin: 0; }
+.rule-section { border: 0.7px solid var(--color-border); border-radius: 16px; padding: 24px; background-color: white; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .btn-add-rule { height: 32px; padding: 0 16px; background-color: var(--color-primary); color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px; }
 .btn-add-rule .icon { font-family: "remixicon", sans-serif; font-style: normal; font-size: 14px; }
+.btn-add-keyword { background-color: #8B7355; }
 
 .rule-table-wrapper { border: 0.7px solid var(--color-bg-card); border-radius: 12px; overflow: hidden; }
 .rule-table { width: 100%; border-collapse: collapse; }
 .rule-table th { background-color: #F5EFE3; padding: 12px 16px; height: 42px; font-size: 13px; font-weight: 600; text-align: left; color: var(--color-text-primary); }
 .rule-table td { padding: 12px 16px; height: 53px; font-size: 13px; border-top: 1px solid var(--color-bg-card); vertical-align: middle; }
-.rule-table th:first-child, .rule-table td:first-child { width: 140px; }
-.rule-table th:nth-child(2), .rule-table td:nth-child(2) { width: 80px; }
-.rule-table th:nth-child(3), .rule-table td:nth-child(3) { width: auto; }
-.rule-table th:nth-child(4), .rule-table td:nth-child(4) { width: 100px; text-align: center; }
+.rule-table { table-layout: fixed; }
+.rule-table th:first-child, .rule-table td:first-child { width: 22%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rule-table th:nth-child(2), .rule-table td:nth-child(2) { width: 10%; }
+.rule-table th:nth-child(3), .rule-table td:nth-child(3) { width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rule-table th:nth-child(4), .rule-table td:nth-child(4) { width: 18%; text-align: center; }
 .rule-table tr td:first-child { font-weight: 500; color: var(--color-text-primary); }
 
 .type-tag { font-size: 12px; padding: 2px 8px; border-radius: 9999px; }

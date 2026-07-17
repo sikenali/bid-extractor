@@ -3,6 +3,17 @@ import { db } from '../database.js';
 
 const router = Router();
 
+function mapRule(r: any) {
+  return {
+    id: r.id,
+    fieldName: r.field_name,
+    pattern: r.pattern,
+    enabled: r.enabled,
+    category: r.category,
+    groupName: r.group_name,
+  };
+}
+
 router.get('/', (req, res) => {
   const group = req.query.group as string | undefined;
   let rules;
@@ -11,7 +22,7 @@ router.get('/', (req, res) => {
   } else {
     rules = db.prepare('SELECT * FROM extraction_rules ORDER BY field_name').all();
   }
-  res.json(rules);
+  res.json((rules as any[]).map(mapRule));
 });
 
 router.post('/', (req, res) => {
@@ -19,14 +30,14 @@ router.post('/', (req, res) => {
   const id = crypto.randomUUID();
   db.prepare(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, ?, ?, ?)`).run(id, fieldName, pattern || '', category || 'regex', groupName || 'bidding');
   const rule = db.prepare('SELECT * FROM extraction_rules WHERE id = ?').get(id);
-  res.status(201).json(rule);
+  res.status(201).json(mapRule(rule as any));
 });
 
 router.put('/:id', (req, res) => {
   const { fieldName, pattern, enabled, category, groupName } = req.body;
   db.prepare(`UPDATE extraction_rules SET field_name=?, pattern=?, enabled=?, category=?, group_name=? WHERE id=?`).run(fieldName, pattern ?? '', enabled ?? 1, category ?? 'regex', groupName ?? 'bidding', req.params.id);
   const rule = db.prepare('SELECT * FROM extraction_rules WHERE id = ?').get(req.params.id);
-  res.json(rule);
+  res.json(mapRule(rule as any));
 });
 
 router.delete('/:id', (req, res) => {

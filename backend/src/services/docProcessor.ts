@@ -5,11 +5,21 @@ import { db } from '../database.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+export interface TableRow {
+  cells: string[];
+}
+
+export interface DocTable {
+  rows: TableRow[];
+}
+
 export interface ParseResult {
   status: string;
   text?: string;
   extracts?: Record<string, unknown>;
+  groups?: Record<string, string>;
   chapters?: Array<{ title: string; content: string[]; page: number }>;
+  tables?: DocTable[];
   pageCount?: number;
   error?: string;
 }
@@ -48,10 +58,12 @@ export function parseDocument(filePath: string): Promise<ParseResult> {
     });
 
     // Get rules from database
-    const rules = db.prepare('SELECT field_name, pattern FROM extraction_rules WHERE enabled = 1').all();
+    const rules = db.prepare('SELECT field_name, pattern, category, group_name FROM extraction_rules WHERE enabled = 1').all();
     const rulesList = rules.map((r: any) => ({
       name: r.field_name,
-      pattern: r.pattern
+      pattern: r.pattern,
+      category: r.category,
+      group: r.group_name
     }));
 
     const request = {
