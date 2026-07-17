@@ -856,12 +856,25 @@ export function initializeDatabase() {
   // 6.4 通用技术/国际招标平台
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '进出口资质', '', 'keyword', 'business')`);
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '跨境运输', '', 'keyword', 'business')`);
+  // 供货周期
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '供货周期', '(?:供货|交付|交货)(?:周期|期限|时间)[：:]?\\s*([^。\\n]{2,30})', 'regex', 'business')`);
+  // 售后响应
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '售后响应', '(?:售后|服务)(?:响应|支持|要求)[：:]?\\s*([^。\\n]{2,60})', 'regex', 'business')`);
   // 6.5 第三方通用招投标平台
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '残疾人福利企业加分', '', 'keyword', 'score')`);
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '节能产品', '', 'keyword', 'score')`);
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '环保产品优先采购', '', 'keyword', 'score')`);
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '信用分通用评价', '', 'keyword', 'score')`);
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '政府采购框架协议', '', 'keyword', 'score')`);
+
+  // 评标办法
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '评标办法', '(?:评标办法|评审办法|评标方法)[：:]?\\s*([^。\\n]{2,60})', 'regex', 'score')`);
+  // 评分表
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '评分表', '(?:评分表|评审表)[：:]?\\s*([^。\\n]{2,100})', 'regex', 'score')`);
+  // 评分项
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '评分项', '(?:评分项|评审项|评分内容)[：:]?\\s*([^。\\n]{2,60})', 'regex', 'score')`);
+  // 评分说明
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '评分说明', '(?:评分说明|评审说明|评分依据)[：:]?\\s*([^。\\n]{2,100})', 'regex', 'score')`);
 
   db.exec(`INSERT INTO templates (id, type, category, name, description) VALUES ('${uid()}', 'bidding', 'government', '政府采购货物类', '适用于货物类采购项目')`);
   db.exec(`INSERT INTO templates (id, type, category, name, description) VALUES ('${uid()}', 'bidding', 'engineering', '工程施工类', '适用于工程施工招标')`);

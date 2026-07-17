@@ -73,6 +73,8 @@ const sectionFields: Record<string, { field: string; page: string }[]> = {
     { field: '验收条款', page: '' },
     { field: '售后服务', page: '' },
     { field: '备品备件', page: '' },
+    { field: '供货周期', page: '' },
+    { field: '售后响应', page: '' },
   ],
   tech: [
     { field: '技术规格', page: '' },
@@ -110,6 +112,7 @@ const sectionFields: Record<string, { field: string; page: string }[]> = {
     { field: '价格扣除', page: '' },
     { field: '优先采购', page: '' },
     { field: '评审因素', page: '' },
+    { field: '评分说明', page: '' },
   ],
 };
 
