@@ -236,31 +236,11 @@ function goPage(page: number) {
 void goPage;
 
 function buildFieldPageMap(
-  extracts: Record<string, unknown>,
+  _extracts: Record<string, unknown>,
   _groups: Record<string, string>,
-  paraToPage: number[]
+  _paraToPage: number[]
 ): Record<string, string> {
-  const map: Record<string, string> = {};
-  for (const [field] of Object.entries(extracts)) {
-    if (paraToPage.length > 0) {
-      const pageCounts: Record<number, number> = {};
-      for (const p of paraToPage) {
-        pageCounts[p] = (pageCounts[p] || 0) + 1;
-      }
-      let maxPage = 1;
-      let maxCount = 0;
-      for (const [p, c] of Object.entries(pageCounts)) {
-        if (c > maxCount) {
-          maxCount = c;
-          maxPage = Number(p);
-        }
-      }
-      map[field] = `P.${maxPage}`;
-    } else {
-      map[field] = '-';
-    }
-  }
-  return map;
+  return {};
 }
 
 onMounted(async () => {
