@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -51,6 +52,7 @@ type ParseResponse struct {
 	Chapters  []Chapter              `json:"chapters,omitempty"`
 	Tables    []DocTable             `json:"tables,omitempty"`
 	PageCount int                    `json:"pageCount,omitempty"`
+	ParaToPage []int                 `json:"paraToPage,omitempty"`
 	Error     string                 `json:"error,omitempty"`
 }
 
@@ -75,6 +77,21 @@ func isHeading(para document.Paragraph) (bool, int) {
 		}
 	}
 	return false, 0
+}
+
+func hasPageBreak(para document.Paragraph) bool {
+	for _, run := range para.Runs() {
+		runBytes, err := xml.Marshal(run.X())
+		if err != nil {
+			continue
+		}
+		xmlStr := string(runBytes)
+		if strings.Contains(xmlStr, `w:type="page"`) ||
+			strings.Contains(xmlStr, `lastRenderedPageBreak`) {
+			return true
+		}
+	}
+	return false
 }
 
 var sectionKeywords = map[string][]string{
@@ -137,12 +154,22 @@ func extractDocxWithChapters(filePath string) (string, []Chapter, []string, map[
 		}
 
 		groupToParagraphs[currentGroup] = append(groupToParagraphs[currentGroup], text)
-		paraToPage = append(paraToPage, 0)
+		if hasPageBreak(para) {
+			pageCount++
+		}
+		paraToPage = append(paraToPage, pageCount+1)
 		paraIndex++
 	}
 
 	if currentChapter != nil {
 		chapters = append(chapters, *currentChapter)
+	}
+
+	if pageCount == 0 && len(paragraphs) > 0 {
+		paraToPage = make([]int, len(paragraphs))
+		for i := range paragraphs {
+			paraToPage[i] = i/40 + 1
+		}
 	}
 
 	fullText := strings.Join(paragraphs, "\n")
@@ -310,7 +337,7 @@ func main() {
 		return
 	}
 
-	text, chapters, paragraphs, groupToParagraphs, _, _, err := extractText(req.FilePath)
+	text, chapters, paragraphs, groupToParagraphs, paraToPage, _, err := extractText(req.FilePath)
 	if err != nil {
 		resp := ParseResponse{Status: "error", Error: err.Error()}
 		output, _ := json.Marshal(resp)
@@ -337,13 +364,14 @@ func main() {
 	}
 
 	resp := ParseResponse{
-		Status:    "ok",
-		Text:      text,
-		Extracts:  extracts,
-		Groups:    groups,
-		Chapters:  chapters,
-		Tables:    tables,
-		PageCount: len(chapters),
+		Status:     "ok",
+		Text:       text,
+		Extracts:   extracts,
+		Groups:     groups,
+		Chapters:   chapters,
+		Tables:     tables,
+		PageCount:  len(chapters),
+		ParaToPage: paraToPage,
 	}
 	output, _ := json.Marshal(resp)
 	fmt.Println(string(output))
