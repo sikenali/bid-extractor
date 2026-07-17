@@ -123,6 +123,7 @@ interface ExtractedField {
 const tableData = ref<ExtractedField[]>([]);
 const docTables = ref<{ rows: { cells: string[] }[] }[]>([]);
 const activeScoreTab = ref(0);
+const paraToPageRef = ref<number[]>([]);
 
 const scoreKeywords = ['评分', '得分', '分值', '分数', '评审', '明细', '权重', '价格', '商务', '技术'];
 const scoreTables = computed(() => {
@@ -231,6 +232,34 @@ function goPage(page: number) {
 }
 void goPage;
 
+function buildFieldPageMap(
+  extracts: Record<string, unknown>,
+  _groups: Record<string, string>,
+  paraToPage: number[]
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const [field] of Object.entries(extracts)) {
+    if (paraToPage.length > 0) {
+      const pageCounts: Record<number, number> = {};
+      for (const p of paraToPage) {
+        pageCounts[p] = (pageCounts[p] || 0) + 1;
+      }
+      let maxPage = 1;
+      let maxCount = 0;
+      for (const [p, c] of Object.entries(pageCounts)) {
+        if (c > maxCount) {
+          maxCount = c;
+          maxPage = Number(p);
+        }
+      }
+      map[field] = `P.${maxPage}`;
+    } else {
+      map[field] = '-';
+    }
+  }
+  return map;
+}
+
 onMounted(async () => {
   const jobId = route.query.jobId as string;
 
@@ -247,10 +276,12 @@ onMounted(async () => {
       if (statusData.result?.extracts) {
         const extracts = statusData.result.extracts as Record<string, unknown>;
         const groups = (statusData.result.groups || {}) as Record<string, string>;
+        paraToPageRef.value = statusData.result.paraToPage || [];
+        const fieldPages = buildFieldPageMap(extracts, groups, paraToPageRef.value);
         tableData.value = Object.entries(extracts).map(([field, value]) => ({
           field,
           value: String(value),
-          page: 'P.1',
+          page: fieldPages[field] || 'P.1',
           groupName: groups[field] || 'info'
         }));
       }

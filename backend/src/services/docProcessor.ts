@@ -21,6 +21,7 @@ export interface ParseResult {
   chapters?: Array<{ title: string; content: string[]; page: number }>;
   tables?: DocTable[];
   pageCount?: number;
+  paraToPage?: number[];
   error?: string;
 }
 
