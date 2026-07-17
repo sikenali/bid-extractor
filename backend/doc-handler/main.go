@@ -199,6 +199,29 @@ func extractText(filePath string) (string, []Chapter, []string, map[string][]str
 	}
 }
 
+func extractStructuredValue(afterText string) (string, bool) {
+	patterns := []*regexp.Regexp{
+		regexp.MustCompile(`[¥￥](\d[\d,]*\.?\d*)`),
+		regexp.MustCompile(`(\d+(?:,\d{3})*(?:\.\d{2})?)\s*元(?!\w)`),
+		regexp.MustCompile(`(\d+(?:\.\d+)?)\s*[万億億]\s*元`),
+		regexp.MustCompile(`(\d+(?:\.\d+)?)\s*%`),
+		regexp.MustCompile(`(\d{4}年\d{1,2}月\d{1,2}日)`),
+		regexp.MustCompile(`(\d{4}-\d{2}-\d{2})`),
+		regexp.MustCompile(`(\d{1,2}月\d{1,2}日)`),
+		regexp.MustCompile(`(\d+(?:\.\d+)?)\s*分`),
+		regexp.MustCompile(`满分\s*(\d+)`),
+		regexp.MustCompile(`分值\s*(\d+)`),
+		regexp.MustCompile(`^[：:]\s*([^。\n]{2,80})`),
+	}
+	for _, re := range patterns {
+		m := re.FindStringSubmatch(afterText)
+		if len(m) > 1 && strings.TrimSpace(m[1]) != "" {
+			return strings.TrimSpace(m[1]), true
+		}
+	}
+	return "", false
+}
+
 func extractByKeyword(paragraphs []string, keyword string) (string, bool) {
 	for _, para := range paragraphs {
 		lower := para
@@ -213,14 +236,25 @@ func extractByKeyword(paragraphs []string, keyword string) (string, bool) {
 		if after == "" {
 			continue
 		}
-		if len([]rune(after)) > 0 {
+		if val, ok := extractStructuredValue(after); ok {
+			return val, true
+		}
+		runes := []rune(after)
+		if len(runes) > 80 {
+			after = string(runes[:80])
+		}
+		if dot := strings.IndexAny(after, "。；"); dot > 0 {
+			after = after[:dot]
+		}
+		after = strings.TrimSpace(after)
+		if after != "" {
 			return after, true
 		}
 	}
 	return "", false
 }
 
-func applyRules(text string, rules []Rule, paragraphs []string) (map[string]interface{}, map[string]string) {
+func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraphs map[string][]string) (map[string]interface{}, map[string]string) {
 	extracts := make(map[string]interface{})
 	groups := make(map[string]string)
 	for _, rule := range rules {
@@ -229,27 +263,32 @@ func applyRules(text string, rules []Rule, paragraphs []string) (map[string]inte
 			g = "info"
 		}
 
-		// 1. keyword strategy  —  paragraph-level field name lookup
+		scope := paragraphs
+		if groupToParagraphs != nil {
+			if gp, ok := groupToParagraphs[g]; ok && len(gp) > 0 {
+				scope = gp
+			}
+		}
+
 		if rule.Category == "keyword" || rule.Pattern == "" {
-			if paragraphs != nil {
-				if val, found := extractByKeyword(paragraphs, rule.Name); found {
+			if scope != nil {
+				if val, found := extractByKeyword(scope, rule.Name); found {
 					extracts[rule.Name] = val
 					groups[rule.Name] = g
 					continue
 				}
 			}
-			// fallback — try regex on full text if pattern exists
 			if rule.Pattern == "" {
 				continue
 			}
 		}
 
-		// 2. regex strategy
+		scopeText := strings.Join(scope, "\n")
 		re, err := regexp.Compile(rule.Pattern)
 		if err != nil {
 			continue
 		}
-		matches := re.FindStringSubmatch(text)
+		matches := re.FindStringSubmatch(scopeText)
 		if len(matches) > 1 {
 			extracts[rule.Name] = strings.TrimSpace(matches[1])
 			groups[rule.Name] = g
@@ -271,7 +310,7 @@ func main() {
 		return
 	}
 
-	text, chapters, paragraphs, _, _, _, err := extractText(req.FilePath)
+	text, chapters, paragraphs, groupToParagraphs, _, _, err := extractText(req.FilePath)
 	if err != nil {
 		resp := ParseResponse{Status: "error", Error: err.Error()}
 		output, _ := json.Marshal(resp)
@@ -282,8 +321,11 @@ func main() {
 	if paragraphs == nil {
 		paragraphs = strings.Split(text, "\n")
 	}
+	if groupToParagraphs == nil {
+		groupToParagraphs = make(map[string][]string)
+	}
 
-	extracts, groups := applyRules(text, req.Rules, paragraphs)
+	extracts, groups := applyRules(text, req.Rules, paragraphs, groupToParagraphs)
 
 	if chapters == nil {
 		chapters = []Chapter{}
