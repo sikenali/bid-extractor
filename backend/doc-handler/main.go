@@ -77,10 +77,29 @@ func isHeading(para document.Paragraph) (bool, int) {
 	return false, 0
 }
 
-func extractDocxWithChapters(filePath string) (string, []Chapter, []string, int, error) {
+var sectionKeywords = map[string][]string{
+	"info":     {"项目信息", "项目概况", "招标公告", "投标邀请", "招标条件", "投标须知", "投标人须知", "招标说明", "项目背景", "采购内容"},
+	"business": {"商务条款", "投标人资格", "资格要求", "资质要求", "商务要求", "合同条款", "付款方式", "交付要求", "售后服务", "质保要求", "联合体", "分包", "转包"},
+	"tech":     {"技术规格", "技术要求", "技术参数", "技术标准", "技术需求", "采购需求", "货物需求", "服务需求", "技术规范", "验收标准", "安装调试", "培训"},
+	"score":    {"评分标准", "评标办法", "评审办法", "评分细则", "综合评分", "评分因素", "评分项", "打分标准", "定标原则", "评标方法", "评分表", "分值分配"},
+}
+
+func detectSection(title string) string {
+	titleLower := strings.ToLower(title)
+	for group, keywords := range sectionKeywords {
+		for _, kw := range keywords {
+			if strings.Contains(titleLower, strings.ToLower(kw)) {
+				return group
+			}
+		}
+	}
+	return "info"
+}
+
+func extractDocxWithChapters(filePath string) (string, []Chapter, []string, map[string][]string, []int, int, error) {
 	doc, err := document.Open(filePath)
 	if err != nil {
-		return "", nil, nil, 0, fmt.Errorf("failed to open docx: %w", err)
+		return "", nil, nil, nil, nil, 0, fmt.Errorf("failed to open docx: %w", err)
 	}
 	defer doc.Close()
 
@@ -89,6 +108,9 @@ func extractDocxWithChapters(filePath string) (string, []Chapter, []string, int,
 	var currentChapter *Chapter
 	pageCount := 0
 	paraIndex := 0
+	groupToParagraphs := make(map[string][]string)
+	paraToPage := []int{}
+	currentGroup := "info"
 
 	for _, para := range doc.Paragraphs() {
 		text := strings.TrimSpace(paragraphText(para))
@@ -109,10 +131,13 @@ func extractDocxWithChapters(filePath string) (string, []Chapter, []string, int,
 				Content: []string{},
 				Page:    paraIndex + 1,
 			}
+			currentGroup = detectSection(text)
 		} else if currentChapter != nil {
 			currentChapter.Content = append(currentChapter.Content, text)
 		}
 
+		groupToParagraphs[currentGroup] = append(groupToParagraphs[currentGroup], text)
+		paraToPage = append(paraToPage, 0)
 		paraIndex++
 	}
 
@@ -121,7 +146,7 @@ func extractDocxWithChapters(filePath string) (string, []Chapter, []string, int,
 	}
 
 	fullText := strings.Join(paragraphs, "\n")
-	return fullText, chapters, paragraphs, pageCount, nil
+	return fullText, chapters, paragraphs, groupToParagraphs, paraToPage, pageCount, nil
 }
 
 func extractDocxTables(filePath string) []DocTable {
@@ -156,11 +181,11 @@ func extractDocxTables(filePath string) []DocTable {
 	return tables
 }
 
-func extractPdfText(filePath string) (string, []Chapter, []string, int, error) {
-	return "", nil, nil, 0, fmt.Errorf("PDF parsing not implemented yet")
+func extractPdfText(filePath string) (string, []Chapter, []string, map[string][]string, []int, int, error) {
+	return "", nil, nil, nil, nil, 0, fmt.Errorf("PDF parsing not implemented yet")
 }
 
-func extractText(filePath string) (string, []Chapter, []string, int, error) {
+func extractText(filePath string) (string, []Chapter, []string, map[string][]string, []int, int, error) {
 	ext := strings.ToLower(filepath.Ext(filePath))
 	switch ext {
 	case ".docx":
@@ -168,9 +193,9 @@ func extractText(filePath string) (string, []Chapter, []string, int, error) {
 	case ".pdf":
 		return extractPdfText(filePath)
 	case ".doc":
-		return "", nil, nil, 0, fmt.Errorf(".doc format not supported, please convert to .docx")
+		return "", nil, nil, nil, nil, 0, fmt.Errorf(".doc format not supported, please convert to .docx")
 	default:
-		return "", nil, nil, 0, fmt.Errorf("unsupported format: %s", ext)
+		return "", nil, nil, nil, nil, 0, fmt.Errorf("unsupported format: %s", ext)
 	}
 }
 
@@ -246,7 +271,7 @@ func main() {
 		return
 	}
 
-	text, chapters, paragraphs, _, err := extractText(req.FilePath)
+	text, chapters, paragraphs, _, _, _, err := extractText(req.FilePath)
 	if err != nil {
 		resp := ParseResponse{Status: "error", Error: err.Error()}
 		output, _ := json.Marshal(resp)
