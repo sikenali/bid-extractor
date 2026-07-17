@@ -1,23 +1,27 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import VueOfficeDocx from '@vue-office/docx';
-import '@vue-office/docx/lib/index.css';
+import { DocxEditor } from '@eigenpal/docx-editor-vue';
+import '@eigenpal/docx-editor-vue/styles.css';
 
 const props = defineProps<{
   visible: boolean;
   filename: string;
+  fileId?: string;
 }>();
 
 const emit = defineEmits<{
   close: []
 }>();
 
-const currentPage = ref(1);
-const totalPages = ref(1);
-const zoomLevel = ref(100);
 const loading = ref(false);
 const errorMsg = ref('');
 const fileUrl = ref<string | null>(null);
+const docBuffer = ref<ArrayBuffer | null>(null);
+
+const displayName = computed(() => {
+  const name = props.fileId || props.filename;
+  return name.replace(/\.[^.]+$/, '');
+});
 
 const isDocx = computed(() => {
   const name = (props.filename || '').toLowerCase();
@@ -34,11 +38,16 @@ watch(() => props.visible, async (val) => {
     loading.value = true;
     errorMsg.value = '';
     fileUrl.value = null;
-    currentPage.value = 1;
+    docBuffer.value = null;
     try {
-      const response = await fetch(`/api/upload/file/${encodeURIComponent(props.filename)}`);
+      const fileKey = props.fileId || props.filename;
+      const response = await fetch(`/api/upload/file/${encodeURIComponent(fileKey)}`);
       if (response.ok) {
-        fileUrl.value = URL.createObjectURL(await response.blob());
+        if (isDocx.value) {
+          docBuffer.value = await response.arrayBuffer();
+        } else {
+          fileUrl.value = URL.createObjectURL(await response.blob());
+        }
       } else {
         errorMsg.value = '文件加载失败';
       }
@@ -52,43 +61,24 @@ watch(() => props.visible, async (val) => {
       URL.revokeObjectURL(fileUrl.value);
       fileUrl.value = null;
     }
+    docBuffer.value = null;
   }
 });
 
-function prevPage() {
-  if (currentPage.value > 1) currentPage.value--;
-}
-
-function nextPage() {
-  if (currentPage.value < totalPages.value) currentPage.value++;
-}
-
-function zoomIn() {
-  zoomLevel.value = Math.min(zoomLevel.value + 25, 200);
-}
-
-function zoomOut() {
-  zoomLevel.value = Math.max(zoomLevel.value - 25, 25);
-}
+const dialogVisible = computed({
+  get: () => props.visible,
+  set: (val) => { if (!val) emit('close'); }
+});
 
 function handleClose() {
   emit('close');
-}
-
-function handleDownload() {
-  if (fileUrl.value) {
-    const a = document.createElement('a');
-    a.href = fileUrl.value;
-    a.download = props.filename;
-    a.click();
-  }
 }
 </script>
 
 <template>
   <el-dialog
-    v-model="props.visible"
-    width="900px"
+    v-model="dialogVisible"
+    width="960px"
     class="preview-modal"
     :close-on-click-modal="false"
     :show-close="false"
@@ -98,44 +88,11 @@ function handleDownload() {
       <div class="preview-header">
         <div class="file-info">
           <span class="icon ri-file-text-line file-icon"></span>
-          <span class="file-name">{{ props.filename }}</span>
+          <span class="file-name">{{ displayName }}</span>
         </div>
         <button class="close-btn" @click="handleClose">
           <span class="icon ri-close-line"></span>
         </button>
-      </div>
-
-      <div class="preview-toolbar">
-        <div class="toolbar-left">
-          <button class="nav-btn" @click="prevPage" :disabled="currentPage <= 1">
-            <span class="icon ri-arrow-left-s-line"></span>
-          </button>
-          <div class="page-input">
-            <span class="current-page">{{ currentPage }}</span>
-            <span class="page-separator">/</span>
-            <span class="total-pages">{{ totalPages }}</span>
-          </div>
-          <button class="nav-btn" @click="nextPage" :disabled="currentPage >= totalPages">
-            <span class="icon ri-arrow-right-s-line"></span>
-          </button>
-          <span class="toolbar-divider"></span>
-          <button class="nav-btn" @click="zoomOut" :disabled="zoomLevel <= 25">
-            <span class="icon ri-zoom-out-line"></span>
-          </button>
-          <span class="zoom-level">{{ zoomLevel }}%</span>
-          <button class="nav-btn" @click="zoomIn" :disabled="zoomLevel >= 200">
-            <span class="icon ri-zoom-in-line"></span>
-          </button>
-        </div>
-
-        <div class="toolbar-right">
-          <button class="nav-btn" title="搜索">
-            <span class="icon ri-search-line"></span>
-          </button>
-          <button class="nav-btn download-btn" title="下载" @click="handleDownload">
-            <span class="icon ri-download-2-line"></span>
-          </button>
-        </div>
       </div>
 
       <div class="preview-content">
@@ -147,11 +104,21 @@ function handleDownload() {
           <span class="icon ri-error-warning-line"></span>
           <span>{{ errorMsg }}</span>
         </div>
-        <div v-else-if="isDocx && fileUrl" class="doc-content">
-          <VueOfficeDocx :src="fileUrl" />
+        <div v-else-if="isDocx && docBuffer" class="doc-content">
+          <DocxEditor
+            :document-buffer="docBuffer"
+            :show-toolbar="false"
+            :show-menu-bar="false"
+            :show-ruler="false"
+            :show-file-open="false"
+            :show-help-menu="false"
+            :show-zoom-control="false"
+            read-only
+            mode="viewing"
+          />
         </div>
         <div v-else-if="isPdf && fileUrl" class="doc-content">
-          <embed :src="fileUrl" type="application/pdf" width="100%" height="800px" />
+          <embed :src="fileUrl" type="application/pdf" width="100%" height="100%" />
         </div>
         <div v-else class="doc-content preview-placeholder">
           <span class="icon ri-file-text-line"></span>
@@ -171,30 +138,13 @@ function handleDownload() {
 .close-btn { width: 32px; height: 32px; background-color: var(--color-bg-card); border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); font-size: 18px; transition: all 0.2s; }
 .close-btn:hover { background-color: var(--color-bg-secondary); }
 .close-btn .icon { font-family: "remixicon", sans-serif; font-style: normal; }
-.preview-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background-color: var(--color-bg-main); }
-.toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 8px; }
-.nav-btn { width: 32px; height: 32px; background-color: var(--color-bg-card); border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); font-size: 16px; transition: all 0.2s; }
-.nav-btn:hover:not(:disabled) { background-color: var(--color-bg-secondary); }
-.nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.nav-btn .icon { font-family: "remixicon", sans-serif; font-style: normal; }
-.nav-btn.download-btn { background-color: var(--color-primary); color: white; }
-.nav-btn.download-btn:hover { background-color: var(--color-primary); }
-.page-input { display: flex; align-items: center; background-color: var(--color-bg-card); border-radius: 8px; padding: 4px 12px; font-size: 13px; }
-.current-page { font-weight: 500; color: var(--color-text-primary); }
-.page-separator { color: var(--color-text-muted); margin: 0 4px; }
-.total-pages { color: var(--color-text-muted); }
-.toolbar-divider { width: 1px; height: 24px; background-color: var(--color-bg-card); margin: 0 12px; }
-.zoom-level { font-size: 13px; font-weight: 500; color: var(--color-text-primary); min-width: 44px; text-align: center; }
-.preview-content { padding: 32px; display: flex; justify-content: center; min-height: 500px; }
+.preview-content { height: calc(100vh - 220px); max-height: 800px; overflow-y: auto; }
+.doc-content { width: 100%; }
 .preview-loading, .preview-error { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 80px 40px; color: var(--color-text-muted); font-size: 14px; }
 .preview-loading .icon, .preview-error .icon { font-size: 32px; }
 .spin-icon { animation: spin 1.5s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.doc-content { width: 100%; }
 .preview-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--color-text-muted); min-height: 400px; }
 .preview-placeholder .icon { font-size: 40px; font-family: "remixicon", sans-serif; font-style: normal; }
 .preview-placeholder p { font-size: 14px; margin: 0; }
-:deep(.docx) { padding: 0 !important; background: transparent !important; }
-:deep(.docx section) { box-shadow: none !important; margin: 0 !important; }
-:deep(.docx .docx) { background: white !important; }
 </style>

@@ -10,14 +10,13 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx --fix"
   },
   "dependencies": {
+    "@eigenpal/docx-editor-vue": "^1.9.0",
     "@element-plus/icons-vue": "^2.3.1",
-    "@vue-office/docx": "^1.6.3",
-    "@vue-office/pdf": "^2.0.10",
     "axios": "^1.7.0",
+    "docx": "^9.7.1",
     "element-plus": "^2.9.0",
     "pinia": "^2.1.7",
     "vue": "^3.4.0",
-    "vue-office": "^0.0.5",
     "vue-router": "^4.3.0"
   },
   "devDependencies": {

@@ -28,22 +28,6 @@ async function handleAddSubmit(data: { name: string; category: string; file: Fil
       <h2 class="page-title">模板设置</h2>
       <p class="page-desc">管理招标模板、投标模板及自定义模板</p>
       <div class="template-grid">
-        <div
-          v-for="tpl in templates"
-          :key="tpl.id"
-          class="template-card"
-        >
-          <div class="template-cover">
-            <span class="cover-icon ri-file-text-line"></span>
-            <h4 class="cover-title">{{ tpl.name }}</h4>
-            <p class="cover-subtitle">{{ tpl.type }}</p>
-          </div>
-          <div class="template-meta">
-            <p class="template-name">{{ tpl.name }}</p>
-            <p class="template-desc">{{ tpl.description || '暂无描述' }}</p>
-            <button class="btn-delete-template" @click="handleDelete(tpl.id)">删除</button>
-          </div>
-        </div>
         <div class="template-card add-template" @click="showAddDialog = true">
           <div class="add-icon-wrapper">
             <span class="icon ri-add-line"></span>
