@@ -227,20 +227,24 @@ func extractText(filePath string) (string, []Chapter, []string, map[string][]str
 }
 
 func extractStructuredValue(afterText string) (string, bool) {
-	patterns := []*regexp.Regexp{
-		regexp.MustCompile(`[¥￥](\d[\d,]*\.?\d*)`),
-		regexp.MustCompile(`(\d+(?:,\d{3})*(?:\.\d{2})?)\s*元(?!\w)`),
-		regexp.MustCompile(`(\d+(?:\.\d+)?)\s*[万億億]\s*元`),
-		regexp.MustCompile(`(\d+(?:\.\d+)?)\s*%`),
-		regexp.MustCompile(`(\d{4}年\d{1,2}月\d{1,2}日)`),
-		regexp.MustCompile(`(\d{4}-\d{2}-\d{2})`),
-		regexp.MustCompile(`(\d{1,2}月\d{1,2}日)`),
-		regexp.MustCompile(`(\d+(?:\.\d+)?)\s*分`),
-		regexp.MustCompile(`满分\s*(\d+)`),
-		regexp.MustCompile(`分值\s*(\d+)`),
-		regexp.MustCompile(`^[：:]\s*([^。\n]{2,80})`),
+	patterns := []string{
+		`[¥￥](\d[\d,]*\.?\d*)`,
+		`(\d+(?:,\d{3})*(?:\.\d{2})?)\s*元`,
+		`(\d+(?:\.\d+)?)\s*[万億億]\s*元`,
+		`(\d+(?:\.\d+)?)\s*%`,
+		`(\d{4}年\d{1,2}月\d{1,2}日)`,
+		`(\d{4}-\d{2}-\d{2})`,
+		`(\d{1,2}月\d{1,2}日)`,
+		`(\d+(?:\.\d+)?)\s*分`,
+		`满分\s*(\d+)`,
+		`分值\s*(\d+)`,
+		`^[：:]\s*([^。\n]{2,80})`,
 	}
-	for _, re := range patterns {
+	for _, p := range patterns {
+		re, err := regexp.Compile(p)
+		if err != nil {
+			continue
+		}
 		m := re.FindStringSubmatch(afterText)
 		if len(m) > 1 && strings.TrimSpace(m[1]) != "" {
 			return strings.TrimSpace(m[1]), true
