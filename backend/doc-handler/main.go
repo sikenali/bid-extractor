@@ -304,10 +304,55 @@ func extractStructuredValue(afterText string) (string, bool) {
 	return "", false
 }
 
-func extractByKeyword(paragraphs []string, keyword string) (string, bool) {
-	for _, para := range paragraphs {
-		lower := para
-		idx := strings.Index(lower, keyword)
+func extractFromTables(tables []DocTable, keyword string) (string, bool) {
+	for _, tbl := range tables {
+		// Find which column index contains the keyword in the header row
+		colIdx := -1
+		if len(tbl.Rows) == 0 {
+			continue
+		}
+		for ci, cell := range tbl.Rows[0].Cells {
+			if strings.Contains(cell, keyword) {
+				colIdx = ci
+				break
+			}
+		}
+		if colIdx < 0 {
+			continue
+		}
+		// Search data rows for the keyword in the first column (e.g. "分值")
+		for ri := 1; ri < len(tbl.Rows); ri++ {
+			row := tbl.Rows[ri]
+			if len(row.Cells) <= colIdx {
+				continue
+			}
+			firstCell := strings.TrimSpace(row.Cells[0])
+			if firstCell == "分值" || firstCell == "分数" || firstCell == "得分" ||
+				strings.Contains(firstCell, "分值") || strings.Contains(firstCell, "得分") {
+				val := strings.TrimSpace(row.Cells[colIdx])
+				if val != "" {
+					m := regexp.MustCompile(`(\d+(?:\.\d+)?)`).FindStringSubmatch(val)
+					if len(m) > 1 {
+						return m[1] + "分", true
+					}
+					return val, true
+				}
+			}
+		}
+	}
+	return "", false
+}
+
+func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string, bool) {
+	start := 0
+	step := 1
+	if reverse {
+		start = len(paragraphs) - 1
+		step = -1
+	}
+	for i := start; i >= 0 && i < len(paragraphs); i += step {
+		para := paragraphs[i]
+		idx := strings.Index(para, keyword)
 		if idx < 0 {
 			continue
 		}
@@ -336,7 +381,7 @@ func extractByKeyword(paragraphs []string, keyword string) (string, bool) {
 	return "", false
 }
 
-func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraphs map[string][]string) (map[string]interface{}, map[string]string) {
+func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraphs map[string][]string, tables []DocTable) (map[string]interface{}, map[string]string) {
 	extracts := make(map[string]interface{})
 	groups := make(map[string]string)
 	for _, rule := range rules {
@@ -353,8 +398,16 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 		}
 
 		if rule.Category == "keyword" || rule.Pattern == "" {
+			// For score fields, search table cells first (more reliable)
+			if g == "score" && tables != nil {
+				if val, found := extractFromTables(tables, rule.Name); found {
+					extracts[rule.Name] = val
+					groups[rule.Name] = g
+					continue
+				}
+			}
 			if scope != nil {
-				if val, found := extractByKeyword(scope, rule.Name); found {
+				if val, found := extractByKeyword(scope, rule.Name, g == "score"); found {
 					extracts[rule.Name] = val
 					groups[rule.Name] = g
 					continue
@@ -407,15 +460,15 @@ func main() {
 		groupToParagraphs = make(map[string][]string)
 	}
 
-	extracts, groups := applyRules(text, req.Rules, paragraphs, groupToParagraphs)
-
-	if chapters == nil {
-		chapters = []Chapter{}
-	}
-
 	tables := extractDocxTables(req.FilePath)
 	if tables == nil {
 		tables = []DocTable{}
+	}
+
+	extracts, groups := applyRules(text, req.Rules, paragraphs, groupToParagraphs, tables)
+
+	if chapters == nil {
+		chapters = []Chapter{}
 	}
 
 	resp := ParseResponse{
