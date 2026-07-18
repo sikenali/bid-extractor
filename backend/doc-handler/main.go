@@ -113,6 +113,43 @@ func detectSection(title string) string {
 	return "info"
 }
 
+var sectionStarters = []string{
+	"一、", "二、", "三、", "四、", "五、", "六、", "七、", "八、",
+	"（一）", "（二）", "（三）", "（四）", "（五）",
+	"第一章", "第二章", "第三章", "第四章", "第五章",
+	"第1章", "第2章", "第3章", "第4章", "第5章",
+}
+
+func isSectionStart(text string) (bool, string) {
+	for _, s := range sectionStarters {
+		if strings.HasPrefix(text, s) {
+			return true, detectSection(text)
+		}
+	}
+	g := detectSection(text)
+	if g != "info" {
+		return true, g
+	}
+	return false, "info"
+}
+
+var contentGroupKeywords = map[string][]string{
+	"score":    {"评分", "分值", "得分", "打分", "评审", "权重"},
+	"business": {"付款", "质保", "售后", "交付", "验收", "培训", "合同", "保险", "责任", "保密", "履约", "保证金"},
+	"tech":     {"技术", "规格", "参数", "标准", "规范", "性能", "指标", "配置", "功能", "安装", "调试"},
+}
+
+func detectContentGroup(text string) string {
+	for group, keywords := range contentGroupKeywords {
+		for _, kw := range keywords {
+			if strings.Contains(text, kw) {
+				return group
+			}
+		}
+	}
+	return "info"
+}
+
 func extractDocxWithChapters(filePath string) (string, []Chapter, []string, map[string][]string, []int, int, error) {
 	doc, err := document.Open(filePath)
 	if err != nil {
