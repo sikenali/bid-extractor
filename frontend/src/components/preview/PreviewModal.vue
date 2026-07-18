@@ -139,7 +139,7 @@ function handleClose() {
 .close-btn:hover { background-color: var(--color-bg-secondary); }
 .close-btn .icon { font-family: "remixicon", sans-serif; font-style: normal; }
 .preview-content { height: calc(100vh - 220px); max-height: 800px; overflow-y: auto; }
-.doc-content { width: 100%; }
+.doc-content { width: 100%; height: 100%; }
 .preview-loading, .preview-error { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 80px 40px; color: var(--color-text-muted); font-size: 14px; }
 .preview-loading .icon, .preview-error .icon { font-size: 32px; }
 .spin-icon { animation: spin 1.5s linear infinite; }

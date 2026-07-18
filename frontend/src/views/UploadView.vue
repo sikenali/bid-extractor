@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import TopNav from '@/components/layout/TopNav.vue';
 import FileUploader from '@/components/upload/FileUploader.vue';
@@ -10,6 +10,7 @@ const uploading = ref(false);
 const selectedFile = ref<File | null>(null);
 const progressPercent = ref(0);
 const progressFileName = ref('');
+let progressTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function handleUploaded(file: File) {
   selectedFile.value = file;
@@ -25,9 +26,9 @@ async function handleUploaded(file: File) {
       : 90;
     const step = Math.max(1, (target - progressPercent.value) / 8);
     progressPercent.value = Math.min(target, progressPercent.value + step);
-    setTimeout(simProgress, 600);
+    progressTimer = setTimeout(simProgress, 600);
   };
-  setTimeout(simProgress, 300);
+  progressTimer = setTimeout(simProgress, 300);
 
   try {
     const uploadResult = await uploadFile(file);
@@ -47,6 +48,10 @@ async function handleUploaded(file: File) {
     selectedFile.value = null;
   }
 }
+
+onUnmounted(() => {
+  if (progressTimer !== null) clearTimeout(progressTimer);
+});
 </script>
 
 <template>

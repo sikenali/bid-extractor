@@ -52,15 +52,6 @@ async function handleAddSubmit(data: { name: string; category: string; file: Fil
 
 .template-grid { display: flex; gap: 20px; flex-wrap: wrap; }
 .template-card { width: 200px; border: 0.7px solid var(--color-border); border-radius: 12px; overflow: hidden; background-color: white; }
-.template-cover { height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background-color: #F5EFE3; }
-.cover-icon { font-size: 40px; font-family: "remixicon", sans-serif; font-style: normal; color: var(--color-primary); }
-.cover-title { font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin: 0; }
-.cover-subtitle { font-size: 12px; color: var(--color-text-muted); margin: 0; }
-.template-meta { padding: 12px 16px; }
-.template-name { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 4px 0; }
-.template-desc { font-size: 11px; color: var(--color-text-muted); margin: 0 0 8px 0; }
-.btn-delete-template { font-size: 11px; color: var(--color-primary); background: none; border: 1px solid var(--color-primary); border-radius: 6px; padding: 2px 10px; cursor: pointer; }
-.btn-delete-template:hover { background-color: var(--color-primary); color: white; }
 .add-template { display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: var(--color-bg-card); border: 2px dashed var(--color-border); cursor: pointer; height: 320px; }
 .add-icon-wrapper { width: 48px; height: 48px; background-color: var(--color-bg-card); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
 .add-icon-wrapper .icon { font-size: 22px; color: var(--color-text-secondary); font-family: "remixicon", sans-serif; font-style: normal; }
