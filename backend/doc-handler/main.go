@@ -186,11 +186,29 @@ func extractDocxWithChapters(filePath string) (string, []Chapter, []string, map[
 				Page:    paraIndex + 1,
 			}
 			currentGroup = detectSection(text)
-		} else if currentChapter != nil {
-			currentChapter.Content = append(currentChapter.Content, text)
+		} else {
+			if isStart, sg := isSectionStart(text); isStart {
+				if currentChapter != nil {
+					chapters = append(chapters, *currentChapter)
+				}
+				currentGroup = sg
+				currentChapter = &Chapter{
+					Title:   text,
+					Content: []string{},
+					Page:    paraIndex + 1,
+				}
+			} else if currentChapter != nil {
+				currentChapter.Content = append(currentChapter.Content, text)
+			}
 		}
 
-		groupToParagraphs[currentGroup] = append(groupToParagraphs[currentGroup], text)
+		usedGroup := currentGroup
+		if usedGroup == "info" {
+			if cg := detectContentGroup(text); cg != "info" {
+				usedGroup = cg
+			}
+		}
+		groupToParagraphs[usedGroup] = append(groupToParagraphs[usedGroup], text)
 		if hasPageBreak(para) {
 			pageCount++
 		}
