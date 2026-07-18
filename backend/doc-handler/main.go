@@ -384,6 +384,7 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraphs map[string][]string, tables []DocTable) (map[string]interface{}, map[string]string) {
 	extracts := make(map[string]interface{})
 	groups := make(map[string]string)
+	keywordSet := make(map[string]bool)
 	for _, rule := range rules {
 		g := rule.Group
 		if g == "" {
@@ -403,6 +404,7 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 				if val, found := extractFromTables(tables, rule.Name); found {
 					extracts[rule.Name] = val
 					groups[rule.Name] = g
+					keywordSet[rule.Name] = true
 					continue
 				}
 			}
@@ -410,12 +412,18 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 				if val, found := extractByKeyword(scope, rule.Name, g == "score"); found {
 					extracts[rule.Name] = val
 					groups[rule.Name] = g
+					keywordSet[rule.Name] = true
 					continue
 				}
 			}
 			if rule.Pattern == "" {
 				continue
 			}
+		}
+
+		// Don't let regex overwrite keyword matches
+		if keywordSet[rule.Name] {
+			continue
 		}
 
 		scopeText := strings.Join(scope, "\n")
