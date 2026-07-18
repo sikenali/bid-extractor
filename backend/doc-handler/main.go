@@ -126,10 +126,6 @@ func isSectionStart(text string) (bool, string) {
 			return true, detectSection(text)
 		}
 	}
-	g := detectSection(text)
-	if g != "info" {
-		return true, g
-	}
 	return false, "info"
 }
 
