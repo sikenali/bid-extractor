@@ -123,7 +123,7 @@ async function handleDownload() {
           <span class="file-name">{{ displayName }}</span>
         </div>
         <div class="header-actions">
-          <div class="toolbar-group">
+          <div v-if="isDocx" class="toolbar-group">
             <button class="toolbar-btn" title="缩小" @click="zoomOut" :disabled="zoomLevel <= 50">
               <span class="icon ri-zoom-out-line"></span>
             </button>
@@ -153,7 +153,7 @@ async function handleDownload() {
           <span class="icon ri-error-warning-line"></span>
           <span>{{ errorMsg }}</span>
         </div>
-        <div v-else-if="isDocx && docBuffer" class="doc-content" :style="{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center' }">
+        <div v-else-if="isDocx && docBuffer" class="doc-content" :style="{ zoom: zoomLevel / 100 }">
           <DocxEditor
             :document-buffer="docBuffer"
             :show-toolbar="false"

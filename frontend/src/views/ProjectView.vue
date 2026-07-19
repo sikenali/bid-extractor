@@ -11,6 +11,9 @@ const route = useRoute();
 
 const previewVisible = ref(false);
 const fileId = ref('');
+const showEditDialog = ref(false);
+const editingField = ref('');
+const editValue = ref('');
 
 const activeSection = ref('info');
 const currentPage = ref(1);
@@ -236,28 +239,65 @@ function goPage(page: number) {
 
 function buildFieldPageMap(
   extracts: Record<string, unknown>,
-  _groups: Record<string, string>,
+  groups: Record<string, string>,
   paraToPage: number[],
   chapters?: Array<{ title: string; content: string[]; page: number }>
 ): Record<string, string> {
   const fieldPages: Record<string, string> = {};
   if (paraToPage.length === 0 && (!chapters || chapters.length === 0)) return fieldPages;
 
+  const chapterPages: Record<string, number> = {};
+
   if (chapters && chapters.length > 0) {
-    const chapterTexts: { page: number; texts: string[] }[] = chapters.map(ch => ({
-      page: ch.page,
-      texts: [ch.title, ...(ch.content || [])]
-    }));
+    const sectionKeywords: Record<string, string[]> = {
+      info: ['项目信息', '项目概况', '招标公告', '投标须知', '招标条件', '采购内容', '项目背景'],
+      business: ['商务条款', '投标人资格', '资格要求', '商务要求', '合同条款', '付款', '售后'],
+      tech: ['技术规格', '技术要求', '技术参数', '技术标准', '采购需求', '技术需求', '验收标准'],
+      score: ['评分标准', '评标办法', '评审办法', '评分细则', '综合评分', '评分因素'],
+    };
+
     for (const [field, value] of Object.entries(extracts)) {
       const strVal = String(value).trim().toLowerCase();
       if (!strVal) continue;
-      for (const ct of chapterTexts) {
-        if (ct.texts.some(t => t.toLowerCase().includes(strVal) || strVal.includes(t.toLowerCase().substring(0, Math.min(20, t.length))))) {
-          fieldPages[field] = `P.${ct.page}`;
+      let found = false;
+      for (const ch of chapters) {
+        const allTexts = [ch.title, ...(ch.content || [])];
+        if (allTexts.some(t => {
+          const lt = t.toLowerCase();
+          return lt.includes(strVal) || strVal.includes(lt.substring(0, Math.min(20, lt.length)));
+        })) {
+          chapterPages[field] = ch.page;
+          found = true;
           break;
         }
       }
+      if (!found) {
+        const group = groups[field] || 'info';
+        let bestChapter: typeof chapters[0] | null = null;
+        let bestScore = 0;
+        for (const ch of chapters) {
+          const lowerTitle = ch.title.toLowerCase();
+          let score = 0;
+          const keywords = sectionKeywords[group] || [];
+          for (const kw of keywords) {
+            if (lowerTitle.includes(kw)) {
+              score++;
+            }
+          }
+          if (score > bestScore) {
+            bestScore = score;
+            bestChapter = ch;
+          }
+        }
+        if (bestChapter) {
+          chapterPages[field] = bestChapter.page;
+        }
+      }
     }
+  }
+
+  for (const [field, page] of Object.entries(chapterPages)) {
+    fieldPages[field] = `P.${page}`;
   }
 
   if (Object.keys(fieldPages).length === 0 && paraToPage.length > 0) {
@@ -323,11 +363,18 @@ function handleCopy(field: string) {
 function handleEdit(field: string) {
   const row = tableData.value.find(d => d.field === field);
   if (row) {
-    const newVal = prompt(`编辑 ${field}:`, row.value);
-    if (newVal) {
-      row.value = newVal;
-    }
+    editingField.value = field;
+    editValue.value = row.value;
+    showEditDialog.value = true;
   }
+}
+
+function confirmEdit() {
+  const row = tableData.value.find(d => d.field === editingField.value);
+  if (row) {
+    row.value = editValue.value;
+  }
+  showEditDialog.value = false;
 }
 
 function selectSection(section: string) {
@@ -337,6 +384,13 @@ function selectSection(section: string) {
 function handlePreview() {
   previewVisible.value = true;
 }
+
+const sectionLabels: Record<string, string> = {
+  info: '项目信息',
+  business: '商务条款',
+  tech: '技术条款',
+  score: '评分标准',
+};
 
 async function handleExport() {
   let format = 'docx';
@@ -348,56 +402,80 @@ async function handleExport() {
   const rows = tableData.value;
   const baseName = (extractStatus.value.filename || fileInfo.value.name || '导出').replace(/\.[^.]+$/, '');
 
+  const grouped: Record<string, ExtractedField[]> = {};
+  for (const row of rows) {
+    const g = row.groupName || 'info';
+    if (!grouped[g]) grouped[g] = [];
+    grouped[g].push(row);
+  }
+
   if (format === 'markdown') {
-    exportMarkdown(rows, baseName);
+    exportMarkdown(grouped, baseName);
   } else {
-    await exportDocx(rows, baseName);
+    await exportDocx(grouped, baseName);
   }
 }
 
-function exportMarkdown(rows: ExtractedField[], baseName: string) {
-  let md = '# 提取结果\n\n';
-  md += '| 字段 | 内容 |\n';
-  md += '|------|------|\n';
-  for (const row of rows) {
-    md += `| ${row.field} | ${row.value.replace(/\n/g, ' ')} |\n`;
+function exportMarkdown(grouped: Record<string, ExtractedField[]>, baseName: string) {
+  let md = `# ${baseName} — 提取结果\n\n`;
+  const groupOrder = ['info', 'business', 'tech', 'score'];
+  for (const g of groupOrder) {
+    const rows = grouped[g];
+    if (!rows || rows.length === 0) continue;
+    md += `## ${sectionLabels[g] || g}\n\n`;
+    md += '| 字段 | 内容 |\n';
+    md += '|------|------|\n';
+    for (const row of rows) {
+      md += `| ${row.field} | ${row.value.replace(/\n/g, ' ')} |\n`;
+    }
+    md += '\n';
   }
   const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
   triggerDownload(blob, `${baseName}.md`);
 }
 
-async function exportDocx(rows: ExtractedField[], baseName: string) {
-  const tableRows = rows.map(row => new TableRow({
-    children: [
-      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: row.field, bold: true })] })] }),
-      new TableCell({ children: [new Paragraph({ children: [new TextRun(row.value) ] })] }),
-    ],
-  }));
+async function exportDocx(grouped: Record<string, ExtractedField[]>, baseName: string) {
+  const groupOrder = ['info', 'business', 'tech', 'score'];
+  const children: (import('docx').Paragraph | import('docx').Table)[] = [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: baseName + ' — 提取结果', bold: true, size: 32 })],
+    }),
+    new Paragraph({ spacing: { after: 200 }, children: [] }),
+  ];
 
-  const doc = new Document({
-    sections: [{
+  for (const g of groupOrder) {
+    const rows = grouped[g];
+    if (!rows || rows.length === 0) continue;
+    children.push(
+      new Paragraph({
+        spacing: { before: 400, after: 200 },
+        children: [new TextRun({ text: sectionLabels[g] || g, bold: true, size: 28 })],
+      })
+    );
+    const tableRows = rows.map(row => new TableRow({
       children: [
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          children: [new TextRun({ text: '提取结果', bold: true, size: 32 })],
-        }),
-        new Paragraph({ spacing: { after: 200 }, children: [] }),
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          rows: [
-            new TableRow({
-              children: [
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '字段', bold: true })] })] }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '内容', bold: true })] })] }),
-              ],
-            }),
-            ...tableRows,
-          ],
-        }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: row.field, bold: true })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun(row.value) ] })] }),
       ],
-    }],
-  });
+    }));
+    children.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '字段', bold: true })] })] }),
+              new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '内容', bold: true })] })] }),
+            ],
+          }),
+          ...tableRows,
+        ],
+      })
+    );
+  }
 
+  const doc = new Document({ sections: [{ children }] });
   const blob = await Packer.toBlob(doc);
   triggerDownload(blob, `${baseName}.docx`);
 }
@@ -508,7 +586,26 @@ function triggerDownload(blob: Blob, filename: string) {
         </template>
 
         <template v-else>
-        <div v-if="scoreTables.length === 0" class="empty-state">暂无评分表格数据</div>
+        <div class="table-container" style="margin-bottom: 16px;">
+          <table class="extract-table">
+            <thead>
+              <tr>
+                <th class="col-field">提取字段</th>
+                <th class="col-value">提取内容</th>
+                <th class="col-page">所在页码</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in sectionData" :key="row.field" class="data-row">
+                <td class="col-field">{{ row.field }}</td>
+                <td class="col-value">{{ row.value }}</td>
+                <td class="col-page"><span class="page-link">{{ row.page }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-if="scoreTables.length === 0" class="empty-state">未检测到评分表格</div>
         <template v-else-if="scoreTables.length === 1">
           <div class="doc-table-wrap">
             <div class="table-container doc-table">
@@ -579,6 +676,15 @@ function triggerDownload(blob: Blob, filename: string) {
       </div>
     </div>
   </div>
+
+  <el-dialog v-model="showEditDialog" title="编辑提取内容" width="540px" :close-on-click-modal="false" @keyup.enter="confirmEdit">
+    <div class="edit-field-label">{{ editingField }}</div>
+    <el-input v-model="editValue" type="textarea" :rows="4" />
+    <template #footer>
+      <button class="dialog-btn cancel" @click="showEditDialog = false">取消</button>
+      <button class="dialog-btn confirm" @click="confirmEdit">确定</button>
+    </template>
+  </el-dialog>
 
   <PreviewModal
     :visible="previewVisible"
@@ -997,4 +1103,9 @@ function triggerDownload(blob: Blob, filename: string) {
   background-color: var(--color-primary, #4f6ef7);
   color: #fff;
 }
+
+.edit-field-label { font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 12px; padding: 8px 12px; background-color: var(--color-bg-card); border-radius: 8px; }
+.dialog-btn { height: 36px; padding: 0 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; }
+.dialog-btn.cancel { background-color: var(--color-bg-card); color: var(--color-text-secondary); margin-right: 8px; }
+.dialog-btn.confirm { background-color: var(--color-primary); color: white; }
 </style>
