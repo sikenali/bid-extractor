@@ -25,9 +25,9 @@ const router = createRouter({
           component: () => import('@/views/settings/ThemeSettingsView.vue')
         },
         {
-          path: 'template',
-          name: 'TemplateSettings',
-          component: () => import('@/views/settings/TemplateSettingsView.vue')
+          path: 'skill',
+          name: 'SkillSettings',
+          component: () => import('@/views/settings/SkillSettingsView.vue')
         },
         {
           path: 'rules',

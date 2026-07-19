@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { getRules, addRule, updateRule, deleteRule, importSkillMd } from '@/api/rules';
-import type { SkillImportResult } from '@/api/rules';
+import { getRules, addRule, updateRule, deleteRule } from '@/api/rules';
 import RuleDialog from '@/components/settings/RuleDialog.vue';
 
 interface Rule {
@@ -105,32 +104,6 @@ function selectTab(key: string) {
   activeSection.value = key;
 }
 
-const importResult = ref<SkillImportResult | null>(null);
-const showImportResult = ref(false);
-const importLoading = ref(false);
-
-function triggerImport() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.md,.yaml,.yml';
-  input.onchange = async () => {
-    const file = input.files?.[0];
-    if (!file) return;
-    importLoading.value = true;
-    try {
-      const result = await importSkillMd(file);
-      importResult.value = result;
-      showImportResult.value = true;
-      ElMessage.success(`导入成功：${result.count} 条规则`);
-      await loadAllRules();
-    } catch (err: any) {
-      ElMessage.error(err?.response?.data?.error || '导入失败');
-    } finally {
-      importLoading.value = false;
-    }
-  };
-  input.click();
-}
 </script>
 
 <template>
@@ -161,10 +134,7 @@ function triggerImport() {
             <span class="icon ri-text-line"></span>
             <span>关键字规则</span>
           </button>
-          <button class="btn-import-skill" :disabled="importLoading" @click="triggerImport">
-            <span class="icon ri-file-upload-line"></span>
-            <span>{{ importLoading ? '导入中...' : '导入 Skill' }}</span>
-          </button>
+
         </div>
       </div>
 
@@ -213,30 +183,7 @@ function triggerImport() {
           @submit="handleRuleSubmit"
  />
 
-        <el-dialog v-model="showImportResult" title="导入结果" width="520px" :close-on-click-modal="false">
-          <div v-if="importResult" class="import-result">
-            <div class="import-summary">
-              <span class="import-badge success">✓ {{ importResult.count }} 条导入</span>
-              <span v-if="importResult.skipped.length" class="import-badge skip">⏭ {{ importResult.skipped.length }} 条跳过（已存在）</span>
-            </div>
-            <p class="import-name">来源：{{ importResult.name }}</p>
-            <div v-if="importResult.inserted.length" class="import-list">
-              <h4>新增规则</h4>
-              <div v-for="r in importResult.inserted" :key="r.field" class="import-item">
-                <span class="import-field">{{ r.field }}</span>
-                <span class="import-tag" :class="r.category">{{ r.category === 'regex' ? '正则' : '关键字' }}</span>
-                <span class="import-group">{{ r.group }}</span>
-              </div>
-            </div>
-            <div v-if="importResult.skipped.length" class="import-list">
-              <h4>已跳过（重复）</h4>
-              <div v-for="name in importResult.skipped" :key="name" class="import-item">
-                <span class="import-field">{{ name }}</span>
-                <span class="import-tag skip">已存在</span>
-              </div>
-            </div>
-          </div>
-        </el-dialog>
+
     </div>
   </div>
 </template>
@@ -325,22 +272,5 @@ function triggerImport() {
 .btn-action.btn-delete { background-color: #FFEBEE; color: var(--color-primary); }
 
 .empty-state { padding: 48px 0; text-align: center; color: var(--color-text-muted); font-size: 14px; }
-.btn-import-skill { height: 32px; padding: 0 16px; background: none; border: 1px solid var(--color-primary); color: var(--color-primary); border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-.btn-import-skill:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-import-skill .icon { font-family: "remixicon", sans-serif; font-style: normal; font-size: 14px; }
-.import-result { font-size: 14px; }
-.import-summary { display: flex; gap: 12px; margin-bottom: 12px; }
-.import-badge { font-size: 13px; padding: 4px 12px; border-radius: 9999px; font-weight: 500; }
-.import-badge.success { background-color: #e8faf0; color: #22c55e; }
-.import-badge.skip { background-color: #f0e8d8; color: #8b7355; }
-.import-name { color: var(--color-text-secondary); margin: 0 0 16px; font-size: 13px; }
-.import-list { margin-bottom: 12px; }
-.import-list h4 { font-size: 13px; font-weight: 600; margin: 0 0 8px; color: var(--color-text-primary); }
-.import-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
-.import-field { font-weight: 500; color: var(--color-text-primary); min-width: 120px; }
-.import-tag { font-size: 11px; padding: 2px 8px; border-radius: 9999px; }
-.import-tag.regex { background-color: #e8f0f8; color: #2d6a9f; }
-.import-tag.keyword { background-color: #f0e8d8; color: #8b7355; }
-.import-tag.skip { background-color: var(--color-bg-card); color: var(--color-text-muted); }
-.import-group { font-size: 12px; color: var(--color-text-muted); }
+
 </style>

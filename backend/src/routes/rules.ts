@@ -1,7 +1,36 @@
 import { Router } from 'express';
 import multer from 'multer';
 import yaml from 'js-yaml';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { db } from '../database.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const skillsPath = path.join(__dirname, '..', '..', 'data', 'skills.json');
+
+interface SkillMeta {
+  name: string;
+  description: string;
+  group: string;
+  fields: string[];
+  importedAt: string;
+}
+
+function readSkills(): SkillMeta[] {
+  try {
+    if (fs.existsSync(skillsPath)) {
+      return JSON.parse(fs.readFileSync(skillsPath, 'utf-8'));
+    }
+  } catch { /* ignore */ }
+  return [];
+}
+
+function writeSkills(skills: SkillMeta[]) {
+  const dir = path.dirname(skillsPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(skillsPath, JSON.stringify(skills, null, 2));
+}
 
 const router = Router();
 
@@ -71,6 +100,35 @@ router.post('/discover', (req, res) => {
   res.json({ inserted, count: inserted.length });
 });
 
+// List all imported skills with their rules
+router.get('/skills', (req, res) => {
+  const skills = readSkills();
+  const allRules = db.prepare('SELECT * FROM extraction_rules').all() as any[];
+  const result = skills.map(skill => {
+    const rules = allRules
+      .filter(r => skill.fields.includes(r.field_name) && r.group_name === skill.group)
+      .map(mapRule);
+    return { ...skill, rules };
+  });
+  res.json(result);
+});
+
+// Delete a skill and its rules
+router.delete('/skills/:name', (req, res) => {
+  const skills = readSkills();
+  const idx = skills.findIndex(s => s.name === req.params.name);
+  if (idx < 0) {
+    res.status(404).json({ error: 'Skill not found' });
+    return;
+  }
+  const skill = skills[idx];
+  db.prepare('DELETE FROM extraction_rules WHERE group_name = ? AND field_name IN (' +
+    skill.fields.map(() => '?').join(',') + ')').run(skill.group, ...skill.fields);
+  skills.splice(idx, 1);
+  writeSkills(skills);
+  res.json({ deleted: true });
+});
+
 // Import rules from a skill.md file (YAML frontmatter)
 router.post('/import-skill', upload.single('file'), (req, res) => {
   try {
@@ -118,7 +176,26 @@ router.post('/import-skill', upload.single('file'), (req, res) => {
       existingSet.add(key);
     }
 
-    res.json({ name, inserted, skipped, count: inserted.length });
+    // Persist skill metadata
+    if (inserted.length > 0) {
+      const skills = readSkills();
+      const existing = skills.findIndex(s => s.name === name);
+      const meta: SkillMeta = {
+        name,
+        description: fm.description || '',
+        group: defaultGroup,
+        fields: inserted.map(r => r.field),
+        importedAt: new Date().toISOString(),
+      };
+      if (existing >= 0) {
+        skills[existing] = meta;
+      } else {
+        skills.push(meta);
+      }
+      writeSkills(skills);
+    }
+
+    res.json({ name, description: fm.description || '', group: defaultGroup, inserted, skipped, count: inserted.length });
   } catch (err: any) {
     res.status(400).json({ error: `Failed to parse skill file: ${err.message}` });
   }

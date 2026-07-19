@@ -7,7 +7,7 @@ const router = useRouter();
 
 const menuItems = [
   { path: '/settings/theme', label: '主题设置', icon: 'ri-palette-line', color: '#2D8B57' },
-  { path: '/settings/template', label: '模板设置', icon: 'ri-file-text-line', color: '#C8A45C' },
+  { path: '/settings/skill', label: '技能管理', icon: 'ri-git-branch-line', color: '#8B5CF6' },
   { path: '/settings/rules', label: '规则设置', icon: 'ri-list-settings-line', color: '#C23B22' },
   { path: '/settings/export', label: '导出设置', icon: 'ri-download-2-line', color: '#2D6A9F' },
   { path: '/settings/apikey', label: 'API Key', icon: 'ri-key-2-line', color: '#6366F1' }

@@ -31,14 +31,6 @@ export function initializeDatabase() {
     group_name TEXT DEFAULT 'info'
   )`);
 
-  db.exec(`CREATE TABLE IF NOT EXISTS templates (
-    id TEXT PRIMARY KEY,
-    type TEXT NOT NULL,
-    category TEXT NOT NULL,
-    name TEXT NOT NULL,
-    description TEXT
-  )`);
-
   db.exec(`CREATE TABLE IF NOT EXISTS api_configs (
     id TEXT PRIMARY KEY,
     provider TEXT NOT NULL,
@@ -878,11 +870,6 @@ export function initializeDatabase() {
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '评分项', '(?:评分项|评审项|评分内容)[：:]?\\s*([^。\\n]{2,60})', 'regex', 'score')`);
   // 评分说明
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '评分说明', '(?:评分说明|评审说明|评分依据)[：:]?\\s*([^。\\n]{2,100})', 'regex', 'score')`);
-
-  db.exec(`INSERT INTO templates (id, type, category, name, description) VALUES ('${uid()}', 'bidding', 'government', '政府采购货物类', '适用于货物类采购项目')`);
-  db.exec(`INSERT INTO templates (id, type, category, name, description) VALUES ('${uid()}', 'bidding', 'engineering', '工程施工类', '适用于工程施工招标')`);
-  db.exec(`INSERT INTO templates (id, type, category, name, description) VALUES ('${uid()}', 'bidding', 'it_service', '信息化服务类', '适用于IT服务采购')`);
-  db.exec(`INSERT INTO templates (id, type, category, name, description) VALUES ('${uid()}', 'bidding', 'consulting', '咨询服务类', '适用于咨询类采购')`);
 
   db.exec(`INSERT INTO api_configs (id, provider, model, api_key) VALUES ('${uid()}', '阿里云', 'qwen-turbo', '')`);
   db.exec(`INSERT INTO api_configs (id, provider, model, api_key) VALUES ('${uid()}', '百度', 'ernie-bot', '')`);

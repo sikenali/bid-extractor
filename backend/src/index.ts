@@ -3,7 +3,6 @@ import cors from 'cors';
 import { initializeDatabase } from './database.js';
 import uploadRouter from './routes/upload.js';
 import rulesRouter from './routes/rules.js';
-import templatesRouter from './routes/templates.js';
 import settingsRouter from './routes/settings.js';
 
 const app = express();
@@ -17,7 +16,6 @@ initializeDatabase();
 
 app.use('/api/upload', uploadRouter);
 app.use('/api/rules', rulesRouter);
-app.use('/api/templates', templatesRouter);
 app.use('/api/settings', settingsRouter);
 
 app.get('/health', (_req, res) => {
