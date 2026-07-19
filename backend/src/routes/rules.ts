@@ -1,7 +1,11 @@
 import { Router } from 'express';
+import multer from 'multer';
+import yaml from 'js-yaml';
 import { db } from '../database.js';
 
 const router = Router();
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 1 * 1024 * 1024 } });
 
 function mapRule(r: any) {
   return {
@@ -65,6 +69,59 @@ router.post('/discover', (req, res) => {
   }
   
   res.json({ inserted, count: inserted.length });
+});
+
+// Import rules from a skill.md file (YAML frontmatter)
+router.post('/import-skill', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: 'No file uploaded' });
+      return;
+    }
+    const content = req.file.buffer.toString('utf-8');
+
+    const fmMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+    if (!fmMatch) {
+      res.status(400).json({ error: 'No YAML frontmatter found (must start and end with ---)' });
+      return;
+    }
+
+    const fm = yaml.load(fmMatch[1]) as any;
+    if (!fm || !Array.isArray(fm.rules)) {
+      res.status(400).json({ error: 'Frontmatter must contain a "rules" array' });
+      return;
+    }
+
+    const name = fm.name || req.file.originalname.replace(/\.md$/i, '');
+    const defaultGroup = fm.group || 'info';
+    const inserted: { field: string; group: string; category: string }[] = [];
+    const skipped: string[] = [];
+    const existing = db.prepare('SELECT field_name, group_name FROM extraction_rules').all() as any[];
+    const existingSet = new Set(existing.map((r: any) => `${r.field_name}|${r.group_name}`));
+
+    for (const rule of fm.rules) {
+      if (!rule.field) continue;
+      const group = rule.group || defaultGroup;
+      const category = rule.type === 'regex' ? 'regex' : 'keyword';
+      const pattern = rule.pattern || '';
+      const key = `${rule.field}|${group}`;
+
+      if (existingSet.has(key)) {
+        skipped.push(rule.field);
+        continue;
+      }
+
+      const id = crypto.randomUUID();
+      db.prepare(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, ?, ?, ?)`)
+        .run(id, rule.field, pattern, category, group);
+      inserted.push({ field: rule.field, group, category });
+      existingSet.add(key);
+    }
+
+    res.json({ name, inserted, skipped, count: inserted.length });
+  } catch (err: any) {
+    res.status(400).json({ error: `Failed to parse skill file: ${err.message}` });
+  }
 });
 
 export default router;

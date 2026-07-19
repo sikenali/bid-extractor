@@ -381,10 +381,29 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 	return "", false
 }
 
+func matchSpecificity(match string) int {
+	digits := 0
+	runes := 0
+	for _, r := range match {
+		if r >= '0' && r <= '9' {
+			digits++
+		}
+		runes++
+	}
+	if runes == 0 {
+		return 0
+	}
+	if digits > 0 {
+		return 100 + digits*10 - runes
+	}
+	return 50 - runes
+}
+
 func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraphs map[string][]string, tables []DocTable) (map[string]interface{}, map[string]string) {
 	extracts := make(map[string]interface{})
 	groups := make(map[string]string)
 	keywordSet := make(map[string]bool)
+	bestScore := make(map[string]int)
 	for _, rule := range rules {
 		g := rule.Group
 		if g == "" {
@@ -399,12 +418,12 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 		}
 
 		if rule.Category == "keyword" || rule.Pattern == "" {
-			// For score fields, search table cells first (more reliable)
 			if g == "score" && tables != nil {
 				if val, found := extractFromTables(tables, rule.Name); found {
 					extracts[rule.Name] = val
 					groups[rule.Name] = g
 					keywordSet[rule.Name] = true
+					bestScore[rule.Name] = 9999
 					continue
 				}
 			}
@@ -413,6 +432,7 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 					extracts[rule.Name] = val
 					groups[rule.Name] = g
 					keywordSet[rule.Name] = true
+					bestScore[rule.Name] = 9999
 					continue
 				}
 			}
@@ -421,7 +441,6 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 			}
 		}
 
-		// Don't let regex overwrite keyword matches
 		if keywordSet[rule.Name] {
 			continue
 		}
@@ -433,11 +452,21 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 		}
 		matches := re.FindStringSubmatch(scopeText)
 		if len(matches) > 1 {
-			extracts[rule.Name] = strings.TrimSpace(matches[1])
-			groups[rule.Name] = g
+			val := strings.TrimSpace(matches[1])
+			sc := matchSpecificity(val)
+			if prev, exists := bestScore[rule.Name]; !exists || sc > prev {
+				extracts[rule.Name] = val
+				groups[rule.Name] = g
+				bestScore[rule.Name] = sc
+			}
 		} else if len(matches) == 1 {
-			extracts[rule.Name] = strings.TrimSpace(matches[0])
-			groups[rule.Name] = g
+			val := strings.TrimSpace(matches[0])
+			sc := matchSpecificity(val)
+			if prev, exists := bestScore[rule.Name]; !exists || sc > prev {
+				extracts[rule.Name] = val
+				groups[rule.Name] = g
+				bestScore[rule.Name] = sc
+			}
 		}
 	}
 	return extracts, groups

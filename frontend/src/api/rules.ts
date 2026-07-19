@@ -34,3 +34,19 @@ export async function discoverRules(fieldNames: string[], groupName: string): Pr
   const response = await apiClient.post('/rules/discover', { fieldNames, groupName });
   return response.data;
 }
+
+export interface SkillImportResult {
+  name: string;
+  inserted: { field: string; group: string; category: string }[];
+  skipped: string[];
+  count: number;
+}
+
+export async function importSkillMd(file: File): Promise<SkillImportResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await apiClient.post<SkillImportResult>('/rules/import-skill', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return response.data;
+}
