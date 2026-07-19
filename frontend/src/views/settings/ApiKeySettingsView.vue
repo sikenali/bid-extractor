@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue';
-import { ElMessage } from 'element-plus';
-import { getApiKeys, addApiKey } from '@/api/settings';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { getApiKeys, addApiKey, deleteApiKey } from '@/api/settings';
 
 interface ApiKeyItem {
   id: string;
@@ -99,6 +99,17 @@ async function handleSubmit() {
     ElMessage.error(err?.response?.data?.error || '添加失败');
   }
 }
+
+async function handleDeleteKey(key: ApiKeyItem) {
+  try {
+    await ElMessageBox.confirm(`确定删除 ${key.provider} / ${key.model} 的 API Key？`, '确认删除');
+    await deleteApiKey(key.id);
+    ElMessage.success('已删除');
+    await loadApiKeys();
+  } catch {
+    // cancelled
+  }
+}
 </script>
 
 <template>
@@ -106,6 +117,17 @@ async function handleSubmit() {
       <div class="settings-content">
         <h2 class="page-title">API Key</h2>
         <p class="page-desc">配置 AI 模型的 API 访问密钥</p>
+
+        <div v-if="apiKeys.length > 0" class="existing-keys">
+          <div v-for="key in apiKeys" :key="key.id" class="key-item">
+            <div class="key-info">
+              <span class="key-provider">{{ key.provider }}</span>
+              <span class="key-model">{{ key.model }}</span>
+              <span class="key-masked">••••••••••••••••</span>
+            </div>
+            <button class="btn-delete-key" @click="handleDeleteKey(key)">删除</button>
+          </div>
+        </div>
 
         <div class="apikey-layout">
           <div class="model-list">

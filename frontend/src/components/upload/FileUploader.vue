@@ -16,14 +16,15 @@ const selectedFile = ref<File | null>(null);
 
 function validateFile(file: File): boolean {
   const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+  if (ext === '.pdf') {
+    return true;
+  }
+  if (ext === '.doc') {
+    alert('不支持 .doc 格式，请转换成 Docx 格式后再上传～');
+    return false;
+  }
   if (ext !== '.docx') {
-    if (ext === '.pdf') {
-      alert('暂不支持 PDF 格式，敬请期待～');
-    } else if (ext === '.doc') {
-      alert('不支持 .doc 格式，请转换成 Docx 格式后再上传～');
-    } else {
-      alert('仅支持 .docx 格式');
-    }
+    alert('仅支持 .docx / .pdf 格式');
     return false;
   }
   return true;
@@ -89,7 +90,7 @@ function triggerFileInput() {
       <p class="upload-title">
         {{ selectedFile ? `已选择: ${selectedFile.name}` : '上传招标文件' }}
       </p>
-      <p class="upload-hint">仅支持 DOCX 格式，单个文件不超过 50MB</p>
+      <p class="upload-hint">支持 DOCX / PDF 格式，单个文件不超过 50MB</p>
     </template>
     <template v-else>
       <p class="upload-title">正在解析: {{ props.fileName }}</p>
@@ -113,7 +114,7 @@ function triggerFileInput() {
       id="fileInput"
       type="file"
       class="file-input"
-      accept=".docx"
+      accept=".docx,.pdf"
       :disabled="props.loading"
       @change="handleFileSelect"
     />

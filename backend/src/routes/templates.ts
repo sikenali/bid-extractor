@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { db } from '../database.js';
-import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
@@ -17,7 +16,7 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   const { type, category, name, description } = req.body;
-  const id = uuidv4();
+  const id = crypto.randomUUID();
   db.prepare(`INSERT INTO templates (id, type, category, name, description) VALUES (?, ?, ?, ?, ?)`).run(id, type, category, name, description);
   const template = db.prepare('SELECT * FROM templates WHERE id = ?').get(id);
   res.status(201).json(template);

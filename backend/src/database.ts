@@ -28,7 +28,7 @@ export function initializeDatabase() {
     pattern TEXT NOT NULL,
     enabled INTEGER DEFAULT 1,
     category TEXT DEFAULT 'regex',
-    group_name TEXT DEFAULT 'bidding'
+    group_name TEXT DEFAULT 'info'
   )`);
 
   db.exec(`CREATE TABLE IF NOT EXISTS templates (

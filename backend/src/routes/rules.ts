@@ -28,14 +28,14 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   const { fieldName, pattern, category, groupName } = req.body;
   const id = crypto.randomUUID();
-  db.prepare(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, ?, ?, ?)`).run(id, fieldName, pattern || '', category || 'regex', groupName || 'bidding');
+  db.prepare(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, ?, ?, ?)`).run(id, fieldName, pattern || '', category || 'regex', groupName || 'info');
   const rule = db.prepare('SELECT * FROM extraction_rules WHERE id = ?').get(id);
   res.status(201).json(mapRule(rule as any));
 });
 
 router.put('/:id', (req, res) => {
   const { fieldName, pattern, enabled, category, groupName } = req.body;
-  db.prepare(`UPDATE extraction_rules SET field_name=?, pattern=?, enabled=?, category=?, group_name=? WHERE id=?`).run(fieldName, pattern ?? '', enabled ?? 1, category ?? 'regex', groupName ?? 'bidding', req.params.id);
+  db.prepare(`UPDATE extraction_rules SET field_name=?, pattern=?, enabled=?, category=?, group_name=? WHERE id=?`).run(fieldName, pattern ?? '', enabled ?? 1, category ?? 'regex', groupName ?? 'info', req.params.id);
   const rule = db.prepare('SELECT * FROM extraction_rules WHERE id = ?').get(req.params.id);
   res.json(mapRule(rule as any));
 });
@@ -59,7 +59,7 @@ router.post('/discover', (req, res) => {
   for (const name of fieldNames) {
     if (!existingNames.has(name)) {
       const id = crypto.randomUUID();
-      db.prepare(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, '', 'regex', ?)`).run(id, name, groupName || 'bidding');
+      db.prepare(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, '', 'keyword', ?)`).run(id, name, groupName || 'info');
       inserted.push(name);
     }
   }

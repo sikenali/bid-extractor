@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { db } from '../database.js';
-import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
@@ -38,7 +37,7 @@ router.get('/apikeys', (_req, res) => {
 
 router.post('/apikeys', (req, res) => {
   const { provider, model, api_key, region } = req.body;
-  const id = uuidv4();
+  const id = crypto.randomUUID();
   db.prepare(`INSERT INTO api_configs (id, provider, model, api_key, region) VALUES (?, ?, ?, ?, ?)`).run(id, provider, model, api_key, region);
   res.status(201).json({ id, provider, model, region });
 });

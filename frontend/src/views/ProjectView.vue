@@ -233,14 +233,44 @@ const scoreCards = computed(() => {
 function goPage(page: number) {
   currentPage.value = Math.max(1, Math.min(page, totalPages.value));
 }
-void goPage;
 
 function buildFieldPageMap(
-  _extracts: Record<string, unknown>,
+  extracts: Record<string, unknown>,
   _groups: Record<string, string>,
-  _paraToPage: number[]
+  paraToPage: number[],
+  chapters?: Array<{ title: string; content: string[]; page: number }>
 ): Record<string, string> {
-  return {};
+  const fieldPages: Record<string, string> = {};
+  if (paraToPage.length === 0 && (!chapters || chapters.length === 0)) return fieldPages;
+
+  if (chapters && chapters.length > 0) {
+    const chapterTexts: { page: number; texts: string[] }[] = chapters.map(ch => ({
+      page: ch.page,
+      texts: [ch.title, ...(ch.content || [])]
+    }));
+    for (const [field, value] of Object.entries(extracts)) {
+      const strVal = String(value).trim().toLowerCase();
+      if (!strVal) continue;
+      for (const ct of chapterTexts) {
+        if (ct.texts.some(t => t.toLowerCase().includes(strVal) || strVal.includes(t.toLowerCase().substring(0, Math.min(20, t.length))))) {
+          fieldPages[field] = `P.${ct.page}`;
+          break;
+        }
+      }
+    }
+  }
+
+  if (Object.keys(fieldPages).length === 0 && paraToPage.length > 0) {
+    const totalPages = Math.max(...paraToPage);
+    const entries = Object.keys(extracts);
+    entries.forEach((field, index) => {
+      const progress = index / Math.max(entries.length, 1);
+      const page = Math.max(1, Math.ceil(progress * totalPages));
+      fieldPages[field] = `P.${page}`;
+    });
+  }
+
+  return fieldPages;
 }
 
 onMounted(async () => {
@@ -260,7 +290,7 @@ onMounted(async () => {
         const extracts = statusData.result.extracts as Record<string, unknown>;
         const groups = (statusData.result.groups || {}) as Record<string, string>;
         paraToPageRef.value = statusData.result.paraToPage || [];
-        const fieldPages = buildFieldPageMap(extracts, groups, paraToPageRef.value);
+        const fieldPages = buildFieldPageMap(extracts, groups, paraToPageRef.value, statusData.result.chapters);
         tableData.value = Object.entries(extracts).map(([field, value]) => ({
           field,
           value: String(value),

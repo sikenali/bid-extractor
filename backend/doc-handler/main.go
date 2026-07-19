@@ -453,7 +453,7 @@ func main() {
 		return
 	}
 
-	text, chapters, paragraphs, groupToParagraphs, paraToPage, _, err := extractText(req.FilePath)
+	text, chapters, paragraphs, groupToParagraphs, paraToPage, pageCount, err := extractText(req.FilePath)
 	if err != nil {
 		resp := ParseResponse{Status: "error", Error: err.Error()}
 		output, _ := json.Marshal(resp)
@@ -486,7 +486,7 @@ func main() {
 		Groups:     groups,
 		Chapters:   chapters,
 		Tables:     tables,
-		PageCount:  len(chapters),
+		PageCount:  pageCount,
 		ParaToPage: paraToPage,
 	}
 	output, _ := json.Marshal(resp)
