@@ -5,6 +5,7 @@ import TopNav from '@/components/layout/TopNav.vue';
 import PreviewModal from '@/components/preview/PreviewModal.vue';
 import { getParseStatus } from '@/api/upload';
 import { getExportSettings } from '@/api/settings';
+import apiClient from '@/api/client';
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType } from 'docx';
 
 const route = useRoute();
@@ -374,6 +375,7 @@ onMounted(async () => {
       if (statusData.result?.extracts) {
         const extracts = statusData.result.extracts as Record<string, unknown>;
         const groups = (statusData.result.groups || {}) as Record<string, string>;
+        const fieldGroups = (statusData.result.fieldGroups || {}) as Record<string, string>;
         paraToPageRef.value = statusData.result.paraToPage || [];
         const fieldParaMap = (statusData.result.fieldParaMap || {}) as Record<string, number>;
         const fieldPages = buildFieldPageMap(extracts, groups, paraToPageRef.value, statusData.result.chapters, fieldParaMap);
@@ -381,7 +383,7 @@ onMounted(async () => {
           field,
           value: String(value),
           page: fieldPages[field] || 'P.1',
-          groupName: groups[field] || 'info'
+          groupName: fieldGroups[field] || groups[field] || 'info'
         }));
       }
 
@@ -421,7 +423,17 @@ function handleEdit(field: string) {
 function confirmEdit() {
   const row = tableData.value.find(d => d.field === editingField.value);
   if (row) {
+    const originalValue = row.value;
     row.value = editValue.value;
+    // Send correction to backend for auto-learning
+    apiClient.post('/rules/corrections', {
+      fieldName: editingField.value,
+      originalValue,
+      correctedValue: editValue.value,
+      paragraphText: '',
+      groupName: activeSection.value,
+      fileName: fileInfo.value.name
+    }).catch(() => {});
   }
   showEditDialog.value = false;
 }

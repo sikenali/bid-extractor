@@ -469,4 +469,56 @@ router.post('/suggestions/batch-add', (req, res) => {
   res.json({ inserted });
 });
 
+// Save a correction and auto-generate a rule
+router.post('/corrections', (req, res) => {
+  const { fieldName, originalValue, correctedValue, paragraphText, groupName, fileName } = req.body;
+  if (!fieldName || !correctedValue) {
+    res.status(400).json({ error: 'fieldName and correctedValue required' });
+    return;
+  }
+
+  const g = groupName || 'info';
+
+  // Record correction
+  db.prepare(`INSERT INTO correction_history (id, field_name, original_value, corrected_value, paragraph_text, group_name, file_name)
+    VALUES (?, ?, ?, ?, ?, ?, ?)`)
+    .run(crypto.randomUUID(), fieldName, originalValue || '', correctedValue, paragraphText || '', g, fileName || '');
+
+  // Auto-generate or update keyword rule
+  const existing = db.prepare('SELECT id FROM extraction_rules WHERE field_name = ? AND group_name = ? AND category = ?')
+    .get(fieldName, g, 'keyword') as any;
+
+  if (!existing) {
+    db.prepare(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name, enabled)
+      VALUES (?, ?, '', 'keyword', ?, 1)`)
+      .run(crypto.randomUUID(), fieldName, g);
+  }
+
+  // If paragraph text is available and contains the field name, try to generate a regex pattern
+  if (paragraphText && paragraphText.includes(fieldName)) {
+    const idx = paragraphText.indexOf(fieldName);
+    const after = paragraphText.substring(idx + fieldName.length).trim();
+    if (after.startsWith('：') || after.startsWith(':')) {
+      const existingRegex = db.prepare('SELECT id FROM extraction_rules WHERE field_name = ? AND group_name = ? AND category = ?')
+        .get(fieldName, g, 'regex') as any;
+      if (!existingRegex) {
+        // Escape the corrected value for regex
+        const escapedVal = correctedValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const pattern = `(?:${fieldName})[：:]?\\s*(${escapedVal})`;
+        db.prepare(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name, enabled)
+          VALUES (?, ?, ?, 'regex', ?, 1)`)
+          .run(crypto.randomUUID(), fieldName, pattern, g);
+      }
+    }
+  }
+
+  res.json({ saved: true, fieldName, group: g });
+});
+
+// List correction history
+router.get('/corrections', (req, res) => {
+  const corrections = db.prepare('SELECT * FROM correction_history ORDER BY created_at DESC LIMIT 100').all();
+  res.json(corrections);
+});
+
 export default router;

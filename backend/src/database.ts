@@ -31,6 +31,17 @@ export function initializeDatabase() {
     group_name TEXT DEFAULT 'info'
   )`);
 
+  db.exec(`CREATE TABLE IF NOT EXISTS correction_history (
+    id TEXT PRIMARY KEY,
+    field_name TEXT NOT NULL,
+    original_value TEXT,
+    corrected_value TEXT NOT NULL,
+    paragraph_text TEXT,
+    group_name TEXT DEFAULT 'info',
+    file_name TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`);
+
   db.exec(`CREATE TABLE IF NOT EXISTS api_configs (
     id TEXT PRIMARY KEY,
     provider TEXT NOT NULL,
