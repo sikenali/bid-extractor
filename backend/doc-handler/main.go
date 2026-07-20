@@ -51,16 +51,17 @@ type MarkedItem struct {
 }
 
 type ParseResponse struct {
-	Status     string                 `json:"status"`
-	Text       string                 `json:"text,omitempty"`
-	Extracts   map[string]interface{} `json:"extracts,omitempty"`
-	Groups     map[string]string      `json:"groups,omitempty"`
-	Chapters   []Chapter              `json:"chapters,omitempty"`
-	Tables     []DocTable             `json:"tables,omitempty"`
-	MarkedItems []MarkedItem          `json:"markedItems,omitempty"`
-	PageCount  int                    `json:"pageCount,omitempty"`
-	ParaToPage []int                  `json:"paraToPage,omitempty"`
-	Error      string                 `json:"error,omitempty"`
+	Status       string                 `json:"status"`
+	Text         string                 `json:"text,omitempty"`
+	Extracts     map[string]interface{} `json:"extracts,omitempty"`
+	Groups       map[string]string      `json:"groups,omitempty"`
+	Chapters     []Chapter              `json:"chapters,omitempty"`
+	Tables       []DocTable             `json:"tables,omitempty"`
+	MarkedItems  []MarkedItem           `json:"markedItems,omitempty"`
+	FieldParaMap map[string]int         `json:"fieldParaMap,omitempty"`
+	PageCount    int                    `json:"pageCount,omitempty"`
+	ParaToPage   []int                  `json:"paraToPage,omitempty"`
+	Error        string                 `json:"error,omitempty"`
 }
 
 func paragraphText(p document.Paragraph) string {
@@ -181,6 +182,7 @@ func extractDocxWithChapters(filePath string) (string, []Chapter, []string, map[
 
 		isHead, level := isHeading(para)
 		if isHead && level <= 3 {
+			sectionStructured = true
 			if currentChapter != nil {
 				chapters = append(chapters, *currentChapter)
 			}
@@ -192,6 +194,7 @@ func extractDocxWithChapters(filePath string) (string, []Chapter, []string, map[
 			currentGroup = detectSection(text)
 		} else {
 			if isStart, sg := isSectionStart(text); isStart {
+				sectionStructured = true
 				if currentChapter != nil {
 					chapters = append(chapters, *currentChapter)
 				}
@@ -207,7 +210,7 @@ func extractDocxWithChapters(filePath string) (string, []Chapter, []string, map[
 		}
 
 		usedGroup := currentGroup
-		if usedGroup == "info" && len([]rune(text)) > 30 {
+		if usedGroup == "info" && sectionStructured {
 			if cg := detectContentGroup(text); cg != "info" {
 				usedGroup = cg
 			}
@@ -287,6 +290,19 @@ func extractMarkedItems(paragraphs []string, paraToPage []int) []MarkedItem {
 		}
 	}
 	return items
+}
+
+func findFieldParagraphs(extracts map[string]interface{}, paragraphs []string, groupToParagraphs map[string][]string) map[string]int {
+	result := make(map[string]int)
+	for field := range extracts {
+		for i, para := range paragraphs {
+			if strings.Contains(para, field) {
+				result[field] = i
+				break
+			}
+		}
+	}
+	return result
 }
 
 func extractPdfText(filePath string) (string, []Chapter, []string, map[string][]string, []int, int, error) {
@@ -390,7 +406,7 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 		after = strings.TrimLeft(after, "：:　 \t,-—–")
 		after = strings.TrimSpace(after)
 
-		if len([]rune(after)) >= 2 {
+if len([]rune(after)) >= 2 {
 			if val, ok := extractStructuredValue(after); ok {
 				return val, true
 			}
@@ -410,19 +426,15 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 		before := strings.TrimSpace(para[:idx])
 		if before != "" {
 			runes := []rune(before)
-			if len(runes) > 40 {
-				before = string(runes[len(runes)-40:])
+			if len(runes) > 80 {
+				before = string(runes[:80])
 			}
-			if dot := strings.LastIndexAny(before, "。；"); dot >= 0 {
-				before = strings.TrimSpace(before[dot+1:])
+			if dot := strings.IndexAny(before, "。；"); dot > 0 {
+				before = before[:dot]
 			}
-			if before != "" {
-				if val, ok := extractStructuredValue(before); ok {
-					return val, true
-				}
-				if len([]rune(before)) >= 2 {
-					return before, true
-				}
+			before = strings.TrimSpace(before)
+			if len([]rune(before)) >= 2 {
+				return before, true
 			}
 		}
 	}
@@ -560,14 +572,17 @@ func main() {
 		markedItems = []MarkedItem{}
 	}
 
+	fieldParaMap := findFieldParagraphs(extracts, paragraphs, groupToParagraphs)
+
 	resp := ParseResponse{
-		Status:      "ok",
-		Text:        text,
-		Extracts:    extracts,
-		Groups:      groups,
-		Chapters:    chapters,
-		Tables:      tables,
-		MarkedItems: markedItems,
+		Status:       "ok",
+		Text:         text,
+		Extracts:     extracts,
+		Groups:       groups,
+		Chapters:     chapters,
+		Tables:       tables,
+		MarkedItems:  markedItems,
+		FieldParaMap: fieldParaMap,
 		PageCount:   pageCount,
 		ParaToPage:  paraToPage,
 	}

@@ -26,6 +26,7 @@ export interface UploadResult {
     chapters?: Array<{ title: string; content: string[]; page: number }>;
     tables?: DocTable[];
     markedItems?: MarkedItem[];
+    fieldParaMap?: Record<string, number>;
     pageCount?: number;
     paraToPage?: number[];
     error?: string;
@@ -47,6 +48,7 @@ export interface ParseStatus {
     chapters?: Array<{ title: string; content: string[]; page: number }>;
     tables?: DocTable[];
     markedItems?: MarkedItem[];
+    fieldParaMap?: Record<string, number>;
     pageCount?: number;
     paraToPage?: number[];
     error?: string;

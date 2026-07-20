@@ -273,9 +273,22 @@ function buildFieldPageMap(
   extracts: Record<string, unknown>,
   groups: Record<string, string>,
   paraToPage: number[],
-  chapters?: Array<{ title: string; content: string[]; page: number }>
+  chapters?: Array<{ title: string; content: string[]; page: number }>,
+  fieldParaMap?: Record<string, number>
 ): Record<string, string> {
   const fieldPages: Record<string, string> = {};
+
+  // Use fieldParaMap from Go backend for precise page numbers
+  if (fieldParaMap && paraToPage.length > 0) {
+    for (const field of Object.keys(extracts)) {
+      const paraIdx = fieldParaMap[field];
+      if (paraIdx !== undefined && paraIdx >= 0 && paraIdx < paraToPage.length) {
+        fieldPages[field] = `P.${paraToPage[paraIdx]}`;
+      }
+    }
+    return fieldPages;
+  }
+
   if (paraToPage.length === 0 && (!chapters || chapters.length === 0)) return fieldPages;
 
   const chapterPages: Record<string, number> = {};
@@ -362,7 +375,8 @@ onMounted(async () => {
         const extracts = statusData.result.extracts as Record<string, unknown>;
         const groups = (statusData.result.groups || {}) as Record<string, string>;
         paraToPageRef.value = statusData.result.paraToPage || [];
-        const fieldPages = buildFieldPageMap(extracts, groups, paraToPageRef.value, statusData.result.chapters);
+        const fieldParaMap = (statusData.result.fieldParaMap || {}) as Record<string, number>;
+        const fieldPages = buildFieldPageMap(extracts, groups, paraToPageRef.value, statusData.result.chapters, fieldParaMap);
         tableData.value = Object.entries(extracts).map(([field, value]) => ({
           field,
           value: String(value),
