@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import yaml from 'js-yaml';
+import { load } from 'js-yaml';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -13,7 +13,9 @@ interface SkillMeta {
   name: string;
   description: string;
   group: string;
+  type: 'rules' | 'prompt';
   fields: string[];
+  content?: string;
   importedAt: string;
 }
 
@@ -105,6 +107,9 @@ router.get('/skills', (req, res) => {
   const skills = readSkills();
   const allRules = db.prepare('SELECT * FROM extraction_rules').all() as any[];
   const result = skills.map(skill => {
+    if (skill.type === 'prompt') {
+      return { ...skill, rules: [] };
+    }
     const rules = allRules
       .filter(r => skill.fields.includes(r.field_name) && r.group_name === skill.group)
       .map(mapRule);
@@ -129,7 +134,7 @@ router.delete('/skills/:name', (req, res) => {
   res.json({ deleted: true });
 });
 
-// Import rules from a skill.md file (YAML frontmatter)
+// Import rules from a skill.md file (YAML frontmatter) or plain markdown prompt
 router.post('/import-skill', upload.single('file'), (req, res) => {
   try {
     if (!req.file) {
@@ -137,20 +142,57 @@ router.post('/import-skill', upload.single('file'), (req, res) => {
       return;
     }
     const content = req.file.buffer.toString('utf-8');
+    let name = req.file.originalname.replace(/\.(md|yaml|yml)$/i, '');
 
     const fmMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
     if (!fmMatch) {
-      res.status(400).json({ error: 'No YAML frontmatter found (must start and end with ---)' });
+      // Plain markdown prompt — store as prompt skill
+      const skills = readSkills();
+      const existing = skills.findIndex(s => s.name === name);
+      const meta: SkillMeta = {
+        name,
+        description: content.split('\n')[0]?.replace(/^#\s*/, '') || name,
+        group: 'info',
+        type: 'prompt',
+        fields: [],
+        content,
+        importedAt: new Date().toISOString(),
+      };
+      if (existing >= 0) {
+        skills[existing] = meta;
+      } else {
+        skills.push(meta);
+      }
+      writeSkills(skills);
+      res.json({ name, description: meta.description, group: 'info', type: 'prompt', count: 0 });
       return;
     }
 
-    const fm = yaml.load(fmMatch[1]) as any;
+    const fm = load(fmMatch[1]) as any;
     if (!fm || !Array.isArray(fm.rules)) {
-      res.status(400).json({ error: 'Frontmatter must contain a "rules" array' });
+      // YAML but no rules array — also store as prompt
+      const skills = readSkills();
+      const existing = skills.findIndex(s => s.name === name);
+      const meta: SkillMeta = {
+        name,
+        description: fm?.description || name,
+        group: fm?.group || 'info',
+        type: 'prompt',
+        fields: [],
+        content: content.replace(/^---[\s\S]*?---\n*/, ''),
+        importedAt: new Date().toISOString(),
+      };
+      if (existing >= 0) {
+        skills[existing] = meta;
+      } else {
+        skills.push(meta);
+      }
+      writeSkills(skills);
+      res.json({ name, description: meta.description, group: meta.group, type: 'prompt', count: 0 });
       return;
     }
 
-    const name = fm.name || req.file.originalname.replace(/\.md$/i, '');
+    name = fm.name || req.file.originalname.replace(/\.md$/i, '');
     const defaultGroup = fm.group || 'info';
     const inserted: { field: string; group: string; category: string }[] = [];
     const skipped: string[] = [];
@@ -184,6 +226,7 @@ router.post('/import-skill', upload.single('file'), (req, res) => {
         name,
         description: fm.description || '',
         group: defaultGroup,
+        type: 'rules',
         fields: inserted.map(r => r.field),
         importedAt: new Date().toISOString(),
       };

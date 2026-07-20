@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import apiClient from '@/api/client';
 
@@ -16,7 +16,9 @@ interface SkillItem {
   name: string;
   description: string;
   group: string;
+  type: 'rules' | 'prompt';
   fields: string[];
+  content?: string;
   importedAt: string;
   rules: RuleItem[];
 }
@@ -145,30 +147,35 @@ onMounted(loadSkills);
             </div>
 
             <div v-if="expandedSkill === skill.name" class="card-rules" @click.stop>
-              <div class="rules-divider"></div>
-              <table class="rule-table">
-                <thead>
-                  <tr>
-                    <th>字段名称</th>
-                    <th>类型</th>
-                    <th>规则内容</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="rule in skill.rules" :key="rule.id">
-                    <td class="rule-field">{{ rule.fieldName }}</td>
-                    <td>
-                      <span class="type-tag" :class="rule.category">
-                        {{ rule.category === 'keyword' ? '关键字' : '正则' }}
-                      </span>
-                    </td>
-                    <td class="rule-pattern-cell">
-                      <code v-if="rule.pattern" class="rule-pattern">{{ rule.pattern }}</code>
-                      <span v-else class="empty-pattern">—</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div v-if="skill.type === 'prompt' && skill.content" class="prompt-content">
+                <pre class="prompt-text">{{ skill.content }}</pre>
+              </div>
+              <template v-else>
+                <div class="rules-divider"></div>
+                <table class="rule-table">
+                  <thead>
+                    <tr>
+                      <th>字段名称</th>
+                      <th>类型</th>
+                      <th>规则内容</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="rule in skill.rules" :key="rule.id">
+                      <td class="rule-field">{{ rule.fieldName }}</td>
+                      <td>
+                        <span class="type-tag" :class="rule.category">
+                          {{ rule.category === 'keyword' ? '关键字' : '正则' }}
+                        </span>
+                      </td>
+                      <td class="rule-pattern-cell">
+                        <code v-if="rule.pattern" class="rule-pattern">{{ rule.pattern }}</code>
+                        <span v-else class="empty-pattern">—</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </template>
             </div>
           </div>
 
@@ -176,7 +183,7 @@ onMounted(loadSkills);
             <div class="add-icon-wrap">
               <span class="add-icon ri-add-line"></span>
             </div>
-            <span class="add-text">添加模板</span>
+            <span class="add-text">添加技能</span>
             <input
               id="skillFileInput"
               type="file"
@@ -435,6 +442,20 @@ onMounted(loadSkills);
   padding: 16px;
   color: var(--color-text-muted);
   font-size: 14px;
+}
+.prompt-content {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.prompt-text {
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(61,43,31,1);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
 }
 .spinning {
   animation: spin 1s linear infinite;
