@@ -297,8 +297,8 @@ export function initializeDatabase() {
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '踏勘时间', '(?:踏勘|答疑|澄清|现场考察)[：:]?\\s*(\\d{4}年\\d{1,2}月\\d{1,2}日(?:\\s*\\d{1,2}:\\d{2})?)', 'regex', 'info')`);
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '踏勘时间', '(?:踏勘|答疑|澄清|现场考察)[：:]?\\s*([^\\n]{4,})', 'regex', 'info')`);
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '分包情况', '(?:是否\\s*接受\\s*分包|分包\\s*(?:要求|情况|规定))[：:]?\\s*([^\\n]+)', 'regex', 'info')`);
-  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '合同包号', '(?:合同包|包号|采购包)[：:]?\\s*([^\\n]+)', 'regex', 'info')`);
-  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '采购需求', '(?:采购需求|项目需求|采购标的|采购内容)[：:]?\\s*([^\\n]+(?:货物|服务|工程|设备)[^\\n]*)', 'regex', 'info')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '合同包号', '(?:合同包号|采购包号|包件号|合同包(?!号))[：:]?\\s*([^\\n]{2,30})', 'regex', 'info')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '采购需求', '(?:采购需求|项目需求|采购标的|采购内容|项目概况)[：:]?\\s*([^。\\n]{4,200})', 'regex', 'info')`);
 
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '面向中小微', '', 'keyword', 'info')`);
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '节能环保', '', 'keyword', 'info')`);
