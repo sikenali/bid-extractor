@@ -52,22 +52,6 @@ const scoreTables = computed(() => {
   });
 });
 
-const techKeywords = ['技术', '规格', '参数', '指标', '标准', '规范', '性能', '配置', '功能', '测试', '要求', '设备', '软件', '硬件', '系统'];
-const techTables = computed(() => {
-  return docTables.value.filter(tbl => {
-    if (tbl.rows.length < 2) return false;
-    const headers = tbl.rows[0].cells.map(c => c.trim());
-    return headers.some(h => techKeywords.some(kw => h.includes(kw)));
-  });
-});
-
-const techTablePage = ref(0);
-const techTableRows = computed(() => {
-  if (techTables.value.length === 0) return [];
-  const tbl = techTables.value[techTablePage.value] || techTables.value[0];
-  return tbl.rows.slice(1); // skip header
-});
-
 const fileInfo = ref({
   name: '',
   size: 0,
@@ -200,6 +184,7 @@ function buildFieldPageMap(
       business: ['商务条款', '投标人资格', '资格要求', '商务要求', '合同条款', '付款', '售后'],
       tech: ['技术规格', '技术要求', '技术参数', '技术标准', '采购需求', '技术需求', '验收标准'],
       score: ['评分标准', '评标办法', '评审办法', '评分细则', '综合评分', '评分因素'],
+      seal: ['封标', '密封', '封装', '正本', '副本', '电子文件', '密封袋', '密封条', '盖章', '递交', '邮寄', '现场递交', '封标要求', '密封要求', '封装方式', '密封处', '骑缝章', '外包装', '内包装', '密封袋标识', '外层信封', '内层信封', '密封截止时间', '递交方式', '纸质文件', '电子标书', 'U盘', '光盘', '加密', '拆封', '封条', '密封章'],
     };
 
     for (const [field, value] of Object.entries(extracts)) {
@@ -556,34 +541,6 @@ function triggerDownload(blob: Blob, filename: string) {
         </div>
         </template>
 
-        <template v-else-if="activeSection === 'tech' && techTables.length > 0">
-        <div class="tech-table-tabs">
-          <button
-            v-for="(_tbl, ti) in techTables"
-            :key="ti"
-            class="tech-tab"
-            :class="{ active: techTablePage === ti }"
-            @click="techTablePage = ti"
-          >技术表 {{ ti + 1 }}</button>
-        </div>
-        <div class="table-container">
-          <table class="extract-table">
-            <thead>
-              <tr>
-                <th v-for="(cell, ci) in techTables[techTablePage].rows[0].cells" :key="ci" class="col-field">{{ cell }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(row, ri) in techTableRows" :key="ri" class="data-row">
-                <td v-for="(cell, ci) in row.cells" :key="ci" class="col-value">{{ cell }}</td>
-              </tr>
-              <tr v-if="techTableRows.length === 0" class="empty-row">
-                <td :colspan="techTables[techTablePage].rows[0].cells.length" class="empty-cell">暂无技术指标数据</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        </template>
 
         <template v-else-if="activeSection !== 'score'">
         <div class="table-container">
@@ -1159,33 +1116,6 @@ function triggerDownload(blob: Blob, filename: string) {
   color: var(--color-primary, #4f6ef7);
 }
 .score-tab.active {
-  border-color: var(--color-primary, #4f6ef7);
-  background-color: var(--color-primary, #4f6ef7);
-  color: #fff;
-}
-
-.tech-table-tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-.tech-tab {
-  padding: 6px 14px;
-  border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: 6px;
-  background: var(--color-bg-card, #fff);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text-muted, #6b7280);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.tech-tab:hover {
-  border-color: var(--color-primary, #4f6ef7);
-  color: var(--color-primary, #4f6ef7);
-}
-.tech-tab.active {
   border-color: var(--color-primary, #4f6ef7);
   background-color: var(--color-primary, #4f6ef7);
   color: #fff;
