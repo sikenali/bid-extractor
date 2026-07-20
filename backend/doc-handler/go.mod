@@ -2,7 +2,7 @@ module bid-extractor-doc-handler
 
 go 1.24.0
 
-require github.com/unidoc/unioffice/v3 v3.3.0
+require github.com/unidoc/unioffice/v2 v2.12.0
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -30,3 +30,5 @@ require (
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/unidoc/unioffice/v2 => github.com/sikenali/unioffice/v2 v2.0.0-20260701084101-423612299d83

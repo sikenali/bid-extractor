@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/unidoc/unioffice/v3/common/license"
-	"github.com/unidoc/unioffice/v3/document"
+	"github.com/unidoc/unioffice/v2/common/license"
+	"github.com/unidoc/unioffice/v2/document"
 )
 
 func init() {
@@ -432,6 +432,41 @@ func extractFromTables(tables []DocTable, keyword string) (string, bool) {
 	return "", false
 }
 
+func extractFromTableCells(tables []DocTable, keyword string) (string, bool) {
+	for _, tbl := range tables {
+		if len(tbl.Rows) < 2 {
+			continue
+		}
+		// Collect header cells from first row to avoid matching header values
+		headerSet := make(map[string]bool)
+		for _, cell := range tbl.Rows[0].Cells {
+			headerSet[strings.TrimSpace(cell)] = true
+		}
+		// Search data rows (skip header row)
+		for ri := 1; ri < len(tbl.Rows); ri++ {
+			row := tbl.Rows[ri]
+			for ci, cell := range row.Cells {
+				trimmed := strings.TrimSpace(cell)
+				if trimmed == keyword || strings.HasPrefix(trimmed, keyword+":") || strings.HasPrefix(trimmed, keyword+"：") {
+					if ci+1 < len(row.Cells) {
+						val := strings.TrimSpace(row.Cells[ci+1])
+						if val != "" && !headerSet[val] {
+							return val, true
+						}
+					}
+					after := trimmed[len(keyword):]
+					after = strings.TrimLeft(after, "：:　 \t")
+					after = strings.TrimSpace(after)
+					if after != "" {
+						return after, true
+					}
+				}
+			}
+		}
+	}
+	return "", false
+}
+
 func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string, bool) {
 	type scoredMatch struct {
 		index int     // character index of keyword in paragraph (lower = better)
@@ -593,6 +628,19 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 		}
 
 		if rule.Category == "keyword" || rule.Pattern == "" {
+			// Try table cell extraction first for all groups (not just score)
+			if tables != nil {
+				if val, found := extractFromTableCells(tables, rule.Name); found {
+					sc := matchSpecificity(val)
+					if prev, exists := bestScore[rule.Name]; !exists || sc > prev {
+						extracts[rule.Name] = val
+						groups[rule.Name] = g
+						bestScore[rule.Name] = sc
+					}
+					continue
+				}
+			}
+			// For score fields, also try scoring table extraction
 			if g == "score" && tables != nil {
 				if val, found := extractFromTables(tables, rule.Name); found {
 					sc := matchSpecificity(val)
