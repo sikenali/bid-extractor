@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, onUnmounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import TopNav from '@/components/layout/TopNav.vue';
 import PreviewModal from '@/components/preview/PreviewModal.vue';
@@ -155,12 +155,29 @@ const paraToPageRef = ref<number[]>([]);
 const markedItems = ref<{ symbol: string; text: string; page: number }[]>([]);
 
 const scoreKeywords = ['评分', '得分', '分值', '分数', '评审', '明细', '权重', '价格'];
+void (scoreKeywords);
 const scoreTables = computed(() => {
   return docTables.value.filter(tbl => {
     if (tbl.rows.length < 2) return false;
     const headers = tbl.rows[0].cells.map(c => c.trim());
     return headers.some(h => scoreKeywords.some(kw => h.includes(kw)));
   });
+});
+
+const techKeywords = ['技术', '规格', '参数', '指标', '标准', '规范', '性能', '配置', '功能', '测试', '要求', '设备', '软件', '硬件', '系统'];
+const techTables = computed(() => {
+  return docTables.value.filter(tbl => {
+    if (tbl.rows.length < 2) return false;
+    const headers = tbl.rows[0].cells.map(c => c.trim());
+    return headers.some(h => techKeywords.some(kw => h.includes(kw)));
+  });
+});
+
+const techTablePage = ref(0);
+const techTableRows = computed(() => {
+  if (techTables.value.length === 0) return [];
+  const tbl = techTables.value[techTablePage.value] || techTables.value[0];
+  return tbl.rows.slice(1); // skip header
 });
 
 const fileInfo = ref({
@@ -656,6 +673,35 @@ function triggerDownload(blob: Blob, filename: string) {
         </div>
         </template>
 
+        <template v-else-if="activeSection === 'tech' && techTables.length > 0">
+        <div class="tech-table-tabs">
+          <button
+            v-for="(_tbl, ti) in techTables"
+            :key="ti"
+            class="tech-tab"
+            :class="{ active: techTablePage === ti }"
+            @click="techTablePage = ti"
+          >技术表 {{ ti + 1 }}</button>
+        </div>
+        <div class="table-container">
+          <table class="extract-table">
+            <thead>
+              <tr>
+                <th v-for="(cell, ci) in techTables[techTablePage].rows[0].cells" :key="ci" class="col-field">{{ cell }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, ri) in techTableRows" :key="ri" class="data-row">
+                <td v-for="(cell, ci) in row.cells" :key="ci" class="col-value">{{ cell }}</td>
+              </tr>
+              <tr v-if="techTableRows.length === 0" class="empty-row">
+                <td :colspan="techTables[techTablePage].rows[0].cells.length" class="empty-cell">暂无技术指标数据</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        </template>
+
         <template v-else-if="activeSection !== 'score'">
         <div class="table-container">
           <table class="extract-table">
@@ -668,7 +714,7 @@ function triggerDownload(blob: Blob, filename: string) {
               </tr>
             </thead>
             <tbody>
-              <template v-for="(row, idx) in paginatedData" :key="row.field">
+              <template v-for="(row, _idx) in paginatedData" :key="row.field">
                 <tr class="data-row">
                   <td class="col-field">{{ row.field }}</td>
                   <td class="col-value">{{ row.value }}</td>
@@ -705,7 +751,7 @@ function triggerDownload(blob: Blob, filename: string) {
               </tr>
             </thead>
             <tbody>
-              <template v-for="(row, idx) in paginatedData" :key="row.field">
+              <template v-for="(row, _idx) in paginatedData" :key="row.field">
                 <tr class="data-row">
                   <td class="col-field">{{ row.field }}</td>
                   <td class="col-value">{{ row.value }}</td>
@@ -1230,6 +1276,33 @@ function triggerDownload(blob: Blob, filename: string) {
   color: var(--color-primary, #4f6ef7);
 }
 .score-tab.active {
+  border-color: var(--color-primary, #4f6ef7);
+  background-color: var(--color-primary, #4f6ef7);
+  color: #fff;
+}
+
+.tech-table-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.tech-tab {
+  padding: 6px 14px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  background: var(--color-bg-card, #fff);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted, #6b7280);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tech-tab:hover {
+  border-color: var(--color-primary, #4f6ef7);
+  color: var(--color-primary, #4f6ef7);
+}
+.tech-tab.active {
   border-color: var(--color-primary, #4f6ef7);
   background-color: var(--color-primary, #4f6ef7);
   color: #fff;
