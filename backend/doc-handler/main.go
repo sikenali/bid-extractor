@@ -294,12 +294,30 @@ func extractMarkedItems(paragraphs []string, paraToPage []int) []MarkedItem {
 
 func findFieldParagraphs(extracts map[string]interface{}, paragraphs []string, groupToParagraphs map[string][]string) map[string]int {
 	result := make(map[string]int)
-	for field := range extracts {
+	for field, val := range extracts {
+		valStr := strings.TrimSpace(fmt.Sprintf("%v", val))
+		bestIdx := -1
+		bestScore := 0
 		for i, para := range paragraphs {
+			// Score: field name near start = high priority
 			if strings.Contains(para, field) {
-				result[field] = i
-				break
+				fi := strings.Index(para, field)
+				score := 100 - fi
+				if fi < 0 {
+					score = 0
+				}
+				// Bonus if the extracted value is contained in this paragraph
+				if valStr != "" && len(valStr) > 4 && strings.Contains(para, string([]rune(valStr)[:min(len(valStr), 20)])) {
+					score += 50
+				}
+				if score > bestScore {
+					bestScore = score
+					bestIdx = i
+				}
 			}
+		}
+		if bestIdx >= 0 {
+			result[field] = bestIdx
 		}
 	}
 	return result
@@ -401,8 +419,6 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 		if idx < 0 {
 			continue
 		}
-		// Require keyword near the start of paragraph (within first 60 chars)
-		// to avoid matching accidental occurrences in long text
 		if idx > 60 && !reverse {
 			continue
 		}
@@ -411,11 +427,29 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 		after = strings.TrimLeft(after, "：:　 \t,-—–")
 		after = strings.TrimSpace(after)
 
-if len([]rune(after)) >= 2 {
+		if len([]rune(after)) >= 2 {
 			if val, ok := extractStructuredValue(after); ok {
 				return val, true
 			}
+			// Multi-paragraph concatenation: if value ends with colon or is short,
+			// look at the next paragraphs and append them
 			runes := []rune(after)
+			lastRune := string(runes[len(runes)-1:])
+			if lastRune == "：" || lastRune == ":" || len(runes) < 6 {
+				for j := i + 1; j < len(paragraphs) && j <= i+3; j++ {
+					nextPara := strings.TrimSpace(paragraphs[j])
+					if nextPara == "" {
+						continue
+					}
+					combined := after + "\n" + nextPara
+					if len([]rune(combined)) > 500 {
+						after = after + "\n" + string([]rune(nextPara)[:200])
+						break
+					}
+					after = combined
+				}
+			}
+			runes = []rune(after)
 			if len(runes) > 80 {
 				after = string(runes[:80])
 			}
