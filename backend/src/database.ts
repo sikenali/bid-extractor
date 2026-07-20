@@ -879,6 +879,11 @@ export function initializeDatabase() {
   // 评分说明
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '评分说明', '(?:评分说明|评审说明|评分依据)[：:]?\\s*([^。\\n]{2,100})', 'regex', 'score')`);
 
+  // Keyword rules for score fields - triggers extractFromTables
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '价格评分', '', 'keyword', 'score')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '技术评分', '', 'keyword', 'score')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '商务评分', '', 'keyword', 'score')`);
+
   // Enhanced regex patterns for score group
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '分值', '(?:分值|分数|得分|总分|满分)[：:]?\\s*(\\d{1,3}(?:\\.\\d+)?)\\s*分', 'regex', 'score')`);
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '满分', '(?:满分|最高分|总分)[：:]?\\s*(\\d{1,3}(?:\\.\\d+)?)\\s*分', 'regex', 'score')`);
@@ -913,6 +918,11 @@ export function initializeDatabase() {
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '纸质文件', '', 'keyword', 'seal')`);
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '邮寄要求', '', 'keyword', 'seal')`);
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '现场递交', '', 'keyword', 'seal')`);
+
+  // Seal regex rules with broader patterns
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '封标要求', '(?:密封|封装|封标|装订|包装|包封)(?:要求|方式|规定|条款)?[：:]?\\s*([^。\\n]{4,200})', 'regex', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '递交方式', '(?:递交|提交|送交|送达|投标文件递交)(?:方式|方法|途径|要求)?[：:]?\\s*([^。\\n]{4,200})', 'regex', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '密封截止时间', '(?:密封|封装|递交|提交|投标截止)(?:时间|期限|截止时间)[：:]?\\s*([^。\\n]{4,200})', 'regex', 'seal')`);
 
   // Additional keyword rules for tech group
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '技术指标', '', 'keyword', 'tech')`);
@@ -959,14 +969,14 @@ export function initializeDatabase() {
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '必须满足', '', 'keyword', 'star')`);
 
   // ════════════════════════════════════════════
-  // 优化规则 — 技术条款 (tech) 增强版
+  // 优化规则 — 技术条款 (tech) 增强版 (RE2 兼容)
   // ════════════════════════════════════════════
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '技术规格',
-    '(?:\\d[.、]\\d+\\s*)(?:总体要求|技术要求|测试|功能|性能|系统|信号|配置|接口|验证|质量)[^\\n]{0,20}?\\n((?:▲|★|△)?[（(]\\d[)）][^\\n]+(?:\\n(?:▲|★|△)?[（(]\\d[)）][^\\n]+)*)',
+    '(?:\\d[.、]\\d+\\s*)(?:总体要求|技术要求|测试|功能|性能|系统|信号|配置|接口|验证|质量|需求)[^\\n]{0,30}\\n((?:▲|★|△)?[（(]\\d[)）][^\\n]+(?:\\n(?:▲|★|△)?[（(]\\d[)）][^\\n]+)*)',
     'regex', 'tech')`);
 
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '技术规格',
-    '(?:\\d[.、]\\d+\\s*)(?:总体要求|技术要求|测试|功能|性能|系统|信号|配置|接口|验证|质量)[^\\n]{0,30}?\\n((?:▲|★|△)?[^\\n]{10,200})',
+    '(?:\\d[.、]\\d+\\s*)(?:总体要求|技术要求|测试|功能|性能|系统|信号|配置|接口|验证|质量|需求)[^\\n]{0,30}\\n((?:▲|★|△)?[^\\n]{10,200})',
     'regex', 'tech')`);
 
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '技术参数',
@@ -978,14 +988,14 @@ export function initializeDatabase() {
     'regex', 'tech')`);
 
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '性能要求',
-    '(?:\\d[.、]\\d+\\s*)(?:性能|时钟|抖动|信号|眼图|串扰|扩频|时域|国产)[^\\n]{0,20}?\\n((?:▲|★|△)?[^\\n]{10,200})',
+    '(?:\\d[.、]\\d+\\s*)(?:性能|时钟|抖动|信号|眼图|串扰|扩频|时域|国产)[^\\n]{0,20}\\n((?:▲|★|△)?[^\\n]{10,200})',
     'regex', 'tech')`);
 
   // ════════════════════════════════════════════
-  // 优化规则 — 评分标准 (score) 增强版
+  // 优化规则 — 评分标准 (score) 增强版 (RE2 兼容)
   // ════════════════════════════════════════════
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '评分项',
-    '(?:\\d[.、]\\s*(?:人员|业绩|资质|方案|价格|技术|服务|商务|售后|质量|进度|管理|培训|保障|响应)[^\\n]{0,30}?)[：:]?\\s*(?:满分|分值|标准|说明)[：:]?\\s*([^。\\n]{4,100})',
+    '(?:\\d[.、]\\s*(?:人员|业绩|资质|方案|价格|技术|服务|商务|售后|质量|进度|管理|培训|保障|响应)[^\\n]{0,30})[：:]?\\s*(?:满分|分值|标准|说明)[：:]?\\s*([^。\\n]{4,100})',
     'regex', 'score')`);
 
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '技术评分',
