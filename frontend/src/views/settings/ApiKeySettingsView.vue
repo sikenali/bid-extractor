@@ -3,14 +3,6 @@ import { ref, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
 import { addApiKey } from '@/api/settings';
 
-interface ApiKeyItem {
-  id: string;
-  provider: string;
-  model: string;
-  region?: string;
-  base_url?: string;
-}
-
 const selectedProviderId = ref<string | null>(null);
 const activeFormTab = ref('manufacturer');
 
@@ -89,7 +81,6 @@ async function handleSubmit() {
 </script>
 
 <template>
-      
       <div class="settings-content">
         <h2 class="page-title">API Key</h2>
 
@@ -173,7 +164,6 @@ async function handleSubmit() {
 <style scoped>
 .settings-content { flex: 1; padding: 32px; }
 .page-title { font-size: 24px; font-weight: bold; color: var(--color-text-primary); margin: 0 0 4px 0; }
-.page-desc { font-size: 14px; color: var(--color-text-muted); margin: 0 0 24px 0; }
 .apikey-layout { display: flex; gap: 32px; }
 .model-list { width: 260px; padding: 32px 16px; background-color: white; border-radius: 12px; border: 0.7px solid var(--color-border); }
 .model-group-title { font-size: 11px; color: var(--color-text-muted); font-weight: 500; padding: 0 8px; margin-bottom: 8px; }
