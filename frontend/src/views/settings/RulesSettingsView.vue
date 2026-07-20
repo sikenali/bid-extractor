@@ -20,14 +20,18 @@ const tabItems = [
   { key: 'info', label: '项目信息', sublabel: '招标文件基本信息' },
   { key: 'business', label: '商务条款', sublabel: '招标文件商务偏离表' },
   { key: 'tech', label: '技术条款', sublabel: '招标文件技术偏离表' },
-  { key: 'score', label: '评分标准', sublabel: '专家评分标准表' }
+  { key: 'score', label: '评分标准', sublabel: '专家评分标准表' },
+  { key: 'seal', label: '封标标准', sublabel: '封装密封及递交要求' },
+  { key: 'star', label: '标星信息', sublabel: '★▲等重要标识条款' },
 ];
 
 const rulesByGroup = ref<Record<string, Rule[]>>({
   info: [],
   business: [],
   tech: [],
-  score: []
+  score: [],
+  seal: [],
+  star: [],
 });
 
 const showRuleDialog = ref(false);
@@ -44,7 +48,7 @@ async function loadRules(group: string) {
 }
 
 async function loadAllRules() {
-  for (const g of ['info', 'business', 'tech', 'score']) {
+  for (const g of ['info', 'business', 'tech', 'score', 'seal', 'star']) {
     await loadRules(g);
   }
 }

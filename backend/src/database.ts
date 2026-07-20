@@ -887,6 +887,29 @@ export function initializeDatabase() {
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '邮寄要求', '', 'keyword', 'seal')`);
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '现场递交', '', 'keyword', 'seal')`);
 
+  // Star group - 标星信息
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '★号条款', '(?:★|☆|星号|\\*)\\s*(?:号|项)?\\s*(?:条款|要求|参数|指标)[：:]?\\s*([^。\\n]+)', 'regex', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '▲号条款', '(?:▲|△|三角形)\\s*(?:号|项)?\\s*(?:条款|要求|参数|指标)[：:]?\\s*([^。\\n]+)', 'regex', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '●号条款', '(?:●|○|圆形)\\s*(?:号|项)?\\s*(?:条款|要求|参数|指标)[：:]?\\s*([^。\\n]+)', 'regex', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '◆号条款', '(?:◆|◇|菱形)\\s*(?:号|项)?\\s*(?:条款|要求|参数|指标)[：:]?\\s*([^。\\n]+)', 'regex', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '※号条款', '(?:※|※号)\\s*(?:条款|要求|参数|指标)[：:]?\\s*([^。\\n]+)', 'regex', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '重要条款', '(?:重要|关键|核心|实质性)[：:]?\\s*(?:条款|要求|参数|指标)[：:]?\\s*([^。\\n]+)', 'regex', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '否决条款', '(?:否决|废标|无效投标|一票否决)[：:]?\\s*([^。\\n]+)', 'regex', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '★号条款', '', 'keyword', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '▲号条款', '', 'keyword', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '●号条款', '', 'keyword', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '◆号条款', '', 'keyword', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '※号条款', '', 'keyword', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '重要条款', '', 'keyword', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '否决条款', '', 'keyword', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '废标条款', '', 'keyword', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '实质性条款', '', 'keyword', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '不可偏离条款', '', 'keyword', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '核心指标', '', 'keyword', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '关键指标', '', 'keyword', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '强制要求', '', 'keyword', 'star')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '必须满足', '', 'keyword', 'star')`);
+
   db.exec(`INSERT INTO api_configs (id, provider, model, api_key) VALUES ('${uid()}', '阿里云', 'qwen-turbo', '')`);
   db.exec(`INSERT INTO api_configs (id, provider, model, api_key) VALUES ('${uid()}', '百度', 'ernie-bot', '')`);
   db.exec(`INSERT INTO api_configs (id, provider, model, api_key) VALUES ('${uid()}', '智谱', 'glm-4', '')`);
