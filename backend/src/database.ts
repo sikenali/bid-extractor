@@ -36,8 +36,11 @@ export function initializeDatabase() {
     provider TEXT NOT NULL,
     model TEXT NOT NULL,
     api_key TEXT NOT NULL,
-    region TEXT
+    region TEXT,
+    base_url TEXT
   )`);
+
+  try { db.exec(`ALTER TABLE api_configs ADD COLUMN base_url TEXT`); } catch {}
 
   db.exec(`CREATE TABLE IF NOT EXISTS export_settings (
     id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -65,12 +68,6 @@ export function initializeDatabase() {
 
   const existingRules = (db.prepare('SELECT COUNT(*) as count FROM extraction_rules').get() as any).count;
   if (existingRules > 0) {
-    // Dedup: keep lowest-id copy for each (field_name, category, group_name) tuple
-    db.exec(`
-      DELETE FROM extraction_rules WHERE id NOT IN (
-        SELECT MIN(id) FROM extraction_rules GROUP BY field_name, category, group_name
-      )
-    `);
     return;
   }
 
@@ -870,6 +867,25 @@ export function initializeDatabase() {
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '评分项', '(?:评分项|评审项|评分内容)[：:]?\\s*([^。\\n]{2,60})', 'regex', 'score')`);
   // 评分说明
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '评分说明', '(?:评分说明|评审说明|评分依据)[：:]?\\s*([^。\\n]{2,100})', 'regex', 'score')`);
+
+  // Seal group - 封标标准
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '封标要求', '(?:密封|封装|封标)(?:要求|方式|规定)[：:]?\\s*([^。\\n]+)', 'regex', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '密封要求', '(?:密封)(?:要求|方式|规定|条款)[：:]?\\s*([^。\\n]+)', 'regex', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '正本数量', '(?:正本|正本数量)[：:]?\\s*([^。\\n\\d]*(\\d+)\\s*份?[^。\\n]*)', 'regex', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '副本数量', '(?:副本|副本数量)[：:]?\\s*([^。\\n\\d]*(\\d+)\\s*份?[^。\\n]*)', 'regex', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '电子文件', '(?:电子(?:文件|文档|光盘|U盘)|电子版)[：:]?\\s*([^。\\n]+)', 'regex', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '递交方式', '(?:递交|提交|送交|送达)(?:方式|方法|途径)[：:]?\\s*([^。\\n]+)', 'regex', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '密封截止时间', '(?:密封|封装|递交|提交)(?:截止|最后)(?:时间|期限)[：:]?\\s*([^。\\n]+)', 'regex', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '封装方式', '', 'keyword', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '密封袋标识', '', 'keyword', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '外层信封', '', 'keyword', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '内层信封', '', 'keyword', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '密封处盖章', '', 'keyword', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '密封条', '', 'keyword', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '封装格式', '', 'keyword', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '纸质文件', '', 'keyword', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '邮寄要求', '', 'keyword', 'seal')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '现场递交', '', 'keyword', 'seal')`);
 
   db.exec(`INSERT INTO api_configs (id, provider, model, api_key) VALUES ('${uid()}', '阿里云', 'qwen-turbo', '')`);
   db.exec(`INSERT INTO api_configs (id, provider, model, api_key) VALUES ('${uid()}', '百度', 'ernie-bot', '')`);

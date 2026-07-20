@@ -23,7 +23,9 @@ const sidebarItems = [
   { key: 'info', label: '项目信息', sublabel: '招标文件基本信息', icon: 'ri-file-list-3-line' },
   { key: 'business', label: '商务条款', sublabel: '招标文件商务偏离表', icon: 'ri-file-paper-2-line' },
   { key: 'tech', label: '技术条款', sublabel: '招标文件技术偏离表', icon: 'ri-search-eye-line' },
-  { key: 'score', label: '评分标准', sublabel: '专家评分标准表', icon: 'ri-layout-line' }
+  { key: 'score', label: '评分标准', sublabel: '专家评分标准表', icon: 'ri-layout-line' },
+  { key: 'seal', label: '封标标准', sublabel: '封装密封及递交要求', icon: 'ri-mail-send-line' },
+  { key: 'star', label: '标星信息', sublabel: '★▲等重要标识条款', icon: 'ri-star-s-line' }
 ];
 
 const sectionFields: Record<string, { field: string; page: string }[]> = {
@@ -117,6 +119,25 @@ const sectionFields: Record<string, { field: string; page: string }[]> = {
     { field: '评审因素', page: '' },
     { field: '评分说明', page: '' },
   ],
+  seal: [
+    { field: '封标要求', page: '' },
+    { field: '密封要求', page: '' },
+    { field: '封装方式', page: '' },
+    { field: '正本数量', page: '' },
+    { field: '副本数量', page: '' },
+    { field: '电子文件', page: '' },
+    { field: '密封袋标识', page: '' },
+    { field: '外层信封', page: '' },
+    { field: '内层信封', page: '' },
+    { field: '密封处盖章', page: '' },
+    { field: '密封条', page: '' },
+    { field: '封装格式', page: '' },
+    { field: '纸质文件', page: '' },
+    { field: '密封截止时间', page: '' },
+    { field: '递交方式', page: '' },
+    { field: '邮寄要求', page: '' },
+    { field: '现场递交', page: '' },
+  ],
 };
 
 interface ExtractedField {
@@ -130,6 +151,7 @@ const tableData = ref<ExtractedField[]>([]);
 const docTables = ref<{ rows: { cells: string[] }[] }[]>([]);
 const activeScoreTab = ref(0);
 const paraToPageRef = ref<number[]>([]);
+const markedItems = ref<{ symbol: string; text: string; page: number }[]>([]);
 
 const scoreKeywords = ['评分', '得分', '分值', '分数', '评审', '明细', '权重', '价格'];
 const scoreTables = computed(() => {
@@ -182,6 +204,16 @@ function extractScore(raw: string): string {
   const n = raw.match(/(\d+(?:\.\d+)?)/);
   if (n) return n[1] + '分';
   return '-';
+}
+
+function getStarColor(symbol: string): string {
+  const red = ['★', '◆', '●', '⚠', '❗', '🔴'];
+  const orange = ['▲', '♦', '⭐'];
+  const green = ['☆', '△', '○', '◇'];
+  if (red.includes(symbol)) return '#ef4444';
+  if (orange.includes(symbol)) return '#e68a2e';
+  if (green.includes(symbol)) return '#22c55e';
+  return '#ef4444';
 }
 
 function parseScoreTable(tables: { rows: { cells: string[] }[] }[]): Record<string, string> {
@@ -341,6 +373,10 @@ onMounted(async () => {
 
       if (statusData.result?.tables) {
         docTables.value = statusData.result.tables as { rows: { cells: string[] }[] }[];
+      }
+
+      if (statusData.result?.markedItems) {
+        markedItems.value = statusData.result.markedItems as { symbol: string; text: string; page: number }[];
       }
 
       fileInfo.value.name = statusData.filename || '招标文件';
@@ -546,7 +582,33 @@ function triggerDownload(blob: Blob, filename: string) {
           </div>
         </div>
 
-        <template v-if="activeSection !== 'score'">
+        <template v-if="activeSection === 'star'">
+        <div class="table-container">
+          <table class="extract-table">
+            <thead>
+              <tr>
+                <th class="col-field" style="width:80px">符号</th>
+                <th class="col-value">条款内容</th>
+                <th class="col-page" style="width:100px">所在页码</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, idx) in markedItems" :key="idx" class="data-row">
+                <td class="col-field" style="width:80px">
+                  <span class="star-symbol" :style="{ color: getStarColor(item.symbol) }">{{ item.symbol }}</span>
+                </td>
+                <td class="col-value">{{ item.text }}</td>
+                <td class="col-page"><span class="page-link">P.{{ item.page }}</span></td>
+              </tr>
+              <tr v-if="markedItems.length === 0" class="empty-row">
+                <td colspan="3" class="empty-cell">未检测到标星条款</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        </template>
+
+        <template v-else-if="activeSection !== 'score'">
         <div class="table-container">
           <table class="extract-table">
             <thead>
@@ -664,7 +726,7 @@ function triggerDownload(blob: Blob, filename: string) {
         </template>
         </template>
 
-        <div class="bottom-bar">
+        <div v-if="activeSection !== 'score' && activeSection !== 'star'" class="bottom-bar">
           <div class="pagination">
             <span class="page-info">共 {{ totalRows }} 条</span>
             <select class="page-size-select" :value="pageSize" @change="pageSize = Number(($event.target as HTMLSelectElement).value); currentPage = 1">
@@ -1056,6 +1118,16 @@ function triggerDownload(blob: Blob, filename: string) {
   border-radius: 2px;
   background-color: var(--card-accent, #4f6ef7);
   transition: width 0.3s ease;
+}
+
+.star-symbol {
+  font-size: 20px;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
 }
 
 .empty-state {

@@ -44,16 +44,23 @@ type DocTable struct {
 	Rows []TableRow `json:"rows"`
 }
 
+type MarkedItem struct {
+	Symbol string `json:"symbol"`
+	Text   string `json:"text"`
+	Page   int    `json:"page"`
+}
+
 type ParseResponse struct {
-	Status    string                 `json:"status"`
-	Text      string                 `json:"text,omitempty"`
-	Extracts  map[string]interface{} `json:"extracts,omitempty"`
-	Groups    map[string]string      `json:"groups,omitempty"`
-	Chapters  []Chapter              `json:"chapters,omitempty"`
-	Tables    []DocTable             `json:"tables,omitempty"`
-	PageCount int                    `json:"pageCount,omitempty"`
-	ParaToPage []int                 `json:"paraToPage,omitempty"`
-	Error     string                 `json:"error,omitempty"`
+	Status     string                 `json:"status"`
+	Text       string                 `json:"text,omitempty"`
+	Extracts   map[string]interface{} `json:"extracts,omitempty"`
+	Groups     map[string]string      `json:"groups,omitempty"`
+	Chapters   []Chapter              `json:"chapters,omitempty"`
+	Tables     []DocTable             `json:"tables,omitempty"`
+	MarkedItems []MarkedItem          `json:"markedItems,omitempty"`
+	PageCount  int                    `json:"pageCount,omitempty"`
+	ParaToPage []int                  `json:"paraToPage,omitempty"`
+	Error      string                 `json:"error,omitempty"`
 }
 
 func paragraphText(p document.Paragraph) string {
@@ -132,7 +139,7 @@ func isSectionStart(text string) (bool, string) {
 var contentGroupKeywords = map[string][]string{
 	"score":    {"评分", "分值", "得分", "打分", "评审", "权重"},
 	"business": {"付款", "质保", "售后", "交付", "验收", "培训", "合同", "保险", "责任", "保密", "履约", "保证金"},
-	"tech":     {"技术", "规格", "参数", "标准", "规范", "性能", "指标", "配置", "功能", "安装", "调试"},
+	"tech":     {"技术参数", "技术指标", "技术规格", "技术规范", "安装调试", "性能指标", "性能参数", "配置要求", "功能要求"},
 }
 
 func detectContentGroup(text string) string {
@@ -161,6 +168,7 @@ func extractDocxWithChapters(filePath string) (string, []Chapter, []string, map[
 	groupToParagraphs := make(map[string][]string)
 	paraToPage := []int{}
 	currentGroup := "info"
+	sectionStructured := false
 
 	for _, para := range doc.Paragraphs() {
 		text := strings.TrimSpace(paragraphText(para))
@@ -199,7 +207,7 @@ func extractDocxWithChapters(filePath string) (string, []Chapter, []string, map[
 		}
 
 		usedGroup := currentGroup
-		if usedGroup == "info" {
+		if usedGroup == "info" && len([]rune(text)) > 30 {
 			if cg := detectContentGroup(text); cg != "info" {
 				usedGroup = cg
 			}
@@ -257,6 +265,28 @@ func extractDocxTables(filePath string) []DocTable {
 		tables = append(tables, dt)
 	}
 	return tables
+}
+
+func extractMarkedItems(paragraphs []string, paraToPage []int) []MarkedItem {
+	starSymbols := []string{"★", "☆", "▲", "△", "●", "○", "◆", "◇", "※", "⚠", "♦", "▸", "▹", "►", "▻", "★", "✦", "✧", "⬤", "🔴", "⭐", "❗"}
+	var items []MarkedItem
+	for i, para := range paragraphs {
+		for _, sym := range starSymbols {
+			if strings.Contains(para, sym) {
+				page := 1
+				if i < len(paraToPage) {
+					page = paraToPage[i]
+				}
+				text := strings.TrimSpace(para)
+				if len([]rune(text)) > 120 {
+					text = string([]rune(text)[:120]) + "..."
+				}
+				items = append(items, MarkedItem{Symbol: sym, Text: text, Page: page})
+				break
+			}
+		}
+	}
+	return items
 }
 
 func extractPdfText(filePath string) (string, []Chapter, []string, map[string][]string, []int, int, error) {
@@ -525,15 +555,21 @@ func main() {
 		chapters = []Chapter{}
 	}
 
+	markedItems := extractMarkedItems(paragraphs, paraToPage)
+	if markedItems == nil {
+		markedItems = []MarkedItem{}
+	}
+
 	resp := ParseResponse{
-		Status:     "ok",
-		Text:       text,
-		Extracts:   extracts,
-		Groups:     groups,
-		Chapters:   chapters,
-		Tables:     tables,
-		PageCount:  pageCount,
-		ParaToPage: paraToPage,
+		Status:      "ok",
+		Text:        text,
+		Extracts:    extracts,
+		Groups:      groups,
+		Chapters:    chapters,
+		Tables:      tables,
+		MarkedItems: markedItems,
+		PageCount:   pageCount,
+		ParaToPage:  paraToPage,
 	}
 	output, _ := json.Marshal(resp)
 	fmt.Println(string(output))

@@ -8,6 +8,12 @@ export interface DocTable {
   rows: TableRow[];
 }
 
+export interface MarkedItem {
+  symbol: string;
+  text: string;
+  page: number;
+}
+
 export interface UploadResult {
   id: string;
   filename: string;
@@ -19,6 +25,7 @@ export interface UploadResult {
     groups?: Record<string, string>;
     chapters?: Array<{ title: string; content: string[]; page: number }>;
     tables?: DocTable[];
+    markedItems?: MarkedItem[];
     pageCount?: number;
     paraToPage?: number[];
     error?: string;
@@ -39,6 +46,7 @@ export interface ParseStatus {
     groups?: Record<string, string>;
     chapters?: Array<{ title: string; content: string[]; page: number }>;
     tables?: DocTable[];
+    markedItems?: MarkedItem[];
     pageCount?: number;
     paraToPage?: number[];
     error?: string;
