@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import apiClient from '@/api/client';
 
@@ -28,20 +28,6 @@ const loading = ref(false);
 const importLoading = ref(false);
 const expandedSkill = ref<string | null>(null);
 const selectedFileName = ref('');
-const activeCategory = ref('all');
-
-const tabItems = [
-  { key: 'all', label: '全部', sublabel: '所有技能包' },
-  { key: 'info', label: '项目信息', sublabel: '招标文件基本信息' },
-  { key: 'business', label: '商务条款', sublabel: '招标文件商务偏离表' },
-  { key: 'tech', label: '技术条款', sublabel: '招标文件技术偏离表' },
-  { key: 'score', label: '评分标准', sublabel: '专家评分标准表' },
-];
-
-const filteredSkills = computed(() => {
-  if (activeCategory.value === 'all') return skills.value;
-  return skills.value.filter(s => s.group === activeCategory.value);
-});
 
 const groupColors: Record<string, string> = {
   info: '#4f6ef7',
@@ -135,25 +121,10 @@ onMounted(loadSkills);
         <p class="page-desc">通过 skill.md 导入和管理提取技能包</p>
       </div>
 
-      <div class="tabs-bar">
-        <div class="tabs-inner">
-          <div
-            v-for="item in tabItems"
-            :key="item.key"
-            class="tab-item"
-            :class="{ active: activeCategory === item.key }"
-            @click="activeCategory = item.key"
-          >
-            <div class="tab-label">{{ item.label }}</div>
-            <div class="tab-sublabel">{{ item.sublabel }}</div>
-          </div>
-        </div>
-      </div>
-
       <div class="bookshelf">
         <div class="bookshelf-inner">
           <div
-            v-for="skill in filteredSkills"
+            v-for="skill in skills"
             :key="skill.name"
             class="skill-card"
             :class="{ expanded: expandedSkill === skill.name }"
