@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
-import { getApiKeys, addApiKey, deleteApiKey, getLlmSettings, setLlmSettings, getLlmStatus } from '@/api/settings';
-import apiClient from '@/api/client';
+import { addApiKey } from '@/api/settings';
 
 interface ApiKeyItem {
   id: string;
@@ -14,7 +13,6 @@ interface ApiKeyItem {
 
 const selectedProviderId = ref<string | null>(null);
 const activeFormTab = ref('manufacturer');
-const apiKeys = ref<ApiKeyItem[]>([]);
 
 const domesticModels = [
   { key: 'qwen', name: '通义千问', provider: '阿里云', model: 'qwen-turbo', baseUrl: 'https://dashscope.aliyuncs.com' },
@@ -34,12 +32,7 @@ const formState = ref({
   baseUrl: ''
 });
 
-const editingKeyId = ref<string | null>(null);
 const showKey = ref(false);
-
-const llmEnabled = ref(false);
-const llmLoading = ref(false);
-const llmStatus = ref<{ available: boolean; enabled: boolean; hasApiKey: boolean } | null>(null);
 
 const formTabContainerRef = ref<HTMLElement | null>(null);
 const formTabIndicatorStyle = ref({ left: '0px', width: '0px' });
@@ -63,52 +56,7 @@ function selectFormTab(key: string) {
   nextTick(positionFormTabIndicator);
 }
 
-async function loadApiKeys() {
-  try {
-    apiKeys.value = await getApiKeys();
-  } catch {
-    apiKeys.value = [];
-  }
-}
-
-async function loadLlmSettings() {
-  try {
-    const [settings, status] = await Promise.all([
-      getLlmSettings(),
-      getLlmStatus()
-    ]);
-    llmEnabled.value = settings.enabled || false;
-    llmStatus.value = status;
-  } catch {
-    llmStatus.value = { available: false, enabled: false, hasApiKey: false };
-  }
-}
-
-async function toggleLlmEnabled() {
-  llmLoading.value = true;
-  try {
-    await setLlmSettings({ enabled: !llmEnabled.value });
-    llmEnabled.value = !llmEnabled.value;
-    ElMessage.success(llmEnabled.value ? 'LLM 增强提取已启用' : 'LLM 增强提取已禁用');
-    await loadLlmSettings();
-  } catch (err: any) {
-    llmEnabled.value = !llmEnabled.value;
-    ElMessage.error(err?.response?.data?.error || '操作失败');
-  } finally {
-    llmLoading.value = false;
-  }
-}
-
-onMounted(async () => {
-  await Promise.all([loadApiKeys(), loadLlmSettings()]);
-  nextTick(() => {
-    positionFormTabIndicator();
-    setTimeout(() => { formTabInitialized.value = true; }, 150);
-  });
-});
-
 function selectModel(key: string) {
-  if (editingKeyId.value) return;
   selectedProviderId.value = key;
   const allModels = [...domesticModels, ...internationalModels];
   const model = allModels.find(m => m.key === key);
@@ -125,53 +73,17 @@ async function handleSubmit() {
     return;
   }
   try {
-    if (editingKeyId.value) {
-      await apiClient.put(`/settings/apikeys/${editingKeyId.value}`, {
-        provider: formState.value.provider,
-        model: formState.value.model,
-        api_key: formState.value.apiKey,
-        base_url: formState.value.baseUrl || undefined
-      });
-      ElMessage.success('API Key 已更新');
-    } else {
-      await addApiKey({
-        provider: formState.value.provider,
-        model: formState.value.model,
-        api_key: formState.value.apiKey,
-        base_url: formState.value.baseUrl || undefined
-      });
-      ElMessage.success('API Key 已添加');
-    }
-    resetForm();
-    await loadApiKeys();
+    await addApiKey({
+      provider: formState.value.provider,
+      model: formState.value.model,
+      api_key: formState.value.apiKey,
+      base_url: formState.value.baseUrl || undefined
+    });
+    ElMessage.success('API Key 已保存');
+    formState.value = { provider: '', model: '', apiKey: '', baseUrl: '' };
+    selectedProviderId.value = null;
   } catch (err: any) {
-    ElMessage.error(err?.response?.data?.error || '操作失败');
-  }
-}
-
-function resetForm() {
-  formState.value = { provider: '', model: '', apiKey: '', baseUrl: '' };
-  editingKeyId.value = null;
-}
-
-function handleEditKey(key: ApiKeyItem) {
-  editingKeyId.value = key.id;
-  formState.value = {
-    provider: key.provider,
-    model: key.model,
-    apiKey: '',
-    baseUrl: key.base_url || ''
-  };
-}
-
-async function handleDeleteKey(key: ApiKeyItem) {
-  try {
-    await ElMessageBox.confirm(`确定删除 ${key.provider} / ${key.model} 的 API Key？`, '确认删除');
-    await deleteApiKey(key.id);
-    ElMessage.success('已删除');
-    await loadApiKeys();
-  } catch {
-    // cancelled
+    ElMessage.error(err?.response?.data?.error || '保存失败');
   }
 }
 </script>
@@ -180,21 +92,6 @@ async function handleDeleteKey(key: ApiKeyItem) {
       
       <div class="settings-content">
         <h2 class="page-title">API Key</h2>
-
-        <div v-if="apiKeys.length > 0" class="existing-keys">
-          <div v-for="key in apiKeys" :key="key.id" class="key-item">
-            <div class="key-info">
-              <span class="key-provider">{{ key.provider }}</span>
-              <span class="key-model">{{ key.model }}</span>
-              <span v-if="key.base_url" class="key-url">{{ key.base_url }}</span>
-              <span class="key-masked">••••••••••••••••</span>
-            </div>
-            <div class="key-actions">
-              <button class="btn-edit-key" @click="handleEditKey(key)">编辑</button>
-              <button class="btn-delete-key" @click="handleDeleteKey(key)">删除</button>
-            </div>
-          </div>
-        </div>
 
         <div class="apikey-layout">
           <div class="model-list">
@@ -265,8 +162,7 @@ async function handleDeleteKey(key: ApiKeyItem) {
                 </div>
               </div>
               <div class="form-actions">
-                <button class="btn-cancel" @click="resetForm">取消</button>
-                <button class="btn-add" @click="handleSubmit">{{ editingKeyId ? '保存' : '添加' }}</button>
+                <button class="btn-add" @click="handleSubmit">保存</button>
               </div>
             </div>
           </div>
@@ -278,18 +174,6 @@ async function handleDeleteKey(key: ApiKeyItem) {
 .settings-content { flex: 1; padding: 32px; }
 .page-title { font-size: 24px; font-weight: bold; color: var(--color-text-primary); margin: 0 0 4px 0; }
 .page-desc { font-size: 14px; color: var(--color-text-muted); margin: 0 0 24px 0; }
-.existing-keys { margin-bottom: 24px; display: flex; flex-direction: column; gap: 8px; }
-.key-item { display: flex; align-items: center; justify-content: space-between; background-color: white; border: 0.7px solid var(--color-border); border-radius: 12px; padding: 12px 16px; }
-.key-info { display: flex; align-items: center; gap: 16px; }
-.key-provider { font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
-.key-model { font-size: 13px; color: var(--color-text-secondary); }
-.key-url { font-size: 12px; color: var(--color-text-muted); font-family: monospace; }
-.key-masked { font-size: 12px; color: var(--color-text-muted); font-family: monospace; }
-.btn-delete-key { font-size: 12px; color: var(--color-primary); background: none; border: 1px solid var(--color-primary); border-radius: 6px; padding: 4px 12px; cursor: pointer; }
-.btn-delete-key:hover { background-color: var(--color-primary); color: white; }
-.btn-edit-key { font-size: 12px; color: var(--color-text-secondary); background: none; border: 1px solid var(--color-border); border-radius: 6px; padding: 4px 12px; cursor: pointer; margin-right: 8px; }
-.btn-edit-key:hover { border-color: var(--color-primary); color: var(--color-primary); }
-.key-actions { display: flex; align-items: center; }
 .apikey-layout { display: flex; gap: 32px; }
 .model-list { width: 260px; padding: 32px 16px; background-color: white; border-radius: 12px; border: 0.7px solid var(--color-border); }
 .model-group-title { font-size: 11px; color: var(--color-text-muted); font-weight: 500; padding: 0 8px; margin-bottom: 8px; }
@@ -314,6 +198,5 @@ async function handleDeleteKey(key: ApiKeyItem) {
 .api-key-input .form-input { flex: 1; padding-right: 48px; }
 .toggle-icon { position: absolute; right: 16px; font-size: 16px; color: var(--color-text-secondary); cursor: pointer; font-family: "remixicon", sans-serif; font-style: normal; }
 .form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
-.btn-cancel { padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; background-color: var(--color-bg-card); color: var(--color-text-secondary); border: none; cursor: pointer; }
 .btn-add { padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; background-color: var(--color-primary); color: white; border: none; cursor: pointer; }
 </style>
