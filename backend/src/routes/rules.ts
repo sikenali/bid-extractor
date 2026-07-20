@@ -36,6 +36,140 @@ function writeSkills(skills: SkillMeta[]) {
 
 const router = Router();
 
+// Curated vocabulary suggestions per group
+const vocabularySuggestions: Record<string, { field: string; pattern: string; category: string }[]> = {
+  info: [
+    { field: '项目名称', pattern: '', category: 'keyword' },
+    { field: '项目编号', pattern: '', category: 'keyword' },
+    { field: '招标编号', pattern: '', category: 'keyword' },
+    { field: '采购人', pattern: '', category: 'keyword' },
+    { field: '采购代理', pattern: '', category: 'keyword' },
+    { field: '采购方式', pattern: '', category: 'keyword' },
+    { field: '资金来源', pattern: '', category: 'keyword' },
+    { field: '预算金额', pattern: '', category: 'keyword' },
+    { field: '最高限价', pattern: '', category: 'keyword' },
+    { field: '投标截止时间', pattern: '', category: 'keyword' },
+    { field: '开标时间', pattern: '', category: 'keyword' },
+    { field: '投标地点', pattern: '', category: 'keyword' },
+    { field: '开标地点', pattern: '', category: 'keyword' },
+    { field: '踏勘时间', pattern: '', category: 'keyword' },
+    { field: '答疑时间', pattern: '', category: 'keyword' },
+    { field: '交付时间', pattern: '', category: 'keyword' },
+    { field: '交付地点', pattern: '', category: 'keyword' },
+    { field: '投标保证金', pattern: '', category: 'keyword' },
+    { field: '保证金金额', pattern: '', category: 'keyword' },
+    { field: '合同包号', pattern: '', category: 'keyword' },
+    { field: '分包情况', pattern: '', category: 'keyword' },
+    { field: '采购需求', pattern: '', category: 'keyword' },
+    { field: '采购内容', pattern: '', category: 'keyword' },
+    { field: '项目概况', pattern: '', category: 'keyword' },
+    { field: '招标范围', pattern: '', category: 'keyword' },
+    { field: '标段划分', pattern: '', category: 'keyword' },
+    { field: '联合体投标', pattern: '', category: 'keyword' },
+    { field: '进口产品', pattern: '', category: 'keyword' },
+    { field: '节能环保', pattern: '', category: 'keyword' },
+    { field: '面向中小微', pattern: '', category: 'keyword' },
+    { field: '合格投标人', pattern: '', category: 'keyword' },
+    { field: '是否接受联合体', pattern: '', category: 'keyword' },
+  ],
+  business: [
+    { field: '付款方式', pattern: '', category: 'keyword' },
+    { field: '付款条件', pattern: '', category: 'keyword' },
+    { field: '付款进度', pattern: '', category: 'keyword' },
+    { field: '质保期', pattern: '', category: 'keyword' },
+    { field: '质保要求', pattern: '', category: 'keyword' },
+    { field: '履约保证金', pattern: '', category: 'keyword' },
+    { field: '履约期限', pattern: '', category: 'keyword' },
+    { field: '交货期', pattern: '', category: 'keyword' },
+    { field: '交货地点', pattern: '', category: 'keyword' },
+    { field: '供货周期', pattern: '', category: 'keyword' },
+    { field: '售后服务', pattern: '', category: 'keyword' },
+    { field: '售后响应', pattern: '', category: 'keyword' },
+    { field: '培训要求', pattern: '', category: 'keyword' },
+    { field: '验收标准', pattern: '', category: 'keyword' },
+    { field: '验收方式', pattern: '', category: 'keyword' },
+    { field: '合同条款', pattern: '', category: 'keyword' },
+    { field: '合同签订', pattern: '', category: 'keyword' },
+    { field: '违约责任', pattern: '', category: 'keyword' },
+    { field: '争议解决', pattern: '', category: 'keyword' },
+    { field: '保密要求', pattern: '', category: 'keyword' },
+    { field: '知识产权', pattern: '', category: 'keyword' },
+    { field: '投标有效期', pattern: '', category: 'keyword' },
+    { field: '报价要求', pattern: '', category: 'keyword' },
+    { field: '发票要求', pattern: '', category: 'keyword' },
+    { field: '保险要求', pattern: '', category: 'keyword' },
+    { field: '分包转包', pattern: '', category: 'keyword' },
+    { field: '联合体要求', pattern: '', category: 'keyword' },
+    { field: '资质要求', pattern: '', category: 'keyword' },
+    { field: '业绩要求', pattern: '', category: 'keyword' },
+    { field: '人员配置要求', pattern: '', category: 'keyword' },
+  ],
+  tech: [
+    { field: '技术规格', pattern: '', category: 'keyword' },
+    { field: '技术要求', pattern: '', category: 'keyword' },
+    { field: '技术参数', pattern: '', category: 'keyword' },
+    { field: '技术标准', pattern: '', category: 'keyword' },
+    { field: '功能要求', pattern: '', category: 'keyword' },
+    { field: '性能指标', pattern: '', category: 'keyword' },
+    { field: '配置要求', pattern: '', category: 'keyword' },
+    { field: '安装要求', pattern: '', category: 'keyword' },
+    { field: '调试要求', pattern: '', category: 'keyword' },
+    { field: '培训方案', pattern: '', category: 'keyword' },
+    { field: '技术资料', pattern: '', category: 'keyword' },
+    { field: '技术文档', pattern: '', category: 'keyword' },
+    { field: '验收测试', pattern: '', category: 'keyword' },
+    { field: '质量标准', pattern: '', category: 'keyword' },
+    { field: '安全要求', pattern: '', category: 'keyword' },
+    { field: '环保要求', pattern: '', category: 'keyword' },
+    { field: '产品证书', pattern: '', category: 'keyword' },
+    { field: '检测报告', pattern: '', category: 'keyword' },
+    { field: '服务内容', pattern: '', category: 'keyword' },
+    { field: '服务标准', pattern: '', category: 'keyword' },
+    { field: '实施方案', pattern: '', category: 'keyword' },
+    { field: '运维要求', pattern: '', category: 'keyword' },
+    { field: '备品备件', pattern: '', category: 'keyword' },
+    { field: '软件要求', pattern: '', category: 'keyword' },
+    { field: '硬件要求', pattern: '', category: 'keyword' },
+    { field: '网络要求', pattern: '', category: 'keyword' },
+    { field: '数据安全', pattern: '', category: 'keyword' },
+    { field: '接口要求', pattern: '', category: 'keyword' },
+    { field: '兼容性要求', pattern: '', category: 'keyword' },
+    { field: '扩展性要求', pattern: '', category: 'keyword' },
+  ],
+  score: [
+    { field: '评标办法', pattern: '', category: 'keyword' },
+    { field: '评分标准', pattern: '', category: 'keyword' },
+    { field: '评分细则', pattern: '', category: 'keyword' },
+    { field: '评分表', pattern: '', category: 'keyword' },
+    { field: '评分项', pattern: '', category: 'keyword' },
+    { field: '分值', pattern: '', category: 'keyword' },
+    { field: '满分', pattern: '', category: 'keyword' },
+    { field: '合格分数线', pattern: '', category: 'keyword' },
+    { field: '价格评分', pattern: '', category: 'keyword' },
+    { field: '技术评分', pattern: '', category: 'keyword' },
+    { field: '商务评分', pattern: '', category: 'keyword' },
+    { field: '客观分', pattern: '', category: 'keyword' },
+    { field: '主观分', pattern: '', category: 'keyword' },
+    { field: '价格扣除', pattern: '', category: 'keyword' },
+    { field: '优先采购', pattern: '', category: 'keyword' },
+    { field: '评审因素', pattern: '', category: 'keyword' },
+    { field: '评分说明', pattern: '', category: 'keyword' },
+    { field: '评分依据', pattern: '', category: 'keyword' },
+    { field: '价格分计算公式', pattern: '', category: 'keyword' },
+    { field: '权重', pattern: '', category: 'keyword' },
+    { field: '权重占比', pattern: '', category: 'keyword' },
+    { field: '加分项', pattern: '', category: 'keyword' },
+    { field: '扣分项', pattern: '', category: 'keyword' },
+    { field: '最低得分', pattern: '', category: 'keyword' },
+    { field: '评标基准价', pattern: '', category: 'keyword' },
+    { field: '投标报价得分', pattern: '', category: 'keyword' },
+    { field: '技术评审', pattern: '', category: 'keyword' },
+    { field: '商务评审', pattern: '', category: 'keyword' },
+    { field: '价格评审', pattern: '', category: 'keyword' },
+    { field: '综合评分', pattern: '', category: 'keyword' },
+  ],
+};
+
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 1 * 1024 * 1024 } });
 
 function mapRule(r: any) {
@@ -218,16 +352,17 @@ router.post('/import-skill', upload.single('file'), (req, res) => {
       existingSet.add(key);
     }
 
-    // Persist skill metadata
-    if (inserted.length > 0) {
+    // Persist skill metadata (always save, even if all rules were skipped)
+    {
       const skills = readSkills();
       const existing = skills.findIndex(s => s.name === name);
+      const allFields = fm.rules.map((r: any) => r.field).filter(Boolean);
       const meta: SkillMeta = {
         name,
         description: fm.description || '',
         group: defaultGroup,
         type: 'rules',
-        fields: inserted.map(r => r.field),
+        fields: allFields,
         importedAt: new Date().toISOString(),
       };
       if (existing >= 0) {
@@ -242,6 +377,32 @@ router.post('/import-skill', upload.single('file'), (req, res) => {
   } catch (err: any) {
     res.status(400).json({ error: `Failed to parse skill file: ${err.message}` });
   }
+});
+
+// Get vocabulary suggestions for a group (keywords not yet in the database)
+router.get('/suggestions/:group', (req, res) => {
+  const group = req.params.group;
+  const suggestions = vocabularySuggestions[group] || [];
+  const existing = db.prepare('SELECT field_name, group_name FROM extraction_rules WHERE group_name = ?').all(group) as any[];
+  const existingSet = new Set(existing.map((r: any) => r.field_name));
+  const available = suggestions.filter(s => !existingSet.has(s.field));
+  res.json(available);
+});
+
+// Batch add suggested keywords
+router.post('/suggestions/batch-add', (req, res) => {
+  const { group, fields } = req.body;
+  if (!group || !Array.isArray(fields)) {
+    res.status(400).json({ error: 'group and fields array required' });
+    return;
+  }
+  const insertStmt = db.prepare('INSERT OR IGNORE INTO extraction_rules (id, field_name, pattern, category, group_name, enabled) VALUES (?, ?, ?, ?, ?, 1)');
+  let inserted = 0;
+  for (const field of fields) {
+    const result = insertStmt.run(crypto.randomUUID(), field, '', 'keyword', group);
+    if (result.changes > 0) inserted++;
+  }
+  res.json({ inserted });
 });
 
 export default router;
