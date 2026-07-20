@@ -41,6 +41,8 @@ export interface ParseStatus {
   filename: string;
   fileSize?: number;
   error?: string;
+  llmEnhanced?: boolean;
+  llmFields?: Record<string, 'llm'>;
   result?: {
     status: string;
     text?: string;

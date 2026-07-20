@@ -667,10 +667,21 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 			runes := []rune(after)
 			lastRune := string(runes[len(runes)-1:])
 			if lastRune == "：" || lastRune == ":" || len(runes) < 6 {
-				for j := i + 1; j < len(paragraphs) && j <= i+6; j++ {
+				for j := i + 1; j < len(paragraphs) && j <= i+8; j++ {
 					nextPara := strings.TrimSpace(paragraphs[j])
 					if nextPara == "" {
 						continue
+					}
+					// Stop early at section boundaries or strong delimiters
+					if strings.HasPrefix(nextPara, "一、") || strings.HasPrefix(nextPara, "二、") ||
+						strings.HasPrefix(nextPara, "三、") || strings.HasPrefix(nextPara, "四、") ||
+						strings.HasPrefix(nextPara, "五、") || strings.HasPrefix(nextPara, "六、") ||
+						strings.HasPrefix(nextPara, "（一）") || strings.HasPrefix(nextPara, "（二）") ||
+						strings.HasPrefix(nextPara, "（三）") || strings.HasPrefix(nextPara, "（四）") ||
+						strings.HasPrefix(nextPara, "（五）") ||
+						strings.HasPrefix(nextPara, "第") && strings.Contains(nextPara, "章") ||
+						strings.HasPrefix(nextPara, "第") && strings.Contains(nextPara, "节") {
+						break
 					}
 					combined := after + "\n" + nextPara
 					if len([]rune(combined)) > 500 {
@@ -694,7 +705,7 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 		}
 	}
 
-	// --- Extract text BEFORE keyword (existing logic) ---
+	// --- Extract text BEFORE keyword (existing logic + lookbehind) ---
 	beforeVal := ""
 	before := strings.TrimSpace(para[:idx])
 	if before != "" {
@@ -708,6 +719,40 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 		before = strings.TrimSpace(before)
 		if len([]rune(before)) >= 2 {
 			beforeVal = before
+		}
+	}
+
+	// Lookbehind: check 1-2 paragraphs BEFORE the keyword in case value starts earlier
+	if i > 0 {
+		for lb := 1; lb <= 2 && i-lb >= 0; lb++ {
+			lbPara := strings.TrimSpace(paragraphs[i-lb])
+			if lbPara == "" {
+				continue
+			}
+			// Stop at section boundaries
+			if strings.HasPrefix(lbPara, "一、") || strings.HasPrefix(lbPara, "二、") ||
+				strings.HasPrefix(lbPara, "三、") || strings.HasPrefix(lbPara, "四、") ||
+				strings.HasPrefix(lbPara, "（一）") || strings.HasPrefix(lbPara, "（二）") ||
+				strings.HasPrefix(lbPara, "（三）") || strings.HasPrefix(lbPara, "（四）") ||
+				strings.HasPrefix(lbPara, "第") && strings.Contains(lbPara, "章") {
+				break
+			}
+			lbRunes := []rune(lbPara)
+			if len(lbRunes) > 80 {
+				lbPara = string(lbRunes[:80])
+			}
+			combinedBefore := lbPara + " " + beforeVal
+			if beforeVal == "" {
+				combinedBefore = lbPara
+			}
+			if dot := strings.IndexAny(combinedBefore, "。；"); dot > 0 {
+				combinedBefore = combinedBefore[:dot]
+			}
+			combinedBefore = strings.TrimSpace(combinedBefore)
+			if len([]rune(combinedBefore)) >= 2 {
+				beforeVal = combinedBefore
+			}
+			break // only check first non-empty preceding paragraph
 		}
 	}
 

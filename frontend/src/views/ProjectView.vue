@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import TopNav from '@/components/layout/TopNav.vue';
 import PreviewModal from '@/components/preview/PreviewModal.vue';
 import { getParseStatus } from '@/api/upload';
@@ -41,6 +42,10 @@ const docTables = ref<{ rows: { cells: string[] }[] }[]>([]);
 const activeScoreTab = ref(0);
 const paraToPageRef = ref<number[]>([]);
 const markedItems = ref<{ symbol: string; text: string; page: number }[]>([]);
+
+const llmEnhancing = ref(false);
+const llmEnhanced = ref(false);
+const llmFieldSet = ref<Set<string>>(new Set());
 
 const scoreKeywords = ['评分', '得分', '分值', '分数', '评审', '明细', '权重', '价格'];
 void (scoreKeywords);
@@ -283,6 +288,10 @@ onMounted(async () => {
       fileInfo.value.name = statusData.filename || '招标文件';
       fileInfo.value.size = statusData.fileSize || 0;
       fileInfo.value.pageCount = statusData.result?.pageCount || 0;
+
+      llmEnhanced.value = !!statusData.llmEnhanced;
+      const llmFieldsMap = statusData.llmFields || {};
+      llmFieldSet.value = new Set(Object.keys(llmFieldsMap));
     } catch (err: any) {
       fileInfo.value.name = jobId;
     }
@@ -347,6 +356,29 @@ function confirmEdit() {
 
 function selectSection(section: string) {
   activeSection.value = section;
+}
+
+async function handleLlmRefine() {
+  llmEnhancing.value = true;
+  try {
+    const response = await apiClient.post(`/upload/${fileId.value}/refine`);
+    const data = response.data;
+    if (data.success) {
+      llmEnhanced.value = true;
+      ElMessage.success(`LLM 增强完成，补充了 ${data.fieldsExtracted} 个字段`);
+    } else {
+      ElMessage.warning(data.source === 'fallback' ? 'LLM 增强未生效，已使用原始结果' : 'LLM 增强未完成');
+    }
+  } catch (err: any) {
+    const msg = err?.response?.data?.error || err?.message || 'LLM 增强失败';
+    if (msg.includes('not enabled') || msg.includes('No API keys')) {
+      ElMessage.warning(msg);
+    } else {
+      ElMessage.error(msg);
+    }
+  } finally {
+    llmEnhancing.value = false;
+  }
 }
 
 function handlePreview() {
@@ -507,6 +539,10 @@ function triggerDownload(blob: Blob, filename: string) {
                 <span class="icon ri-eye-line"></span>
                 <span>预览</span>
               </button>
+              <button class="btn-outline" @click="handleLlmRefine" :disabled="llmEnhancing || llmEnhanced" :class="{ 'llm-done': llmEnhanced }">
+                <span class="icon" :class="llmEnhancing ? 'ri-loader-4-line' : 'ri-brain-line'"></span>
+                <span>{{ llmEnhancing ? '增强中...' : llmEnhanced ? '已增强' : 'LLM 增强' }}</span>
+              </button>
               <button class="btn-primary" @click="handleExport">
                 <span class="icon ri-download-2-line"></span>
                 <span>导出</span>
@@ -556,7 +592,10 @@ function triggerDownload(blob: Blob, filename: string) {
             <tbody>
               <template v-for="(row, _idx) in paginatedData" :key="row.field">
                 <tr class="data-row">
-                  <td class="col-field">{{ row.field }}</td>
+                  <td class="col-field">
+                    <span>{{ row.field }}</span>
+                    <span v-if="llmFieldSet.has(row.field)" class="llm-badge">LLM</span>
+                  </td>
                   <td class="col-value">{{ row.value }}</td>
                   <td class="col-page"><span class="page-link">{{ row.page }}</span></td>
                   <td class="col-action">
@@ -593,7 +632,10 @@ function triggerDownload(blob: Blob, filename: string) {
             <tbody>
               <template v-for="(row, _idx) in paginatedData" :key="row.field">
                 <tr class="data-row">
-                  <td class="col-field">{{ row.field }}</td>
+                  <td class="col-field">
+                    <span>{{ row.field }}</span>
+                    <span v-if="llmFieldSet.has(row.field)" class="llm-badge">LLM</span>
+                  </td>
                   <td class="col-value">{{ row.value }}</td>
                   <td class="col-page"><span class="page-link">{{ row.page }}</span></td>
                   <td class="col-action">
@@ -813,6 +855,17 @@ function triggerDownload(blob: Blob, filename: string) {
   font-style: normal;
   font-size: 16px;
   color: var(--color-text-secondary);
+}
+.btn-outline:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-outline.llm-done {
+  border-color: #7c3aed;
+  color: #7c3aed;
+}
+.btn-outline.llm-done .icon {
+  color: #7c3aed;
 }
 .btn-primary {
   display: flex;
@@ -1125,4 +1178,27 @@ function triggerDownload(blob: Blob, filename: string) {
 .dialog-btn { height: 36px; padding: 0 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; }
 .dialog-btn.cancel { background-color: var(--color-bg-card); color: var(--color-text-secondary); margin-right: 8px; }
 .dialog-btn.confirm { background-color: var(--color-primary); color: white; }
+
+.llm-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  color: #7c3aed;
+  background-color: #ede9fe;
+  border: 1px solid #c4b5fd;
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.5px;
+}
+.col-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.col-field span:first-child {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
 </style>
