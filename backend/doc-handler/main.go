@@ -401,6 +401,11 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 		if idx < 0 {
 			continue
 		}
+		// Require keyword near the start of paragraph (within first 60 chars)
+		// to avoid matching accidental occurrences in long text
+		if idx > 60 && !reverse {
+			continue
+		}
 		after := para[idx+len(keyword):]
 		after = strings.TrimSpace(after)
 		after = strings.TrimLeft(after, "：:　 \t,-—–")
