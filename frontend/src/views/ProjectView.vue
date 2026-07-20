@@ -29,118 +29,6 @@ const sidebarItems = [
   { key: 'star', label: '标星信息', sublabel: '★▲等重要标识条款', icon: 'ri-star-s-line' }
 ];
 
-const sectionFields: Record<string, { field: string; page: string }[]> = {
-  info: [
-    { field: '项目名称', page: '' },
-    { field: '项目编号', page: '' },
-    { field: '采购人', page: '' },
-    { field: '采购代理', page: '' },
-    { field: '采购方式', page: '' },
-    { field: '资金来源', page: '' },
-    { field: '预算金额', page: '' },
-    { field: '投标截止时间', page: '' },
-    { field: '开标时间', page: '' },
-    { field: '投标地点', page: '' },
-    { field: '踏勘时间', page: '' },
-    { field: '交付时间', page: '' },
-    { field: '交付地点', page: '' },
-    { field: '投标保证金', page: '' },
-    { field: '合同包号', page: '' },
-    { field: '分包情况', page: '' },
-    { field: '采购需求', page: '' },
-  ],
-  business: [
-    { field: '付款方式', page: '' },
-    { field: '付款进度', page: '' },
-    { field: '质保期', page: '' },
-    { field: '履约保证金', page: '' },
-    { field: '交货期', page: '' },
-    { field: '投标有效期', page: '' },
-    { field: '合同签订', page: '' },
-    { field: '营业执照', page: '' },
-    { field: '民事责任', page: '' },
-    { field: '财务要求', page: '' },
-    { field: '纳税要求', page: '' },
-    { field: '社会保障', page: '' },
-    { field: '信用记录', page: '' },
-    { field: '声明函', page: '' },
-    { field: '无违法记录', page: '' },
-    { field: '关联关系', page: '' },
-    { field: '联合体', page: '' },
-    { field: '分包转包', page: '' },
-    { field: '中小企业', page: '' },
-    { field: '项目管理人员', page: '' },
-    { field: '知识产权', page: '' },
-    { field: '保密要求', page: '' },
-    { field: '争议解决', page: '' },
-    { field: '不可抗力', page: '' },
-    { field: '违约责任', page: '' },
-    { field: '发票要求', page: '' },
-    { field: '验收条款', page: '' },
-    { field: '售后服务', page: '' },
-    { field: '备品备件', page: '' },
-    { field: '供货周期', page: '' },
-    { field: '售后响应', page: '' },
-  ],
-  tech: [
-    { field: '技术规格', page: '' },
-    { field: '技术参数', page: '' },
-    { field: '技术指标', page: '' },
-    { field: '技术方案', page: '' },
-    { field: '性能要求', page: '' },
-    { field: '功能要求', page: '' },
-    { field: '配置清单', page: '' },
-    { field: '安装调试', page: '' },
-    { field: '软硬件要求', page: '' },
-    { field: '接口要求', page: '' },
-    { field: '安全要求', page: '' },
-    { field: '质量要求', page: '' },
-    { field: '验收标准', page: '' },
-    { field: '服务要求', page: '' },
-    { field: '服务内容', page: '' },
-    { field: '培训要求', page: '' },
-    { field: '技术资料', page: '' },
-    { field: '运维要求', page: '' },
-  ],
-  score: [
-    { field: '评标办法', page: '' },
-    { field: '评分标准细则', page: '' },
-    { field: '评分表', page: '' },
-    { field: '评分项', page: '' },
-    { field: '分值', page: '' },
-    { field: '满分', page: '' },
-    { field: '合格分数线', page: '' },
-    { field: '价格评分', page: '' },
-    { field: '技术评分', page: '' },
-    { field: '商务评分', page: '' },
-    { field: '客观分', page: '' },
-    { field: '主观分', page: '' },
-    { field: '价格扣除', page: '' },
-    { field: '优先采购', page: '' },
-    { field: '评审因素', page: '' },
-    { field: '评分说明', page: '' },
-  ],
-  seal: [
-    { field: '封标要求', page: '' },
-    { field: '密封要求', page: '' },
-    { field: '封装方式', page: '' },
-    { field: '正本数量', page: '' },
-    { field: '副本数量', page: '' },
-    { field: '电子文件', page: '' },
-    { field: '密封袋标识', page: '' },
-    { field: '外层信封', page: '' },
-    { field: '内层信封', page: '' },
-    { field: '密封处盖章', page: '' },
-    { field: '密封条', page: '' },
-    { field: '封装格式', page: '' },
-    { field: '纸质文件', page: '' },
-    { field: '密封截止时间', page: '' },
-    { field: '递交方式', page: '' },
-    { field: '邮寄要求', page: '' },
-    { field: '现场递交', page: '' },
-  ],
-};
-
 interface ExtractedField {
   field: string;
   value: string;
@@ -193,19 +81,14 @@ const extractStatus = ref({
 });
 
 const sectionData = computed(() => {
-  const fields = sectionFields[activeSection.value] || [];
-  const extractedMap = new Map(
-    tableData.value.filter(d => d.groupName === activeSection.value).map(d => [d.field, d])
-  );
-  return fields.map(f => {
-    const extracted = extractedMap.get(f.field);
-    return {
-      field: f.field,
-      value: extracted?.value || '-',
-      page: extracted?.page || f.page || '-',
-      groupName: activeSection.value
-    };
-  });
+  return tableData.value
+    .filter(d => d.groupName === activeSection.value)
+    .map(d => ({
+      field: d.field,
+      value: d.value,
+      page: d.page,
+      groupName: d.groupName
+    }));
 });
 
 const totalRows = computed(() => sectionData.value.length);

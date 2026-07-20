@@ -448,14 +448,41 @@ func extractFromTableCells(tables []DocTable, keyword string) (string, bool) {
 			for ci, cell := range row.Cells {
 				trimmed := strings.TrimSpace(cell)
 				if trimmed == keyword || strings.HasPrefix(trimmed, keyword+":") || strings.HasPrefix(trimmed, keyword+"：") {
+					// Change 5: Check ALL other cells in the row, not just the next cell
+					bestVal := ""
+					bestSc := 0
+					for ci2 := range row.Cells {
+						if ci2 == ci {
+							continue
+						}
+						candidate := strings.TrimSpace(row.Cells[ci2])
+						if candidate == "" {
+							continue
+						}
+						if headerSet[candidate] {
+							continue
+						}
+						sc := matchSpecificity(candidate)
+						if sc > bestSc {
+							bestSc = sc
+							bestVal = candidate
+						}
+					}
+					if bestVal != "" {
+						return bestVal, true
+					}
+
+					// Fallback: try the next cell
 					if ci+1 < len(row.Cells) {
 						val := strings.TrimSpace(row.Cells[ci+1])
 						if val != "" && !headerSet[val] {
 							return val, true
 						}
 					}
+
+					// Fallback: try text after keyword in same cell
 					after := trimmed[len(keyword):]
-					after = strings.TrimLeft(after, "：:　 \t")
+					after = strings.TrimLeft(after, "：: \t,-—–")
 					after = strings.TrimSpace(after)
 					if after != "" {
 						return after, true
@@ -506,46 +533,51 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 	i := best.pos
 	para := best.para
 
+	// --- Extract text AFTER keyword (existing logic) ---
 	after := para[idx+len(keyword):]
 	after = strings.TrimSpace(after)
 	after = strings.TrimLeft(after, "：: \t,-—–")
 	after = strings.TrimSpace(after)
 
+	afterVal := ""
 	if len([]rune(after)) >= 2 {
 		if val, ok := extractStructuredValue(after); ok {
-			return val, true
-		}
-		// Multi-paragraph concatenation: if value ends with colon or is short,
-		// look at the next paragraphs and append them
-		runes := []rune(after)
-		lastRune := string(runes[len(runes)-1:])
-		if lastRune == "：" || lastRune == ":" || len(runes) < 6 {
-			for j := i + 1; j < len(paragraphs) && j <= i+3; j++ {
-				nextPara := strings.TrimSpace(paragraphs[j])
-				if nextPara == "" {
-					continue
+			afterVal = val
+		} else {
+			// Multi-paragraph concatenation: if value ends with colon or is short,
+			// look at the next paragraphs and append them
+			runes := []rune(after)
+			lastRune := string(runes[len(runes)-1:])
+			if lastRune == "：" || lastRune == ":" || len(runes) < 6 {
+				for j := i + 1; j < len(paragraphs) && j <= i+3; j++ {
+					nextPara := strings.TrimSpace(paragraphs[j])
+					if nextPara == "" {
+						continue
+					}
+					combined := after + "\n" + nextPara
+					if len([]rune(combined)) > 500 {
+						after = after + "\n" + string([]rune(nextPara)[:200])
+						break
+					}
+					after = combined
 				}
-				combined := after + "\n" + nextPara
-				if len([]rune(combined)) > 500 {
-					after = after + "\n" + string([]rune(nextPara)[:200])
-					break
-				}
-				after = combined
 			}
-		}
-		runes = []rune(after)
-		if len(runes) > 80 {
-			after = string(runes[:80])
-		}
-		if dot := strings.IndexAny(after, "。；"); dot > 0 {
-			after = after[:dot]
-		}
-		after = strings.TrimSpace(after)
-		if len([]rune(after)) >= 2 {
-			return after, true
+			runes = []rune(after)
+			if len(runes) > 80 {
+				after = string(runes[:80])
+			}
+			if dot := strings.IndexAny(after, "。；"); dot > 0 {
+				after = after[:dot]
+			}
+			after = strings.TrimSpace(after)
+			if len([]rune(after)) >= 2 {
+				afterVal = after
+			}
 		}
 	}
 
+	// --- Extract text BEFORE keyword (existing logic) ---
+	beforeVal := ""
 	before := strings.TrimSpace(para[:idx])
 	if before != "" {
 		runes := []rune(before)
@@ -557,8 +589,24 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 		}
 		before = strings.TrimSpace(before)
 		if len([]rune(before)) >= 2 {
-			return before, true
+			beforeVal = before
 		}
+	}
+
+	// --- Pick the better result by scoring ---
+	if afterVal != "" && beforeVal != "" {
+		afterSc := matchSpecificity(afterVal)
+		beforeSc := matchSpecificity(beforeVal)
+		if afterSc >= beforeSc {
+			return afterVal, true
+		}
+		return beforeVal, true
+	}
+	if afterVal != "" {
+		return afterVal, true
+	}
+	if beforeVal != "" {
+		return beforeVal, true
 	}
 	return "", false
 }
@@ -620,15 +668,18 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 			g = "info"
 		}
 
-		scope := paragraphs
-		if groupToParagraphs != nil {
-			if gp, ok := groupToParagraphs[g]; ok && len(gp) > 0 {
-				scope = gp
+		// Change 3: Try global scope first, then group-scoped as fallback
+		// Build full-scope paragraph lists from all groups
+		allParagraphs := paragraphs
+		if allParagraphs == nil {
+			allParagraphs = []string{}
+			for _, gp := range groupToParagraphs {
+				allParagraphs = append(allParagraphs, gp...)
 			}
 		}
 
 		if rule.Category == "keyword" || rule.Pattern == "" {
-			// Try table cell extraction first for all groups (not just score)
+			// Change 4: Apply table extraction to ALL groups, not just score
 			if tables != nil {
 				if val, found := extractFromTableCells(tables, rule.Name); found {
 					sc := matchSpecificity(val)
@@ -640,8 +691,7 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 					continue
 				}
 			}
-			// For score fields, also try scoring table extraction
-			if g == "score" && tables != nil {
+			if tables != nil {
 				if val, found := extractFromTables(tables, rule.Name); found {
 					sc := matchSpecificity(val)
 					if prev, exists := bestScore[rule.Name]; !exists || sc > prev {
@@ -652,15 +702,25 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 					continue
 				}
 			}
-			if scope != nil {
-				if val, found := extractByKeyword(scope, rule.Name, g == "score"); found {
-					sc := matchSpecificity(val)
-					if prev, exists := bestScore[rule.Name]; !exists || sc > prev {
-						extracts[rule.Name] = val
-						groups[rule.Name] = g
-						bestScore[rule.Name] = sc
+			// Change 3: Search ALL paragraphs first (global scope)
+			if val, found := extractByKeyword(allParagraphs, rule.Name, g == "score"); found {
+				sc := matchSpecificity(val)
+				if prev, exists := bestScore[rule.Name]; !exists || sc > prev {
+					extracts[rule.Name] = val
+					groups[rule.Name] = g
+					bestScore[rule.Name] = sc
+				}
+			} else if groupToParagraphs != nil {
+				// Fallback: try group-scoped search
+				if gp, ok := groupToParagraphs[g]; ok && len(gp) > 0 {
+					if val, found := extractByKeyword(gp, rule.Name, g == "score"); found {
+						sc := matchSpecificity(val)
+						if prev, exists := bestScore[rule.Name]; !exists || sc > prev {
+							extracts[rule.Name] = val
+							groups[rule.Name] = g
+							bestScore[rule.Name] = sc
+						}
 					}
-					continue
 				}
 			}
 			if rule.Pattern == "" {
@@ -678,18 +738,49 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 			}
 		}
 
+		// Change 1: Try matching against full text first, then fall back to per-paragraph matching
 		matches := re.FindStringSubmatch(text)
+		found := false
+		val := ""
+		sc := 0
+
 		if len(matches) > 1 {
-			val := strings.TrimSpace(matches[1])
-			sc := matchSpecificity(val)
-			if prev, exists := bestScore[rule.Name]; !exists || sc > prev {
-				extracts[rule.Name] = val
-				groups[rule.Name] = g
-				bestScore[rule.Name] = sc
-			}
+			val = strings.TrimSpace(matches[1])
+			sc = matchSpecificity(val)
+			found = true
 		} else if len(matches) == 1 {
-			val := strings.TrimSpace(matches[0])
-			sc := matchSpecificity(val)
+			val = strings.TrimSpace(matches[0])
+			sc = matchSpecificity(val)
+			found = true
+		}
+
+		// If full-text match failed, try each paragraph individually
+		if !found && allParagraphs != nil {
+			for _, para := range allParagraphs {
+				paraMatches := re.FindStringSubmatch(para)
+				if len(paraMatches) > 1 {
+					paraVal := strings.TrimSpace(paraMatches[1])
+					paraSc := matchSpecificity(paraVal)
+					if paraSc > sc {
+						val = paraVal
+						sc = paraSc
+						found = true
+						break
+					}
+				} else if len(paraMatches) == 1 {
+					paraVal := strings.TrimSpace(paraMatches[0])
+					paraSc := matchSpecificity(paraVal)
+					if paraSc > sc {
+						val = paraVal
+						sc = paraSc
+						found = true
+						break
+					}
+				}
+			}
+		}
+
+		if found {
 			if prev, exists := bestScore[rule.Name]; !exists || sc > prev {
 				extracts[rule.Name] = val
 				groups[rule.Name] = g
