@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { getTheme as getThemeFromAPI, setTheme as setThemeToAPI } from '@/api/settings';
 
 export type ThemeType = 'parchment' | 'dark' | 'white';
 
@@ -42,7 +43,19 @@ const themeTokens: Record<ThemeType, Record<string, string>> = {
 export const useThemeStore = defineStore('theme', () => {
   const currentTheme = ref<ThemeType>('parchment');
 
-  function loadTheme() {
+  async function loadTheme() {
+    try {
+      const res = await getThemeFromAPI();
+      const saved = res.type as ThemeType | null;
+      if (saved && themeTokens[saved]) {
+        currentTheme.value = saved;
+        applyTheme(saved);
+        localStorage.setItem('theme', saved);
+        return;
+      }
+    } catch {
+      // API unavailable, fall through to localStorage
+    }
     const saved = localStorage.getItem('theme') as ThemeType | null;
     if (saved && themeTokens[saved]) {
       currentTheme.value = saved;
@@ -58,10 +71,15 @@ export const useThemeStore = defineStore('theme', () => {
     }
   }
 
-  function setTheme(theme: ThemeType) {
+  async function setTheme(theme: ThemeType) {
     currentTheme.value = theme;
     applyTheme(theme);
     localStorage.setItem('theme', theme);
+    try {
+      await setThemeToAPI(theme);
+    } catch {
+      // Backend is optional, localStorage is the primary persistence
+    }
   }
 
   return { currentTheme, loadTheme, setTheme };

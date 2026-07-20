@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onUnmounted } from 'vue';
 import { DocxEditor } from '@eigenpal/docx-editor-vue';
 import '@eigenpal/docx-editor-vue/styles.css';
 
@@ -64,6 +64,13 @@ watch(() => props.visible, async (val) => {
       fileUrl.value = null;
     }
     docBuffer.value = null;
+  }
+});
+
+onUnmounted(() => {
+  if (fileUrl.value) {
+    URL.revokeObjectURL(fileUrl.value);
+    fileUrl.value = null;
   }
 });
 

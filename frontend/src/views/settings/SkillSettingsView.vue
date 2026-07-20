@@ -28,6 +28,20 @@ const loading = ref(false);
 const importLoading = ref(false);
 const expandedSkill = ref<string | null>(null);
 const selectedFileName = ref('');
+const activeCategory = ref('all');
+
+const tabItems = [
+  { key: 'all', label: '全部', sublabel: '所有技能包' },
+  { key: 'info', label: '项目信息', sublabel: '招标文件基本信息' },
+  { key: 'business', label: '商务条款', sublabel: '招标文件商务偏离表' },
+  { key: 'tech', label: '技术条款', sublabel: '招标文件技术偏离表' },
+  { key: 'score', label: '评分标准', sublabel: '专家评分标准表' },
+];
+
+const filteredSkills = computed(() => {
+  if (activeCategory.value === 'all') return skills.value;
+  return skills.value.filter(s => s.group === activeCategory.value);
+});
 
 const groupColors: Record<string, string> = {
   info: '#4f6ef7',
@@ -121,10 +135,25 @@ onMounted(loadSkills);
         <p class="page-desc">通过 skill.md 导入和管理提取技能包</p>
       </div>
 
+      <div class="tabs-bar">
+        <div class="tabs-inner">
+          <div
+            v-for="item in tabItems"
+            :key="item.key"
+            class="tab-item"
+            :class="{ active: activeCategory === item.key }"
+            @click="activeCategory = item.key"
+          >
+            <div class="tab-label">{{ item.label }}</div>
+            <div class="tab-sublabel">{{ item.sublabel }}</div>
+          </div>
+        </div>
+      </div>
+
       <div class="bookshelf">
         <div class="bookshelf-inner">
           <div
-            v-for="skill in skills"
+            v-for="skill in filteredSkills"
             :key="skill.name"
             class="skill-card"
             :class="{ expanded: expandedSkill === skill.name }"
@@ -228,6 +257,28 @@ onMounted(loadSkills);
   margin: 0;
 }
 
+.tabs-bar { margin-bottom: 28px; }
+.tabs-inner {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--color-bg-secondary);
+  border-radius: 12px;
+  padding: 4px;
+}
+.tab-item {
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-align: center;
+}
+.tab-item:hover { background: rgba(255,255,255,0.5); }
+.tab-item.active { background: var(--color-bg-white); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.tab-label { font-size: 14px; font-weight: 500; color: var(--color-text-secondary); line-height: 1.4; white-space: nowrap; }
+.tab-item.active .tab-label { color: var(--color-text-primary); font-weight: 600; }
+.tab-sublabel { font-size: 10px; color: var(--color-text-muted); line-height: 1.3; margin-top: 1px; white-space: nowrap; }
+.tab-item.active .tab-sublabel { color: var(--color-text-secondary); }
+
 .bookshelf {
   overflow-x: auto;
   padding-bottom: 8px;
@@ -241,9 +292,9 @@ onMounted(loadSkills);
 .skill-card {
   width: 200px;
   height: 340px;
-  border: 0.7px solid rgba(212,197,169,1);
+  border: 0.7px solid var(--color-border);
   border-radius: 12px;
-  background-color: rgba(255,255,255,1);
+  background-color: var(--color-bg-white);
   overflow: hidden;
   cursor: pointer;
   flex-shrink: 0;
@@ -266,7 +317,7 @@ onMounted(loadSkills);
 
 .card-cover {
   height: 240px;
-  background: linear-gradient(180deg, rgba(245,239,227,1) 0%, rgba(251,247,240,1) 100%);
+  background: linear-gradient(180deg, var(--color-bg-secondary) 0%, var(--color-bg-main) 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -283,7 +334,7 @@ onMounted(loadSkills);
 .card-name {
   font-size: 14px;
   font-weight: 600;
-  color: rgba(61,43,31,1);
+  color: var(--color-text-primary);
   font-family: "SourceHanSans-SemiBold", sans-serif;
   text-align: center;
   line-height: 1.2;
@@ -294,7 +345,7 @@ onMounted(loadSkills);
 }
 .card-desc {
   font-size: 12px;
-  color: rgba(155,140,124,1);
+  color: var(--color-text-muted);
   font-family: "SourceHanSans-Regular", sans-serif;
   text-align: center;
   line-height: 1.2;
@@ -316,7 +367,7 @@ onMounted(loadSkills);
 .card-info-name {
   font-size: 14px;
   font-weight: 500;
-  color: rgba(61,43,31,1);
+  color: var(--color-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -327,13 +378,13 @@ onMounted(loadSkills);
 }
 .card-count {
   font-size: 11px;
-  color: rgba(155,140,124,1);
+  color: var(--color-text-muted);
 }
 .card-delete {
   font-size: 11px;
-  color: rgba(155,140,124,1);
+  color: var(--color-text-muted);
   background: none;
-  border: 0.7px solid rgba(212,197,169,1);
+  border: 0.7px solid var(--color-border);
   border-radius: 6px;
   padding: 3px 10px;
   cursor: pointer;
@@ -351,9 +402,9 @@ onMounted(loadSkills);
 .add-card {
   width: 200px;
   height: 340px;
-  border: 2px dashed rgba(212,197,169,1);
+  border: 2px dashed var(--color-border);
   border-radius: 12px;
-  background-color: rgba(245,239,227,1);
+  background-color: var(--color-bg-secondary);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -372,7 +423,7 @@ onMounted(loadSkills);
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background-color: rgba(240,232,216,1);
+  background-color: var(--color-bg-card);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -381,12 +432,12 @@ onMounted(loadSkills);
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 22px;
-  color: rgba(139,115,85,1);
+  color: var(--color-text-secondary);
 }
 .add-text {
   font-size: 14px;
   font-weight: 500;
-  color: rgba(139,115,85,1);
+  color: var(--color-text-secondary);
   font-family: "SourceHanSans-Medium", sans-serif;
 }
 .file-input {
@@ -402,7 +453,7 @@ onMounted(loadSkills);
 }
 .rules-divider {
   height: 1px;
-  background-color: rgba(212,197,169,0.4);
+  background-color: var(--color-border);
   margin-bottom: 12px;
 }
 .rule-table {
@@ -414,14 +465,14 @@ onMounted(loadSkills);
   font-size: 12px;
   font-weight: 600;
   text-align: left;
-  color: rgba(155,140,124,1);
-  background-color: rgba(245,239,227,0.5);
+  color: var(--color-text-muted);
+  background-color: var(--color-bg-secondary);
   border-radius: 8px 8px 0 0;
 }
 .rule-table td {
   padding: 8px 12px;
   font-size: 12px;
-  border-bottom: 1px solid rgba(245,239,227,0.8);
+  border-bottom: 1px solid var(--color-bg-secondary);
 }
 .rule-table th:first-child,
 .rule-table td:first-child { width: 25%; }
@@ -429,11 +480,11 @@ onMounted(loadSkills);
 .rule-table td:nth-child(2) { width: 10%; }
 .rule-table th:nth-child(3),
 .rule-table td:nth-child(3) { width: 65%; }
-.rule-field { font-weight: 500; color: rgba(61,43,31,1); }
+.rule-field { font-weight: 500; color: var(--color-text-primary); }
 .type-tag { font-size: 11px; padding: 2px 8px; border-radius: 9999px; }
-.type-tag.regex { background-color: #E8F0F8; color: #2D6A9F; }
-.type-tag.keyword { background-color: #F0E8D8; color: #8B7355; }
-.rule-pattern { font-family: monospace; font-size: 11px; color: #2D6A9F; background-color: rgba(245,239,227,0.4); padding: 2px 6px; border-radius: 4px; word-break: break-all; }
+.type-tag.regex { background-color: var(--color-bg-secondary); color: var(--color-primary); }
+.type-tag.keyword { background-color: var(--color-bg-card); color: var(--color-text-secondary); }
+.rule-pattern { font-family: monospace; font-size: 11px; color: var(--color-primary); background-color: var(--color-bg-secondary); padding: 2px 6px; border-radius: 4px; word-break: break-all; }
 
 .loading-overlay {
   display: flex;
@@ -452,7 +503,7 @@ onMounted(loadSkills);
   font-family: monospace;
   font-size: 12px;
   line-height: 1.6;
-  color: rgba(61,43,31,1);
+  color: var(--color-text-primary);
   white-space: pre-wrap;
   word-break: break-word;
   margin: 0;

@@ -27,6 +27,7 @@ export interface UploadResult {
     tables?: DocTable[];
     markedItems?: MarkedItem[];
     fieldParaMap?: Record<string, number>;
+    fieldGroups?: Record<string, string>;
     pageCount?: number;
     paraToPage?: number[];
     error?: string;
@@ -49,6 +50,7 @@ export interface ParseStatus {
     tables?: DocTable[];
     markedItems?: MarkedItem[];
     fieldParaMap?: Record<string, number>;
+    fieldGroups?: Record<string, string>;
     pageCount?: number;
     paraToPage?: number[];
     error?: string;

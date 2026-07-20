@@ -19,12 +19,12 @@ export async function setExportSettings(data: { format: string; include_table_of
   await apiClient.put('/settings/export', data);
 }
 
-export async function getApiKeys(): Promise<Array<{ id: string; provider: string; model: string; region?: string }>> {
+export async function getApiKeys(): Promise<Array<{ id: string; provider: string; model: string; region?: string; base_url?: string }>> {
   const response = await apiClient.get('/settings/apikeys');
   return response.data;
 }
 
-export async function addApiKey(data: { provider: string; model: string; api_key: string; region?: string }): Promise<void> {
+export async function addApiKey(data: { provider: string; model: string; api_key: string; region?: string; base_url?: string }): Promise<void> {
   await apiClient.post('/settings/apikeys', data);
 }
 

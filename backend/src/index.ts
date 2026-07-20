@@ -22,6 +22,17 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// 404 handler for unmatched routes
+app.use((_req, res) => {
+  res.status(404).json({ error: 'Not Found' });
+});
+
+// Global error handler
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
 app.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
 });

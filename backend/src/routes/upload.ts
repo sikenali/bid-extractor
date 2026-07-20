@@ -36,7 +36,15 @@ interface ParseResult {
   error?: string;
 }
 
-const jobStore = new Map<string, { filename: string; size: number; result: ParseResult }>();
+interface JobEntry {
+  filename: string;
+  size: number;
+  result: ParseResult;
+  createdAt: number;
+}
+
+const JOB_TTL_MS = 60 * 60 * 1000; // 1 hour
+const jobStore = new Map<string, JobEntry>();
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
@@ -56,6 +64,46 @@ const upload = multer({
     cb(null, allowed.includes(ext));
   }
 });
+
+// ── Cleanup: expired jobs ────────────────────────────────────────────
+function cleanupExpiredJobs() {
+  const now = Date.now();
+  for (const [key, entry] of jobStore.entries()) {
+    if (now - entry.createdAt > JOB_TTL_MS) {
+      jobStore.delete(key);
+    }
+  }
+}
+
+// ── Cleanup: old uploaded files (> 24 hours) ─────────────────────────
+function cleanupOldUploads() {
+  if (!fs.existsSync(UPLOAD_DIR)) return;
+  const now = Date.now();
+  const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+  try {
+    const files = fs.readdirSync(UPLOAD_DIR);
+    for (const file of files) {
+      const filePath = path.join(UPLOAD_DIR, file);
+      try {
+        const stat = fs.statSync(filePath);
+        if (stat.isFile() && now - stat.mtimeMs > maxAge) {
+          fs.unlinkSync(filePath);
+        }
+      } catch {
+        // skip individual file errors
+      }
+    }
+  } catch {
+    // skip directory read errors
+  }
+}
+
+// Run cleanup on startup
+cleanupOldUploads();
+
+// Periodic cleanup: jobs every 10 min, uploads every 1 hour
+setInterval(cleanupExpiredJobs, 10 * 60 * 1000);
+setInterval(cleanupOldUploads, 60 * 60 * 1000);
 
 router.post('/', upload.single('file'), async (req, res) => {
   if (!req.file) {
@@ -80,7 +128,8 @@ router.post('/', upload.single('file'), async (req, res) => {
     jobStore.set(req.file.filename, {
       filename: originalName,
       size: req.file.size,
-      result: result
+      result,
+      createdAt: Date.now()
     });
 
     res.status(201).json({
@@ -88,10 +137,10 @@ router.post('/', upload.single('file'), async (req, res) => {
       filename: originalName,
       size: req.file.size,
       status: 'parsed',
-      result: result
+      result
     });
   } catch (err: any) {
-    if (fs.existsSync(req.file.path)) {
+    if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
     res.status(500).json({ error: err.message || '解析过程中发生错误' });

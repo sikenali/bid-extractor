@@ -111,7 +111,7 @@ function triggerFileInput() {
     <input
       id="fileInput"
       type="file"
-      class="file-input"
+      class="file-input-hidden"
       accept=".docx"
       :disabled="props.loading"
       @change="handleFileSelect"
@@ -262,13 +262,8 @@ function triggerFileInput() {
 .upload-btn .icon {
   font-size: 18px;
 }
-.file-input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-  top: 0;
-  left: 0;
+.file-input-hidden {
+  display: none;
 }
 .drop-hint {
   font-size: 12px;

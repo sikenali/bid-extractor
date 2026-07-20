@@ -8,6 +8,7 @@ interface ApiKeyItem {
   provider: string;
   model: string;
   region?: string;
+  base_url?: string;
 }
 
 const selectedProviderId = ref<string | null>(null);
@@ -15,20 +16,21 @@ const activeFormTab = ref('manufacturer');
 const apiKeys = ref<ApiKeyItem[]>([]);
 
 const domesticModels = [
-  { key: 'qwen', name: '通义千问', provider: '阿里云', model: 'qwen-turbo' },
-  { key: 'ernie', name: '文心一言', provider: '百度', model: 'ernie-bot' },
-  { key: 'glm', name: '智谱 GLM', provider: '智谱', model: 'glm-4' }
+  { key: 'qwen', name: '通义千问', provider: '阿里云', model: 'qwen-turbo', baseUrl: 'https://dashscope.aliyuncs.com' },
+  { key: 'ernie', name: '文心一言', provider: '百度', model: 'ernie-bot', baseUrl: '' },
+  { key: 'glm', name: '智谱 GLM', provider: '智谱', model: 'glm-4', baseUrl: '' }
 ];
 
 const internationalModels = [
-  { key: 'gpt', name: 'GPT-4o', provider: 'OpenAI', model: 'gpt-4o' },
-  { key: 'claude', name: 'Claude 3.5', provider: 'Anthropic', model: 'claude-3.5' }
+  { key: 'gpt', name: 'GPT-4o', provider: 'OpenAI', model: 'gpt-4o', baseUrl: 'https://api.openai.com' },
+  { key: 'claude', name: 'Claude 3.5', provider: 'Anthropic', model: 'claude-3.5', baseUrl: '' }
 ];
 
 const formState = ref({
   provider: '阿里云',
   model: 'qwen-turbo',
-  apiKey: ''
+  apiKey: '',
+  baseUrl: ''
 });
 
 const showKey = ref(false);
@@ -78,6 +80,7 @@ function selectModel(key: string) {
   if (model) {
     formState.value.provider = model.provider;
     formState.value.model = model.model;
+    formState.value.baseUrl = model.baseUrl || '';
   }
 }
 
@@ -90,7 +93,8 @@ async function handleSubmit() {
     await addApiKey({
       provider: formState.value.provider,
       model: formState.value.model,
-      api_key: formState.value.apiKey
+      api_key: formState.value.apiKey,
+      base_url: formState.value.baseUrl || undefined
     });
     ElMessage.success('API Key 已添加');
     formState.value.apiKey = '';
@@ -116,13 +120,13 @@ async function handleDeleteKey(key: ApiKeyItem) {
       
       <div class="settings-content">
         <h2 class="page-title">API Key</h2>
-        <p class="page-desc">配置 AI 模型的 API 访问密钥</p>
 
         <div v-if="apiKeys.length > 0" class="existing-keys">
           <div v-for="key in apiKeys" :key="key.id" class="key-item">
             <div class="key-info">
               <span class="key-provider">{{ key.provider }}</span>
               <span class="key-model">{{ key.model }}</span>
+              <span v-if="key.base_url" class="key-url">{{ key.base_url }}</span>
               <span class="key-masked">••••••••••••••••</span>
             </div>
             <button class="btn-delete-key" @click="handleDeleteKey(key)">删除</button>
@@ -187,7 +191,11 @@ async function handleDeleteKey(key: ApiKeyItem) {
                 <input v-model="formState.model" class="form-input" placeholder="请输入模型名称" />
               </div>
               <div class="form-row">
-                <label class="form-label">API Key</label>
+                <label class="form-label">服务商 URL</label>
+                <input v-model="formState.baseUrl" class="form-input" placeholder="https://api.openai.com" />
+              </div>
+              <div class="form-row">
+                <label class="form-label">选择 API Key</label>
                 <div class="api-key-input">
                   <input v-model="formState.apiKey" class="form-input" :type="showKey ? 'text' : 'password'" placeholder="sk-••••••••••••••••••••••••" />
                   <span class="icon toggle-icon" :class="showKey ? 'ri-eye-line' : 'ri-eye-off-line'" @click="showKey = !showKey"></span>
@@ -212,6 +220,7 @@ async function handleDeleteKey(key: ApiKeyItem) {
 .key-info { display: flex; align-items: center; gap: 16px; }
 .key-provider { font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
 .key-model { font-size: 13px; color: var(--color-text-secondary); }
+.key-url { font-size: 12px; color: var(--color-text-muted); font-family: monospace; }
 .key-masked { font-size: 12px; color: var(--color-text-muted); font-family: monospace; }
 .btn-delete-key { font-size: 12px; color: var(--color-primary); background: none; border: 1px solid var(--color-primary); border-radius: 6px; padding: 4px 12px; cursor: pointer; }
 .btn-delete-key:hover { background-color: var(--color-primary); color: white; }

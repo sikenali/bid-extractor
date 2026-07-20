@@ -310,18 +310,18 @@ watch(activeSection, () => {
   flex: 1;
   padding: 32px;
   max-width: 1600px;
-  background-color: #FBF7F0;
+  background-color: var(--color-bg-main);
   min-height: 100vh;
 }
 
-.page-title { font-size: 24px; font-weight: bold; color: #3D2B1F; margin: 0 0 4px 0; }
-.page-desc { font-size: 14px; color: #9B8C7C; margin: 0 0 28px 0; }
+.page-title { font-size: 24px; font-weight: bold; color: var(--color-text-primary); margin: 0 0 4px 0; }
+.page-desc { font-size: 14px; color: var(--color-text-muted); margin: 0 0 28px 0; }
 
 .tabs-bar { margin-bottom: 28px; }
 .tabs-inner {
   display: inline-flex;
   gap: 4px;
-  background: #F0E8D5;
+  background: var(--color-bg-secondary);
   border-radius: 12px;
   padding: 4px;
 }
@@ -333,15 +333,15 @@ watch(activeSection, () => {
   text-align: center;
 }
 .tab-item:hover { background: rgba(255,255,255,0.5); }
-.tab-item.active { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.tab-label { font-size: 14px; font-weight: 500; color: #8B7355; line-height: 1.4; white-space: nowrap; }
-.tab-item.active .tab-label { color: #3D2B1F; font-weight: 600; }
-.tab-sublabel { font-size: 10px; color: #B8A58C; line-height: 1.3; margin-top: 1px; white-space: nowrap; }
-.tab-item.active .tab-sublabel { color: #8B7355; }
+.tab-item.active { background: var(--color-bg-white); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.tab-label { font-size: 14px; font-weight: 500; color: var(--color-text-secondary); line-height: 1.4; white-space: nowrap; }
+.tab-item.active .tab-label { color: var(--color-text-primary); font-weight: 600; }
+.tab-sublabel { font-size: 10px; color: var(--color-text-muted); line-height: 1.3; margin-top: 1px; white-space: nowrap; }
+.tab-item.active .tab-sublabel { color: var(--color-text-secondary); }
 
 .rule-card {
-  background-color: #fff;
-  border: 0.7px solid #D4C5A9;
+  background-color: var(--color-bg-white);
+  border: 0.7px solid var(--color-border);
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 20px;
@@ -364,13 +364,13 @@ watch(activeSection, () => {
 .card-icon {
   width: 36px;
   height: 36px;
-  background-color: #F0E8D8;
+  background-color: var(--color-bg-card);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  color: #3D2B1F;
+  color: var(--color-text-primary);
   flex-shrink: 0;
 }
 
@@ -379,13 +379,13 @@ watch(activeSection, () => {
 .card-title {
   font-size: 16px;
   font-weight: 600;
-  color: #3D2B1F;
+  color: var(--color-text-primary);
   line-height: 1.3;
 }
 
 .card-subtitle {
   font-size: 12px;
-  color: #9B8C7C;
+  color: var(--color-text-muted);
   line-height: 1.3;
   margin-top: 2px;
 }
@@ -393,7 +393,7 @@ watch(activeSection, () => {
 .btn-add {
   height: 36px;
   padding: 0 16px;
-  background-color: #C43D3D;
+  background-color: var(--color-primary);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -410,7 +410,7 @@ watch(activeSection, () => {
 .btn-add .icon { font-family: "remixicon", sans-serif; font-style: normal; font-size: 14px; }
 
 .regex-rules {
-  border: 0.7px solid #F0E8D8;
+  border: 0.7px solid var(--color-border);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -422,22 +422,22 @@ watch(activeSection, () => {
 }
 
 .rule-table th {
-  background-color: #F5EFE3;
+  background-color: var(--color-bg-secondary);
   padding: 12px 16px;
   height: 42px;
   font-size: 13px;
   font-weight: 600;
   text-align: left;
-  color: #3D2B1F;
+  color: var(--color-text-primary);
 }
 
 .rule-table td {
   padding: 12px 16px;
   height: 53px;
   font-size: 13px;
-  border-top: 1px solid #F5EFE3;
+  border-top: 1px solid var(--color-bg-secondary);
   vertical-align: middle;
-  color: #3D2B1F;
+  color: var(--color-text-primary);
 }
 
 .col-field { width: 160px; }
@@ -451,14 +451,14 @@ watch(activeSection, () => {
 .pattern {
   font-family: monospace;
   font-size: 12px;
-  color: #2D6A9F;
-  background-color: #F5F0E8;
+  color: var(--color-primary);
+  background-color: var(--color-bg-secondary);
   padding: 2px 6px;
   border-radius: 4px;
 }
 
-.empty-pattern { color: #B8A58C; }
-.empty-hint { padding: 32px 0; text-align: center; color: #B8A58C; font-size: 13px; }
+.empty-pattern { color: var(--color-text-muted); }
+.empty-hint { padding: 32px 0; text-align: center; color: var(--color-text-muted); font-size: 13px; }
 
 .action-buttons {
   display: flex;
@@ -470,21 +470,21 @@ watch(activeSection, () => {
 .btn-action {
   width: 28px;
   height: 28px;
-  background-color: #F0E8D8;
+  background-color: var(--color-bg-card);
   border: none;
   border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #8B7355;
+  color: var(--color-text-secondary);
   font-size: 14px;
   transition: opacity 0.15s;
 }
 
 .btn-action .icon { font-family: "remixicon", sans-serif; font-style: normal; }
 .btn-action:hover { opacity: 0.8; }
-.btn-action.btn-delete { background-color: #FFEBEE; color: #C43D3D; }
+.btn-action.btn-delete { background-color: var(--color-bg-card); color: var(--color-primary); }
 
 .keyword-tags {
   display: flex;
@@ -497,8 +497,8 @@ watch(activeSection, () => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background-color: #F0E8D8;
-  color: #5C4A3A;
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
   font-size: 13px;
   padding: 8px 16px;
   border-radius: 9999px;
@@ -511,7 +511,7 @@ watch(activeSection, () => {
   width: 16px;
   height: 16px;
   cursor: pointer;
-  color: #8B7355;
+  color: var(--color-text-secondary);
   font-size: 14px;
   margin-left: 4px;
 }
@@ -521,7 +521,7 @@ watch(activeSection, () => {
 .suggestions-section {
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid #F0E8D8;
+  border-top: 1px solid var(--color-border);
 }
 .suggestions-header {
   display: flex;
@@ -532,7 +532,7 @@ watch(activeSection, () => {
 .suggestions-title {
   font-size: 13px;
   font-weight: 600;
-  color: #9B8C7C;
+  color: var(--color-text-muted);
 }
 .btn-add-all {
   font-size: 12px;
@@ -558,11 +558,11 @@ watch(activeSection, () => {
   align-items: center;
   gap: 4px;
   padding: 5px 12px;
-  border: 1px dashed #D4C5A9;
+  border: 1px dashed var(--color-border);
   border-radius: 9999px;
   font-size: 12px;
-  color: #8B7355;
-  background-color: #FBF7F0;
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-main);
   cursor: pointer;
   transition: all 0.2s;
 }

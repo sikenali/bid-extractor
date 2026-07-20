@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { db } from '../database.js';
+import { db, encrypt, decrypt, maskKey } from '../database.js';
 
 const router = Router();
 
@@ -31,20 +31,26 @@ router.put('/export', (req, res) => {
 
 // API Keys
 router.get('/apikeys', (_req, res) => {
-  const configs = db.prepare('SELECT id, provider, model, region FROM api_configs').all();
-  res.json(configs);
+  const configs = db.prepare('SELECT id, provider, model, region, base_url, api_key FROM api_configs').all();
+  const masked = configs.map((c: any) => ({
+    ...c,
+    api_key: c.api_key ? maskKey(decrypt(c.api_key)) : ''
+  }));
+  res.json(masked);
 });
 
 router.post('/apikeys', (req, res) => {
-  const { provider, model, api_key, region } = req.body;
+  const { provider, model, api_key, region, base_url } = req.body;
   const id = crypto.randomUUID();
-  db.prepare(`INSERT INTO api_configs (id, provider, model, api_key, region) VALUES (?, ?, ?, ?, ?)`).run(id, provider, model, api_key, region);
-  res.status(201).json({ id, provider, model, region });
+  const encryptedKey = api_key ? encrypt(api_key) : '';
+  db.prepare('INSERT INTO api_configs (id, provider, model, api_key, region, base_url) VALUES (?, ?, ?, ?, ?, ?)').run(id, provider, model, encryptedKey, region, base_url);
+  res.status(201).json({ id, provider, model, region, base_url });
 });
 
 router.put('/apikeys/:id', (req, res) => {
-  const { provider, model, api_key, region } = req.body;
-  db.prepare('UPDATE api_configs SET provider=?, model=?, api_key=?, region=? WHERE id=?').run(provider, model, api_key, region, req.params.id);
+  const { provider, model, api_key, region, base_url } = req.body;
+  const encryptedKey = api_key ? encrypt(api_key) : '';
+  db.prepare('UPDATE api_configs SET provider=?, model=?, api_key=?, region=?, base_url=? WHERE id=?').run(provider, model, encryptedKey, region, base_url, req.params.id);
   res.json({ updated: true });
 });
 

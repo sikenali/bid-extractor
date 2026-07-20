@@ -8,14 +8,21 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
-	"github.com/unidoc/unioffice/v2/common/license"
-	"github.com/unidoc/unioffice/v2/document"
+	"github.com/unidoc/unioffice/v3/common/license"
+	"github.com/unidoc/unioffice/v3/document"
 )
 
 func init() {
-	// Set unioffice license key (empty = trial mode)
-	license.SetMeteredKey("")
+	// Trial mode: empty license key. For production, set UNIDOC_LICENSE_KEY env var
+	// to your paid unidoc metered license key. Without a valid key, documents may
+	// carry a watermark and the service is for evaluation only.
+	lk := os.Getenv("UNIDOC_LICENSE_KEY")
+	if lk == "" {
+		lk = "" // leave empty for trial/evaluation
+	}
+	license.SetMeteredKey(lk)
 }
 
 type ParseRequest struct {
@@ -59,6 +66,7 @@ type ParseResponse struct {
 	Tables       []DocTable             `json:"tables,omitempty"`
 	MarkedItems  []MarkedItem           `json:"markedItems,omitempty"`
 	FieldParaMap map[string]int         `json:"fieldParaMap,omitempty"`
+	FieldGroups  map[string]string      `json:"fieldGroups,omitempty"`
 	PageCount    int                    `json:"pageCount,omitempty"`
 	ParaToPage   []int                  `json:"paraToPage,omitempty"`
 	Error        string                 `json:"error,omitempty"`
@@ -110,10 +118,9 @@ var sectionKeywords = map[string][]string{
 }
 
 func detectSection(title string) string {
-	titleLower := strings.ToLower(title)
 	for group, keywords := range sectionKeywords {
 		for _, kw := range keywords {
-			if strings.Contains(titleLower, strings.ToLower(kw)) {
+			if strings.Contains(title, kw) {
 				return group
 			}
 		}
@@ -140,7 +147,7 @@ func isSectionStart(text string) (bool, string) {
 var contentGroupKeywords = map[string][]string{
 	"score":    {"评分", "分值", "得分", "打分", "评审", "权重"},
 	"business": {"付款", "质保", "售后", "交付", "验收", "培训", "合同", "保险", "责任", "保密", "履约", "保证金"},
-	"tech":     {"技术参数", "技术指标", "技术规格", "技术规范", "安装调试", "性能指标", "性能参数", "配置要求", "功能要求"},
+	"tech":     {"技术参数", "技术指标", "技术规格", "技术规范", "安装调试", "性能指标", "性能参数", "配置要求", "功能要求", "测试", "总体要求", "信号", "接口", "眼图", "抖动", "扩频", "时域", "国产", "验证", "系统配置", "时钟芯片", "基准测试", "部署", "监控", "功能验证", "高阻负载", "上升时间", "下降时间"},
 }
 
 func detectContentGroup(text string) string {
@@ -154,10 +161,10 @@ func detectContentGroup(text string) string {
 	return "info"
 }
 
-func extractDocxWithChapters(filePath string) (string, []Chapter, []string, map[string][]string, []int, int, error) {
+func extractDocxWithChapters(filePath string) (string, []Chapter, []string, map[string][]string, []int, int, []DocTable, error) {
 	doc, err := document.Open(filePath)
 	if err != nil {
-		return "", nil, nil, nil, nil, 0, fmt.Errorf("failed to open docx: %w", err)
+		return "", nil, nil, nil, nil, 0, nil, fmt.Errorf("failed to open docx: %w", err)
 	}
 	defer doc.Close()
 
@@ -189,7 +196,7 @@ func extractDocxWithChapters(filePath string) (string, []Chapter, []string, map[
 			currentChapter = &Chapter{
 				Title:   text,
 				Content: []string{},
-				Page:    paraIndex + 1,
+				Page:    pageCount + 1,
 			}
 			currentGroup = detectSection(text)
 		} else {
@@ -202,7 +209,7 @@ func extractDocxWithChapters(filePath string) (string, []Chapter, []string, map[
 				currentChapter = &Chapter{
 					Title:   text,
 					Content: []string{},
-					Page:    paraIndex + 1,
+					Page:    pageCount + 1,
 				}
 			} else if currentChapter != nil {
 				currentChapter.Content = append(currentChapter.Content, text)
@@ -235,16 +242,8 @@ func extractDocxWithChapters(filePath string) (string, []Chapter, []string, map[
 	}
 
 	fullText := strings.Join(paragraphs, "\n")
-	return fullText, chapters, paragraphs, groupToParagraphs, paraToPage, pageCount, nil
-}
 
-func extractDocxTables(filePath string) []DocTable {
-	doc, err := document.Open(filePath)
-	if err != nil {
-		return nil
-	}
-	defer doc.Close()
-
+	// Extract tables in the same opened document (no second file open)
 	var tables []DocTable
 	for _, tbl := range doc.Tables() {
 		var dt DocTable
@@ -267,7 +266,8 @@ func extractDocxTables(filePath string) []DocTable {
 		}
 		tables = append(tables, dt)
 	}
-	return tables
+
+	return fullText, chapters, paragraphs, groupToParagraphs, paraToPage, pageCount, tables, nil
 }
 
 func extractMarkedItems(paragraphs []string, paraToPage []int) []MarkedItem {
@@ -292,42 +292,68 @@ func extractMarkedItems(paragraphs []string, paraToPage []int) []MarkedItem {
 	return items
 }
 
-func findFieldParagraphs(extracts map[string]interface{}, paragraphs []string, groupToParagraphs map[string][]string) map[string]int {
+func findFieldParagraphs(extracts map[string]interface{}, paragraphs []string, groupToParagraphs map[string][]string) (map[string]int, map[string]string) {
 	result := make(map[string]int)
+	fieldGroups := make(map[string]string)
+
+	// Build reverse map: paragraph text -> group name for O(1) lookup
+	paraToGroup := make(map[string]string)
+	for gName, gParas := range groupToParagraphs {
+		for _, gp := range gParas {
+			paraToGroup[gp] = gName
+		}
+	}
+
 	for field, val := range extracts {
 		valStr := strings.TrimSpace(fmt.Sprintf("%v", val))
+		if valStr == "" {
+			continue
+		}
+		valSample := string([]rune(valStr)[:min(len([]rune(valStr)), 30)])
 		bestIdx := -1
 		bestScore := 0
+
 		for i, para := range paragraphs {
-			// Score: field name near start = high priority
-			if strings.Contains(para, field) {
-				fi := strings.Index(para, field)
-				score := 100 - fi
-				if fi < 0 {
-					score = 0
-				}
-				// Bonus if the extracted value is contained in this paragraph
-				if valStr != "" && len(valStr) > 4 && strings.Contains(para, string([]rune(valStr)[:min(len(valStr), 20)])) {
-					score += 50
-				}
-				if score > bestScore {
-					bestScore = score
+			score := 0
+			if strings.Contains(para, valSample) {
+				score += 100
+			}
+			fi := strings.Index(para, field)
+			if fi >= 0 {
+				score += 50 - fi
+			}
+			if score > bestScore {
+				bestScore = score
+				bestIdx = i
+			}
+		}
+
+		if bestIdx < 0 {
+			for i, para := range paragraphs {
+				if strings.Contains(para, field) {
 					bestIdx = i
+					break
 				}
 			}
 		}
 		if bestIdx >= 0 {
 			result[field] = bestIdx
+			paraText := paragraphs[bestIdx]
+			if g, ok := paraToGroup[paraText]; ok {
+				fieldGroups[field] = g
+			} else {
+				fieldGroups[field] = "info"
+			}
 		}
 	}
-	return result
+	return result, fieldGroups
 }
 
-func extractPdfText(filePath string) (string, []Chapter, []string, map[string][]string, []int, int, error) {
-	return "", nil, nil, nil, nil, 0, fmt.Errorf("PDF parsing not implemented yet")
+func extractPdfText(filePath string) (string, []Chapter, []string, map[string][]string, []int, int, []DocTable, error) {
+	return "", nil, nil, nil, nil, 0, nil, fmt.Errorf("PDF parsing not implemented yet")
 }
 
-func extractText(filePath string) (string, []Chapter, []string, map[string][]string, []int, int, error) {
+func extractText(filePath string) (string, []Chapter, []string, map[string][]string, []int, int, []DocTable, error) {
 	ext := strings.ToLower(filepath.Ext(filePath))
 	switch ext {
 	case ".docx":
@@ -335,9 +361,9 @@ func extractText(filePath string) (string, []Chapter, []string, map[string][]str
 	case ".pdf":
 		return extractPdfText(filePath)
 	case ".doc":
-		return "", nil, nil, nil, nil, 0, fmt.Errorf(".doc format not supported, please convert to .docx")
+		return "", nil, nil, nil, nil, 0, nil, fmt.Errorf(".doc format not supported, please convert to .docx")
 	default:
-		return "", nil, nil, nil, nil, 0, fmt.Errorf("unsupported format: %s", ext)
+		return "", nil, nil, nil, nil, 0, nil, fmt.Errorf("unsupported format: %s", ext)
 	}
 }
 
@@ -407,6 +433,13 @@ func extractFromTables(tables []DocTable, keyword string) (string, bool) {
 }
 
 func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string, bool) {
+	type scoredMatch struct {
+		index int     // character index of keyword in paragraph (lower = better)
+		pos   int     // paragraph index
+		para  string  // the paragraph text
+	}
+
+	var candidates []scoredMatch
 	start := 0
 	step := 1
 	if reverse {
@@ -419,62 +452,77 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 		if idx < 0 {
 			continue
 		}
-		if idx > 60 && !reverse {
-			continue
-		}
-		after := para[idx+len(keyword):]
-		after = strings.TrimSpace(after)
-		after = strings.TrimLeft(after, "：:　 \t,-—–")
-		after = strings.TrimSpace(after)
+		candidates = append(candidates, scoredMatch{index: idx, pos: i, para: para})
+	}
 
-		if len([]rune(after)) >= 2 {
-			if val, ok := extractStructuredValue(after); ok {
-				return val, true
-			}
-			// Multi-paragraph concatenation: if value ends with colon or is short,
-			// look at the next paragraphs and append them
-			runes := []rune(after)
-			lastRune := string(runes[len(runes)-1:])
-			if lastRune == "：" || lastRune == ":" || len(runes) < 6 {
-				for j := i + 1; j < len(paragraphs) && j <= i+3; j++ {
-					nextPara := strings.TrimSpace(paragraphs[j])
-					if nextPara == "" {
-						continue
-					}
-					combined := after + "\n" + nextPara
-					if len([]rune(combined)) > 500 {
-						after = after + "\n" + string([]rune(nextPara)[:200])
-						break
-					}
-					after = combined
+	if len(candidates) == 0 {
+		return "", false
+	}
+
+	// Prefer matches near the beginning of the paragraph (lower idx = higher priority)
+	best := candidates[0]
+	for _, c := range candidates[1:] {
+		if c.index < best.index {
+			best = c
+		}
+	}
+
+	idx := best.index
+	i := best.pos
+	para := best.para
+
+	after := para[idx+len(keyword):]
+	after = strings.TrimSpace(after)
+	after = strings.TrimLeft(after, "：: \t,-—–")
+	after = strings.TrimSpace(after)
+
+	if len([]rune(after)) >= 2 {
+		if val, ok := extractStructuredValue(after); ok {
+			return val, true
+		}
+		// Multi-paragraph concatenation: if value ends with colon or is short,
+		// look at the next paragraphs and append them
+		runes := []rune(after)
+		lastRune := string(runes[len(runes)-1:])
+		if lastRune == "：" || lastRune == ":" || len(runes) < 6 {
+			for j := i + 1; j < len(paragraphs) && j <= i+3; j++ {
+				nextPara := strings.TrimSpace(paragraphs[j])
+				if nextPara == "" {
+					continue
 				}
-			}
-			runes = []rune(after)
-			if len(runes) > 80 {
-				after = string(runes[:80])
-			}
-			if dot := strings.IndexAny(after, "。；"); dot > 0 {
-				after = after[:dot]
-			}
-			after = strings.TrimSpace(after)
-			if len([]rune(after)) >= 2 {
-				return after, true
+				combined := after + "\n" + nextPara
+				if len([]rune(combined)) > 500 {
+					after = after + "\n" + string([]rune(nextPara)[:200])
+					break
+				}
+				after = combined
 			}
 		}
+		runes = []rune(after)
+		if len(runes) > 80 {
+			after = string(runes[:80])
+		}
+		if dot := strings.IndexAny(after, "。；"); dot > 0 {
+			after = after[:dot]
+		}
+		after = strings.TrimSpace(after)
+		if len([]rune(after)) >= 2 {
+			return after, true
+		}
+	}
 
-		before := strings.TrimSpace(para[:idx])
-		if before != "" {
-			runes := []rune(before)
-			if len(runes) > 80 {
-				before = string(runes[:80])
-			}
-			if dot := strings.IndexAny(before, "。；"); dot > 0 {
-				before = before[:dot]
-			}
-			before = strings.TrimSpace(before)
-			if len([]rune(before)) >= 2 {
-				return before, true
-			}
+	before := strings.TrimSpace(para[:idx])
+	if before != "" {
+		runes := []rune(before)
+		if len(runes) > 80 {
+			before = string(runes[:80])
+		}
+		if dot := strings.IndexAny(before, "。；"); dot > 0 {
+			before = before[:dot]
+		}
+		before = strings.TrimSpace(before)
+		if len([]rune(before)) >= 2 {
+			return before, true
 		}
 	}
 	return "", false
@@ -498,10 +546,39 @@ func matchSpecificity(match string) int {
 	return 50 - runes
 }
 
+var compiledRulesCache sync.Map
+
+func getCompiledRules(rules []Rule) map[string]*regexp.Regexp {
+	cache := make(map[string]*regexp.Regexp)
+	for _, rule := range rules {
+		if rule.Pattern == "" {
+			continue
+		}
+		if _, loaded := cache[rule.Name]; loaded {
+			continue
+		}
+		if re, ok := compiledRulesCache.Load(rule.Pattern); ok {
+			cache[rule.Name] = re.(*regexp.Regexp)
+		} else {
+			re, err := regexp.Compile(rule.Pattern)
+			if err != nil {
+				continue
+			}
+			compiledRulesCache.Store(rule.Pattern, re)
+			cache[rule.Name] = re
+		}
+	}
+	return cache
+}
+
 func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraphs map[string][]string, tables []DocTable) (map[string]interface{}, map[string]string) {
 	extracts := make(map[string]interface{})
 	groups := make(map[string]string)
 	bestScore := make(map[string]int)
+
+	// Pre-compile all regex patterns once
+	preCompiled := getCompiledRules(rules)
+
 	for _, rule := range rules {
 		g := rule.Group
 		if g == "" {
@@ -543,12 +620,17 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 			}
 		}
 
-		scopeText := strings.Join(scope, "\n")
-		re, err := regexp.Compile(rule.Pattern)
-		if err != nil {
-			continue
+		// Use pre-compiled regex
+		re, hasPreCompiled := preCompiled[rule.Name]
+		if !hasPreCompiled {
+			var err error
+			re, err = regexp.Compile(rule.Pattern)
+			if err != nil {
+				continue
+			}
 		}
-		matches := re.FindStringSubmatch(scopeText)
+
+		matches := re.FindStringSubmatch(text)
 		if len(matches) > 1 {
 			val := strings.TrimSpace(matches[1])
 			sc := matchSpecificity(val)
@@ -580,7 +662,7 @@ func main() {
 		return
 	}
 
-	text, chapters, paragraphs, groupToParagraphs, paraToPage, pageCount, err := extractText(req.FilePath)
+	text, chapters, paragraphs, groupToParagraphs, paraToPage, pageCount, tables, err := extractText(req.FilePath)
 	if err != nil {
 		resp := ParseResponse{Status: "error", Error: err.Error()}
 		output, _ := json.Marshal(resp)
@@ -595,7 +677,6 @@ func main() {
 		groupToParagraphs = make(map[string][]string)
 	}
 
-	tables := extractDocxTables(req.FilePath)
 	if tables == nil {
 		tables = []DocTable{}
 	}
@@ -611,7 +692,7 @@ func main() {
 		markedItems = []MarkedItem{}
 	}
 
-	fieldParaMap := findFieldParagraphs(extracts, paragraphs, groupToParagraphs)
+	fieldParaMap, fieldGroups := findFieldParagraphs(extracts, paragraphs, groupToParagraphs)
 
 	resp := ParseResponse{
 		Status:       "ok",
@@ -622,6 +703,7 @@ func main() {
 		Tables:       tables,
 		MarkedItems:  markedItems,
 		FieldParaMap: fieldParaMap,
+		FieldGroups:  fieldGroups,
 		PageCount:   pageCount,
 		ParaToPage:  paraToPage,
 	}

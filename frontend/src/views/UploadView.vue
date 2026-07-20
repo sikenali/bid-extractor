@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import TopNav from '@/components/layout/TopNav.vue';
 import FileUploader from '@/components/upload/FileUploader.vue';
 import { uploadFile } from '@/api/upload';
@@ -41,7 +42,7 @@ async function handleUploaded(file: File) {
   } catch (err: any) {
     cancelled = true;
     const msg = err?.response?.data?.error || '上传失败，请重试';
-    alert(msg);
+    ElMessage.error(msg);
     uploading.value = false;
     progressPercent.value = 0;
     progressFileName.value = '';

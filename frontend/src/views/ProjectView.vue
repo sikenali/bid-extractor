@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import TopNav from '@/components/layout/TopNav.vue';
 import PreviewModal from '@/components/preview/PreviewModal.vue';
@@ -407,8 +407,30 @@ onMounted(async () => {
 function handleCopy(field: string) {
   const row = tableData.value.find(d => d.field === field);
   if (row) {
-    navigator.clipboard.writeText(row.value);
+    const text = row.value;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(() => {
+        fallbackCopy(text);
+      });
+    } else {
+      fallbackCopy(text);
+    }
   }
+}
+
+function fallbackCopy(text: string) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+  } catch {
+    // final fallback: silently fail
+  }
+  document.body.removeChild(ta);
 }
 
 function handleEdit(field: string) {
@@ -433,7 +455,7 @@ function confirmEdit() {
       paragraphText: '',
       groupName: activeSection.value,
       fileName: fileInfo.value.name
-    }).catch(() => {});
+    }).catch(err => console.warn('Failed to save correction:', err));
   }
   showEditDialog.value = false;
 }
@@ -647,7 +669,6 @@ function triggerDownload(blob: Blob, filename: string) {
             </thead>
             <tbody>
               <template v-for="(row, idx) in paginatedData" :key="row.field">
-                <tr v-if="idx > 0" class="row-spacer"><td colspan="4"></td></tr>
                 <tr class="data-row">
                   <td class="col-field">{{ row.field }}</td>
                   <td class="col-value">{{ row.value }}</td>
@@ -672,7 +693,7 @@ function triggerDownload(blob: Blob, filename: string) {
         </div>
         </template>
 
-        <template v-else>
+        <template v-else-if="activeSection === 'score'">
         <div class="table-container" style="margin-bottom: 16px;">
           <table class="extract-table">
             <thead>
@@ -685,7 +706,6 @@ function triggerDownload(blob: Blob, filename: string) {
             </thead>
             <tbody>
               <template v-for="(row, idx) in paginatedData" :key="row.field">
-                <tr v-if="idx > 0" class="row-spacer"><td colspan="4"></td></tr>
                 <tr class="data-row">
                   <td class="col-field">{{ row.field }}</td>
                   <td class="col-value">{{ row.value }}</td>
@@ -806,7 +826,7 @@ function triggerDownload(blob: Blob, filename: string) {
 }
 .extract-sidebar {
   width: 200px;
-  background-color: #F5EFE3;
+  background-color: var(--color-bg-secondary);
   padding: 24px 12px;
   display: flex;
   flex-direction: column;
@@ -835,7 +855,7 @@ function triggerDownload(blob: Blob, filename: string) {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background-color: rgba(232,220,200,1);
+  background-color: var(--color-bg-card);
 }
 .extract-nav-item.active .nav-icon-wrap {
   background-color: rgba(255,255,255,0.2);
@@ -844,7 +864,7 @@ function triggerDownload(blob: Blob, filename: string) {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 18px;
-  color: #8B7355;
+  color: var(--color-text-secondary);
 }
 .extract-nav-item.active .nav-icon-wrap .icon {
   color: white;
@@ -856,12 +876,12 @@ function triggerDownload(blob: Blob, filename: string) {
 .nav-label {
   font-size: 15px;
   font-weight: 500;
-  color: #5C4A3A;
+  color: var(--color-text-primary);
   line-height: 1.3;
 }
 .nav-sublabel {
   font-size: 11px;
-  color: #9B8C7C;
+  color: var(--color-text-muted);
   line-height: 1.2;
 }
 .extract-nav-item.active .nav-label {
@@ -894,19 +914,19 @@ function triggerDownload(blob: Blob, filename: string) {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background-color: #F0E8D8;
+  background-color: var(--color-bg-card);
   border: none;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
-  color: #5C4A3A;
+  color: var(--color-text-primary);
   cursor: pointer;
 }
 .btn-outline .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 16px;
-  color: #8B7355;
+  color: var(--color-text-secondary);
 }
 .btn-primary {
   display: flex;
@@ -931,7 +951,7 @@ function triggerDownload(blob: Blob, filename: string) {
   border: 0.7px solid var(--color-border);
   border-radius: 16px;
   overflow: hidden;
-  background-color: white;
+  background-color: var(--color-bg-white);
 }
 .extract-table {
   width: 100%;
@@ -943,7 +963,7 @@ function triggerDownload(blob: Blob, filename: string) {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
-  background-color: #F5EFE3;
+  background-color: var(--color-bg-secondary);
   text-align: left;
 }
 .col-field { width: 160px; }
@@ -965,11 +985,11 @@ function triggerDownload(blob: Blob, filename: string) {
   color: var(--color-text-primary);
 }
 .data-row .col-value {
-  color: #5C4A3A;
+  color: var(--color-text-primary);
 }
 .page-link {
   font-size: 13px;
-  color: #2D6A9F;
+  color: var(--color-primary);
   cursor: pointer;
 }
 .page-link:hover {
@@ -984,7 +1004,7 @@ function triggerDownload(blob: Blob, filename: string) {
 .icon-btn {
   width: 28px;
   height: 28px;
-  background-color: #F0E8D8;
+  background-color: var(--color-bg-card);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -996,10 +1016,10 @@ function triggerDownload(blob: Blob, filename: string) {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 14px;
-  color: #8B7355;
+  color: var(--color-text-secondary);
 }
 .icon-btn:hover {
-  background-color: #E8DCC8;
+  background-color: var(--color-bg-secondary);
 }
 .empty-row td {
   padding: 48px 0;
@@ -1023,7 +1043,7 @@ function triggerDownload(blob: Blob, filename: string) {
   height: 32px;
   border: none;
   border-radius: 8px;
-  background-color: #F0E8D8;
+  background-color: var(--color-bg-card);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1037,7 +1057,7 @@ function triggerDownload(blob: Blob, filename: string) {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 16px;
-  color: #8B7355;
+  color: var(--color-text-secondary);
 }
 .page-num {
   width: 32px;
@@ -1046,7 +1066,7 @@ function triggerDownload(blob: Blob, filename: string) {
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
-  color: #5C4A3A;
+  color: var(--color-text-primary);
   background: none;
   cursor: pointer;
 }
@@ -1135,7 +1155,7 @@ function triggerDownload(blob: Blob, filename: string) {
   width: 40px;
   height: 3px;
   border-radius: 2px;
-  background-color: #e5e7eb;
+  background-color: var(--color-bg-secondary);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -1182,11 +1202,11 @@ function triggerDownload(blob: Blob, filename: string) {
 }
 .doc-th {
   font-weight: 600;
-  background-color: #F5EFE3;
+  background-color: var(--color-bg-secondary);
   color: var(--color-text-primary);
 }
 .doc-td {
-  color: #5C4A3A;
+  color: var(--color-text-primary);
 }
 
 .score-tab-bar {
