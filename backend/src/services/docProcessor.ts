@@ -176,3 +176,8 @@ export function parseDocument(filePath: string): Promise<ParseResult> {
     attempt(0);
   });
 }
+
+export async function refineWithLLM(jobId: string, result: ParseResult): Promise<any> {
+  const { refineJob } = await import('../services/llmExtractor.js');
+  return refineJob(jobId, result);
+}

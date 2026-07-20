@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -111,11 +112,11 @@ func hasPageBreak(para document.Paragraph) bool {
 }
 
 var sectionKeywords = map[string][]string{
-	"info":     {"项目信息", "项目概况", "招标公告", "投标邀请", "招标条件", "投标须知", "投标人须知", "招标说明", "项目背景", "采购内容"},
-	"business": {"商务条款", "投标人资格", "资格要求", "资质要求", "商务要求", "合同条款", "付款方式", "交付要求", "售后服务", "质保要求", "联合体", "分包", "转包"},
-	"tech":     {"技术规格", "技术要求", "技术参数", "技术标准", "技术需求", "采购需求", "货物需求", "服务需求", "技术规范", "验收标准", "安装调试", "培训"},
-	"score":    {"评分标准", "评标办法", "评审办法", "评分细则", "综合评分", "评分因素", "评分项", "打分标准", "定标原则", "评标方法", "评分表", "分值分配"},
-	"seal":     {"封标", "密封", "封装", "正本", "副本", "电子文件", "密封袋", "密封条", "盖章", "签字", "递交", "邮寄", "现场递交", "封标要求", "密封要求", "封装方式", "密封处", "骑缝章", "外包装", "内包装", "密封袋标识", "外层信封", "内层信封", "密封截止时间", "递交方式", "纸质文件", "电子标书", "U盘", "光盘", "加密", "解密", "开标时", "拆封", "封条", "密封章"},
+	"info":     {"项目信息", "项目概况", "招标公告", "投标邀请", "招标条件", "投标须知", "投标人须知", "招标说明", "项目背景", "采购内容", "项目概述", "采购公告", "项目简介", "招标范围", "项目来源", "资金来源"},
+	"business": {"商务条款", "投标人资格", "资格要求", "资质要求", "商务要求", "合同条款", "付款方式", "交付要求", "售后服务", "质保要求", "联合体", "分包", "转包", "合同范本", "履约担保", "合同生效", "合同解除", "违约责任", "合同价款", "付款条件", "质保期", "保修期", "售后服务要求", "培训要求", "验收要求", "验收标准", "知识产权", "保密条款", "不可抗力", "争议解决", "诉讼", "仲裁"},
+	"tech":     {"技术规格", "技术要求", "技术参数", "技术标准", "技术需求", "采购需求", "货物需求", "服务需求", "技术规范", "验收标准", "安装调试", "培训", "技术方案", "技术路线", "技术架构", "设备清单", "配置清单", "功能需求", "性能要求", "性能指标", "技术指标", "运行环境", "系统要求", "接口要求", "数据安全", "网络安全", "兼容要求", "可扩展性"},
+	"score":    {"评分标准", "评标办法", "评审办法", "评分细则", "综合评分", "评分因素", "评分项", "打分标准", "定标原则", "评标方法", "评分表", "分值分配", "评标标准", "评审标准", "评分方法", "价格分", "技术分", "商务分", "客观评分", "主观评分", "加分项", "扣分项"},
+	"seal":     {"封标", "密封", "封装", "正本", "副本", "电子文件", "密封袋", "密封条", "盖章", "签字", "递交", "邮寄", "现场递交", "封标要求", "密封要求", "封装方式", "密封处", "骑缝章", "外包装", "内包装", "密封袋标识", "外层信封", "内层信封", "密封截止时间", "递交方式", "纸质文件", "电子标书", "U盘", "光盘", "加密", "解密", "开标时", "拆封", "封条", "密封章", "签章", "法人章", "公章"},
 }
 
 func detectSection(title string) string {
@@ -237,10 +238,30 @@ func extractDocxWithChapters(filePath string) (string, []Chapter, []string, map[
 	}
 
 	if pageCount == 0 && len(paragraphs) > 0 {
-		paraToPage = make([]int, len(paragraphs))
-		for i := range paragraphs {
-			paraToPage[i] = i/40 + 1
+		// Estimate pages based on average paragraph length
+		// Typical A4 page holds ~800-1200 Chinese characters
+		totalChars := 0
+		for _, p := range paragraphs {
+			totalChars += len([]rune(p))
 		}
+		avgCharsPerPage := 1000.0
+		estimatedPages := int(math.Ceil(float64(totalChars) / avgCharsPerPage))
+		if estimatedPages < 1 {
+			estimatedPages = 1
+		}
+		// Distribute paragraphs across estimated pages proportionally
+		charsPerPage := float64(totalChars) / float64(estimatedPages)
+		accumulated := 0
+		paraToPage = make([]int, len(paragraphs))
+		currentPage := 1
+		for i, p := range paragraphs {
+			accumulated += len([]rune(p))
+			paraToPage[i] = currentPage
+			if float64(accumulated) >= charsPerPage*float64(currentPage) {
+				currentPage++
+			}
+		}
+		pageCount = estimatedPages
 	}
 
 	fullText := strings.Join(paragraphs, "\n")
@@ -306,6 +327,14 @@ func findFieldParagraphs(extracts map[string]interface{}, paragraphs []string, g
 		}
 	}
 
+	// Also build a field-to-group mapping from extracts
+	fieldToGroup := make(map[string]string)
+	for field, grp := range extracts {
+		if g, ok := grp.(string); ok {
+			fieldToGroup[field] = g
+		}
+	}
+
 	for field, val := range extracts {
 		valStr := strings.TrimSpace(fmt.Sprintf("%v", val))
 		if valStr == "" {
@@ -315,10 +344,15 @@ func findFieldParagraphs(extracts map[string]interface{}, paragraphs []string, g
 		bestIdx := -1
 		bestScore := 0
 
+		// Priority 1: Match by value sample (most reliable)
 		for i, para := range paragraphs {
 			score := 0
 			if strings.Contains(para, valSample) {
 				score += 100
+			}
+			// Bonus for exact value match
+			if strings.Contains(para, valStr) {
+				score += 50
 			}
 			fi := strings.Index(para, field)
 			if fi >= 0 {
@@ -330,6 +364,7 @@ func findFieldParagraphs(extracts map[string]interface{}, paragraphs []string, g
 			}
 		}
 
+		// Priority 2: If value-based search failed, search by field name only
 		if bestIdx < 0 {
 			for i, para := range paragraphs {
 				if strings.Contains(para, field) {
@@ -338,13 +373,41 @@ func findFieldParagraphs(extracts map[string]interface{}, paragraphs []string, g
 				}
 			}
 		}
+
+		// Priority 3: Group-scoped fallback
+		if bestIdx < 0 {
+			if targetGroup, ok := fieldToGroup[field]; ok {
+				if gp, ok2 := groupToParagraphs[targetGroup]; ok2 {
+					for _, gpText := range gp {
+						if strings.Contains(gpText, field) {
+							// Find the index in all paragraphs
+							for i, p := range paragraphs {
+								if p == gpText {
+									bestIdx = i
+									break
+								}
+							}
+							if bestIdx >= 0 {
+								break
+							}
+						}
+					}
+				}
+			}
+		}
+
 		if bestIdx >= 0 {
 			result[field] = bestIdx
 			paraText := paragraphs[bestIdx]
 			if g, ok := paraToGroup[paraText]; ok {
 				fieldGroups[field] = g
 			} else {
-				fieldGroups[field] = "info"
+				// Use the known field group as fallback
+				if g, ok := fieldToGroup[field]; ok {
+					fieldGroups[field] = g
+				} else {
+					fieldGroups[field] = "info"
+				}
 			}
 		}
 	}
@@ -371,13 +434,18 @@ func extractText(filePath string) (string, []Chapter, []string, map[string][]str
 
 func extractStructuredValue(afterText string) (string, bool) {
 	patterns := []string{
+		// Money amounts (most common in bidding docs)
 		`[¥￥](\d[\d,]*\.?\d*)`,
 		`(\d+(?:,\d{3})*(?:\.\d{2})?)\s*元`,
+		`(?:人民币\s*)?[¥￥]?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)\s*元`,
 		`(\d+(?:\.\d+)?)\s*[万億億]\s*元`,
+		// Percentages
 		`(\d+(?:\.\d+)?)\s*%`,
+		// Dates
 		`(\d{4}年\d{1,2}月\d{1,2}日)`,
 		`(\d{4}-\d{2}-\d{2})`,
 		`(\d{1,2}月\d{1,2}日)`,
+		// Scores/points
 		`(\d+(?:\.\d+)?)\s*分`,
 		`满分\s*(\d+)`,
 		`分值\s*(\d+)`,
@@ -439,18 +507,71 @@ func extractFromTableCells(tables []DocTable, keyword string) (string, bool) {
 		if len(tbl.Rows) < 2 {
 			continue
 		}
-		// Collect header cells from first row to avoid matching header values
 		headerSet := make(map[string]bool)
 		for _, cell := range tbl.Rows[0].Cells {
 			headerSet[strings.TrimSpace(cell)] = true
 		}
-		// Search data rows (skip header row)
+
+		// Strategy 1: Same row, adjacent cell (ci+1) — existing
+		// Strategy 2: Same row, text after keyword in same cell — existing
+		// Strategy 3: Same column, next row (vertical key-value)
+		// Strategy 4: Any cell contains keyword (not just starts with), then grab adjacent cell value
+		// Strategy 5: If keyword found in header row, find the value in ALL data rows for that column
+
+		// Strategy 5 first: find keyword in header, then scan all data rows for that column
+		colIdx := -1
+		for ci, cell := range tbl.Rows[0].Cells {
+			trimmed := strings.TrimSpace(cell)
+			if trimmed == keyword || strings.HasPrefix(trimmed, keyword+":") || strings.HasPrefix(trimmed, keyword+"：") {
+				colIdx = ci
+				break
+			}
+		}
+		if colIdx >= 0 {
+			for ri := 1; ri < len(tbl.Rows); ri++ {
+				row := tbl.Rows[ri]
+				if len(row.Cells) <= colIdx {
+					continue
+				}
+				val := strings.TrimSpace(row.Cells[colIdx])
+				if val != "" && !headerSet[val] {
+					return val, true
+				}
+			}
+		}
+
+		// Strategies 1-4: iterate data rows
 		for ri := 1; ri < len(tbl.Rows); ri++ {
 			row := tbl.Rows[ri]
 			for ci, cell := range row.Cells {
 				trimmed := strings.TrimSpace(cell)
-				if trimmed == keyword || strings.HasPrefix(trimmed, keyword+":") || strings.HasPrefix(trimmed, keyword+"：") {
-					// Change 5: Check ALL other cells in the row, not just the next cell
+				matchesKeyword := trimmed == keyword || strings.HasPrefix(trimmed, keyword+":") || strings.HasPrefix(trimmed, keyword+"：")
+				containsKeyword := strings.Contains(trimmed, keyword)
+
+				if matchesKeyword || containsKeyword {
+					// Strategy 1: same row, adjacent cell (ci+1)
+					if ci+1 < len(row.Cells) {
+						val := strings.TrimSpace(row.Cells[ci+1])
+						if val != "" && !headerSet[val] {
+							return val, true
+						}
+					}
+
+					// Strategy 2: text after keyword in same cell
+					after := ""
+					if matchesKeyword {
+						after = trimmed[len(keyword):]
+					} else {
+						ki := strings.Index(trimmed, keyword)
+						after = trimmed[ki+len(keyword):]
+					}
+					after = strings.TrimLeft(after, "：: \t,-—–")
+					after = strings.TrimSpace(after)
+					if after != "" && !headerSet[after] {
+						return after, true
+					}
+
+					// Strategy 4: check ALL other cells in the row for value
 					bestVal := ""
 					bestSc := 0
 					for ci2 := range row.Cells {
@@ -474,20 +595,15 @@ func extractFromTableCells(tables []DocTable, keyword string) (string, bool) {
 						return bestVal, true
 					}
 
-					// Fallback: try the next cell
-					if ci+1 < len(row.Cells) {
-						val := strings.TrimSpace(row.Cells[ci+1])
-						if val != "" && !headerSet[val] {
-							return val, true
+					// Strategy 3: same column, next row (vertical key-value)
+					if ri+1 < len(tbl.Rows) {
+						nextRow := tbl.Rows[ri+1]
+						if len(nextRow.Cells) > ci {
+							val := strings.TrimSpace(nextRow.Cells[ci])
+							if val != "" && !headerSet[val] {
+								return val, true
+							}
 						}
-					}
-
-					// Fallback: try text after keyword in same cell
-					after := trimmed[len(keyword):]
-					after = strings.TrimLeft(after, "：: \t,-—–")
-					after = strings.TrimSpace(after)
-					if after != "" {
-						return after, true
 					}
 				}
 			}
@@ -551,7 +667,7 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 			runes := []rune(after)
 			lastRune := string(runes[len(runes)-1:])
 			if lastRune == "：" || lastRune == ":" || len(runes) < 6 {
-				for j := i + 1; j < len(paragraphs) && j <= i+3; j++ {
+				for j := i + 1; j < len(paragraphs) && j <= i+6; j++ {
 					nextPara := strings.TrimSpace(paragraphs[j])
 					if nextPara == "" {
 						continue
@@ -565,10 +681,10 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 				}
 			}
 			runes = []rune(after)
-			if len(runes) > 80 {
-				after = string(runes[:80])
+			if len(runes) > 120 {
+				after = string(runes[:120])
 			}
-			if dot := strings.IndexAny(after, "。；"); dot > 0 {
+			if dot := strings.IndexAny(after, "。；\n"); dot > 0 {
 				after = after[:dot]
 			}
 			after = strings.TrimSpace(after)
@@ -613,6 +729,13 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 	return "", false
 }
 
+const (
+	priorityTable       = 1000
+	priorityRegexExact  = 800
+	priorityKeyword     = 500
+	priorityFallback    = 100
+)
+
 func matchSpecificity(match string) int {
 	digits := 0
 	runes := 0
@@ -629,6 +752,11 @@ func matchSpecificity(match string) int {
 		return 100 + digits*10 - runes
 	}
 	return 50 - runes
+}
+
+func scoreWithPriority(val string, methodPriority int) int {
+	base := matchSpecificity(val)
+	return methodPriority + base
 }
 
 var compiledRulesCache sync.Map
@@ -684,7 +812,7 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 			// Change 4: Apply table extraction to ALL groups, not just score
 			if tables != nil {
 				if val, found := extractFromTableCells(tables, rule.Name); found {
-					sc := matchSpecificity(val)
+					sc := scoreWithPriority(val, priorityTable)
 					if prev, exists := bestScore[rule.Name]; !exists || sc > prev {
 						extracts[rule.Name] = val
 						groups[rule.Name] = g
@@ -695,7 +823,7 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 			}
 			if tables != nil {
 				if val, found := extractFromTables(tables, rule.Name); found {
-					sc := matchSpecificity(val)
+					sc := scoreWithPriority(val, priorityTable)
 					if prev, exists := bestScore[rule.Name]; !exists || sc > prev {
 						extracts[rule.Name] = val
 						groups[rule.Name] = g
@@ -706,7 +834,7 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 			}
 			// Change 3: Search ALL paragraphs first (global scope)
 			if val, found := extractByKeyword(allParagraphs, rule.Name, g == "score"); found {
-				sc := matchSpecificity(val)
+				sc := scoreWithPriority(val, priorityKeyword)
 				if prev, exists := bestScore[rule.Name]; !exists || sc > prev {
 					extracts[rule.Name] = val
 					groups[rule.Name] = g
@@ -716,7 +844,7 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 				// Fallback: try group-scoped search
 				if gp, ok := groupToParagraphs[g]; ok && len(gp) > 0 {
 					if val, found := extractByKeyword(gp, rule.Name, g == "score"); found {
-						sc := matchSpecificity(val)
+						sc := scoreWithPriority(val, priorityKeyword)
 						if prev, exists := bestScore[rule.Name]; !exists || sc > prev {
 							extracts[rule.Name] = val
 							groups[rule.Name] = g
@@ -740,29 +868,18 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 			}
 		}
 
-		// Change 1: Try matching against full text first, then fall back to per-paragraph matching
-		matches := re.FindStringSubmatch(text)
-		found := false
-		val := ""
-		sc := 0
+	// Change 1: Try matching each paragraph individually first (local precision),
+	// then fall back to full-text matching (global coverage)
+	found := false
+	val := ""
+	sc := 0
 
-		if len(matches) > 1 {
-			val = strings.TrimSpace(matches[1])
-			sc = matchSpecificity(val)
-			found = true
-		} else if len(matches) == 1 {
-			val = strings.TrimSpace(matches[0])
-			sc = matchSpecificity(val)
-			found = true
-		}
-
-		// If full-text match failed, try each paragraph individually
-		if !found && allParagraphs != nil {
-			for _, para := range allParagraphs {
-				paraMatches := re.FindStringSubmatch(para)
+	if allParagraphs != nil {
+		for _, para := range allParagraphs {
+			paraMatches := re.FindStringSubmatch(para)
 				if len(paraMatches) > 1 {
 					paraVal := strings.TrimSpace(paraMatches[1])
-					paraSc := matchSpecificity(paraVal)
+					paraSc := scoreWithPriority(paraVal, priorityRegexExact)
 					if paraSc > sc {
 						val = paraVal
 						sc = paraSc
@@ -771,16 +888,30 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 					}
 				} else if len(paraMatches) == 1 {
 					paraVal := strings.TrimSpace(paraMatches[0])
-					paraSc := matchSpecificity(paraVal)
-					if paraSc > sc {
-						val = paraVal
-						sc = paraSc
-						found = true
-						break
-					}
+					paraSc := scoreWithPriority(paraVal, priorityRegexExact)
+				if paraSc > sc {
+					val = paraVal
+					sc = paraSc
+					found = true
+					break
 				}
 			}
 		}
+	}
+
+	// Fallback: if paragraph-level matching found nothing, try full text
+	if !found && text != "" {
+		matches := re.FindStringSubmatch(text)
+		if len(matches) > 1 {
+			val = strings.TrimSpace(matches[1])
+			sc = scoreWithPriority(val, priorityRegexExact)
+			found = true
+		} else if len(matches) == 1 {
+			val = strings.TrimSpace(matches[0])
+			sc = scoreWithPriority(val, priorityRegexExact)
+			found = true
+		}
+	}
 
 		if found {
 			if prev, exists := bestScore[rule.Name]; !exists || sc > prev {

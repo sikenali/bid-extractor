@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { getApiKeys, addApiKey, deleteApiKey } from '@/api/settings';
+import { ElMessage } from 'element-plus';
+import { getApiKeys, addApiKey, deleteApiKey, getLlmSettings, setLlmSettings, getLlmStatus } from '@/api/settings';
+import apiClient from '@/api/client';
 
 interface ApiKeyItem {
   id: string;
@@ -27,13 +28,18 @@ const internationalModels = [
 ];
 
 const formState = ref({
-  provider: '阿里云',
-  model: 'qwen-turbo',
+  provider: '',
+  model: '',
   apiKey: '',
   baseUrl: ''
 });
 
+const editingKeyId = ref<string | null>(null);
 const showKey = ref(false);
+
+const llmEnabled = ref(false);
+const llmLoading = ref(false);
+const llmStatus = ref<{ available: boolean; enabled: boolean; hasApiKey: boolean } | null>(null);
 
 const formTabContainerRef = ref<HTMLElement | null>(null);
 const formTabIndicatorStyle = ref({ left: '0px', width: '0px' });
@@ -65,8 +71,36 @@ async function loadApiKeys() {
   }
 }
 
+async function loadLlmSettings() {
+  try {
+    const [settings, status] = await Promise.all([
+      getLlmSettings(),
+      getLlmStatus()
+    ]);
+    llmEnabled.value = settings.enabled || false;
+    llmStatus.value = status;
+  } catch {
+    llmStatus.value = { available: false, enabled: false, hasApiKey: false };
+  }
+}
+
+async function toggleLlmEnabled() {
+  llmLoading.value = true;
+  try {
+    await setLlmSettings({ enabled: !llmEnabled.value });
+    llmEnabled.value = !llmEnabled.value;
+    ElMessage.success(llmEnabled.value ? 'LLM 增强提取已启用' : 'LLM 增强提取已禁用');
+    await loadLlmSettings();
+  } catch (err: any) {
+    llmEnabled.value = !llmEnabled.value;
+    ElMessage.error(err?.response?.data?.error || '操作失败');
+  } finally {
+    llmLoading.value = false;
+  }
+}
+
 onMounted(async () => {
-  await loadApiKeys();
+  await Promise.all([loadApiKeys(), loadLlmSettings()]);
   nextTick(() => {
     positionFormTabIndicator();
     setTimeout(() => { formTabInitialized.value = true; }, 150);
@@ -74,6 +108,7 @@ onMounted(async () => {
 });
 
 function selectModel(key: string) {
+  if (editingKeyId.value) return;
   selectedProviderId.value = key;
   const allModels = [...domesticModels, ...internationalModels];
   const model = allModels.find(m => m.key === key);
@@ -85,23 +120,48 @@ function selectModel(key: string) {
 }
 
 async function handleSubmit() {
-  if (!formState.value.apiKey) {
-    ElMessage.warning('请输入 API Key');
+  if (!formState.value.provider || !formState.value.model || !formState.value.apiKey) {
+    ElMessage.warning('请填写服务商、模型和 API Key');
     return;
   }
   try {
-    await addApiKey({
-      provider: formState.value.provider,
-      model: formState.value.model,
-      api_key: formState.value.apiKey,
-      base_url: formState.value.baseUrl || undefined
-    });
-    ElMessage.success('API Key 已添加');
-    formState.value.apiKey = '';
+    if (editingKeyId.value) {
+      await apiClient.put(`/settings/apikeys/${editingKeyId.value}`, {
+        provider: formState.value.provider,
+        model: formState.value.model,
+        api_key: formState.value.apiKey,
+        base_url: formState.value.baseUrl || undefined
+      });
+      ElMessage.success('API Key 已更新');
+    } else {
+      await addApiKey({
+        provider: formState.value.provider,
+        model: formState.value.model,
+        api_key: formState.value.apiKey,
+        base_url: formState.value.baseUrl || undefined
+      });
+      ElMessage.success('API Key 已添加');
+    }
+    resetForm();
     await loadApiKeys();
   } catch (err: any) {
-    ElMessage.error(err?.response?.data?.error || '添加失败');
+    ElMessage.error(err?.response?.data?.error || '操作失败');
   }
+}
+
+function resetForm() {
+  formState.value = { provider: '', model: '', apiKey: '', baseUrl: '' };
+  editingKeyId.value = null;
+}
+
+function handleEditKey(key: ApiKeyItem) {
+  editingKeyId.value = key.id;
+  formState.value = {
+    provider: key.provider,
+    model: key.model,
+    apiKey: '',
+    baseUrl: key.base_url || ''
+  };
 }
 
 async function handleDeleteKey(key: ApiKeyItem) {
@@ -129,7 +189,10 @@ async function handleDeleteKey(key: ApiKeyItem) {
               <span v-if="key.base_url" class="key-url">{{ key.base_url }}</span>
               <span class="key-masked">••••••••••••••••</span>
             </div>
-            <button class="btn-delete-key" @click="handleDeleteKey(key)">删除</button>
+            <div class="key-actions">
+              <button class="btn-edit-key" @click="handleEditKey(key)">编辑</button>
+              <button class="btn-delete-key" @click="handleDeleteKey(key)">删除</button>
+            </div>
           </div>
         </div>
 
@@ -202,8 +265,8 @@ async function handleDeleteKey(key: ApiKeyItem) {
                 </div>
               </div>
               <div class="form-actions">
-                <button class="btn-cancel" @click="formState.apiKey = ''">取消</button>
-                <button class="btn-add" @click="handleSubmit">添加</button>
+                <button class="btn-cancel" @click="resetForm">取消</button>
+                <button class="btn-add" @click="handleSubmit">{{ editingKeyId ? '保存' : '添加' }}</button>
               </div>
             </div>
           </div>
@@ -224,6 +287,9 @@ async function handleDeleteKey(key: ApiKeyItem) {
 .key-masked { font-size: 12px; color: var(--color-text-muted); font-family: monospace; }
 .btn-delete-key { font-size: 12px; color: var(--color-primary); background: none; border: 1px solid var(--color-primary); border-radius: 6px; padding: 4px 12px; cursor: pointer; }
 .btn-delete-key:hover { background-color: var(--color-primary); color: white; }
+.btn-edit-key { font-size: 12px; color: var(--color-text-secondary); background: none; border: 1px solid var(--color-border); border-radius: 6px; padding: 4px 12px; cursor: pointer; margin-right: 8px; }
+.btn-edit-key:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.key-actions { display: flex; align-items: center; }
 .apikey-layout { display: flex; gap: 32px; }
 .model-list { width: 260px; padding: 32px 16px; background-color: white; border-radius: 12px; border: 0.7px solid var(--color-border); }
 .model-group-title { font-size: 11px; color: var(--color-text-muted); font-weight: 500; padding: 0 8px; margin-bottom: 8px; }

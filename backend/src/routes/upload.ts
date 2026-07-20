@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { parseDocument } from '../services/docProcessor.js';
+import { refineJob } from '../services/llmExtractor.js';
 import { db } from '../database.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -40,6 +41,9 @@ interface JobEntry {
   filename: string;
   size: number;
   result: ParseResult;
+  llmEnhanced: boolean;
+  llmResults: Record<string, unknown>;
+  llmFields: Record<string, 'llm'>;
   createdAt: number;
 }
 
@@ -124,19 +128,44 @@ router.post('/', upload.single('file'), async (req, res) => {
     }
 
     const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+    const jobId = req.file.filename;
 
-    jobStore.set(req.file.filename, {
+    // Check if LLM enhancement is requested
+    const enhanceLlm = req.query.enhance === 'llm';
+    let llmEnhanced = false;
+    let llmResults: Record<string, unknown> = {};
+    let llmFields: Record<string, 'llm'> = {};
+
+    if (enhanceLlm) {
+      try {
+        const settings = db.prepare('SELECT * FROM llm_enhance_settings WHERE id = 1').get() as any;
+        if (settings && settings.enabled) {
+          const refineResult = await refineJob(jobId, result);
+          if (refineResult.success && refineResult.fieldsExtracted > 0) {
+            llmEnhanced = true;
+          }
+        }
+      } catch (llmErr: any) {
+        console.error('[Upload] LLM enhancement failed:', llmErr.message);
+      }
+    }
+
+    jobStore.set(jobId, {
       filename: originalName,
       size: req.file.size,
       result,
+      llmEnhanced,
+      llmResults,
+      llmFields,
       createdAt: Date.now()
     });
 
     res.status(201).json({
-      id: req.file.filename,
+      id: jobId,
       filename: originalName,
       size: req.file.size,
       status: 'parsed',
+      llmEnhanced,
       result
     });
   } catch (err: any) {
@@ -162,6 +191,8 @@ router.get('/:id/status', (req, res) => {
     progress: 100,
     filename: job.filename,
     fileSize: fileStat?.size || job.size,
+    llmEnhanced: job.llmEnhanced,
+    llmFields: job.llmFields,
     result: job.result
   });
 });
@@ -182,6 +213,52 @@ router.get('/file/:filename', (req, res) => {
     return;
   }
   res.sendFile(filePath);
+});
+
+// ── LLM Refinement ─────────────────────────────────────────────────
+
+router.post('/:id/refine', async (req, res) => {
+  const job = jobStore.get(req.params.id);
+  if (!job) {
+    return res.status(404).json({ error: 'Job not found' });
+  }
+
+  if (job.llmEnhanced) {
+    return res.status(400).json({ error: 'Already enhanced with LLM' });
+  }
+
+  try {
+    const settingsCheck = db.prepare('SELECT enabled FROM llm_enhance_settings WHERE id = 1').get() as any;
+    if (!settingsCheck?.enabled) {
+      return res.status(400).json({ error: 'LLM enhancement is not enabled in settings' });
+    }
+
+    const keyCheck = db.prepare('SELECT id FROM api_configs LIMIT 1').all();
+    if (keyCheck.length === 0) {
+      return res.status(400).json({ error: 'No API keys configured' });
+    }
+
+    let queued = false;
+    const result = await refineJob(req.params.id, job.result, () => { queued = true; });
+
+    if (result.success && result.merged && result.llmFields) {
+      job.llmEnhanced = true;
+      job.llmResults = result.merged;
+      job.llmFields = result.llmFields;
+      job.result.extracts = result.merged;
+    }
+
+    res.json({
+      success: result.success,
+      fieldsExtracted: result.fieldsExtracted,
+      totalFields: result.totalFields,
+      source: result.source,
+      queued,
+    });
+  } catch (err: any) {
+    console.error('[Refine] Error:', err.message);
+    res.status(500).json({ error: err.message || 'Refinement failed' });
+  }
 });
 
 export default router;

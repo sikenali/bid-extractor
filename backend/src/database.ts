@@ -161,6 +161,18 @@ export function initializeDatabase() {
     )`);
   }
 
+  if (!tableExists('llm_enhance_settings')) {
+    db.exec(`CREATE TABLE llm_enhance_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      enabled INTEGER DEFAULT 0,
+      provider TEXT DEFAULT 'qwen-turbo',
+      max_doc_chars INTEGER DEFAULT 32000,
+      timeout_seconds INTEGER DEFAULT 60,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )`);
+  }
+
   // Seed default records
   const existingExport = db.prepare('SELECT id FROM export_settings WHERE id = 1').get() as { id: number } | undefined;
   if (!existingExport) {
@@ -170,6 +182,11 @@ export function initializeDatabase() {
   const existingTheme = db.prepare('SELECT id FROM theme_config WHERE id = 1').get() as { id: number } | undefined;
   if (!existingTheme) {
     db.prepare('INSERT INTO theme_config (id) VALUES (?)').run(1);
+  }
+
+  const existingLlmSettings = db.prepare('SELECT id FROM llm_enhance_settings WHERE id = 1').get() as { id: number } | undefined;
+  if (!existingLlmSettings) {
+    db.prepare('INSERT INTO llm_enhance_settings (id) VALUES (?)').run(1);
   }
 
   // Seed default rules only if none exist yet
@@ -644,6 +661,7 @@ export function initializeDatabase() {
 
   // Mark initialization as done
   db.prepare('INSERT OR IGNORE INTO _migrations (version) VALUES (?)').run(1);
+  db.prepare('INSERT OR IGNORE INTO _migrations (version) VALUES (?)').run(2);
 }
 
 export { db };
