@@ -131,7 +131,7 @@ const docTables = ref<{ rows: { cells: string[] }[] }[]>([]);
 const activeScoreTab = ref(0);
 const paraToPageRef = ref<number[]>([]);
 
-const scoreKeywords = ['评分', '得分', '分值', '分数', '评审', '明细', '权重', '价格', '商务', '技术'];
+const scoreKeywords = ['评分', '得分', '分值', '分数', '评审', '明细', '权重', '价格'];
 const scoreTables = computed(() => {
   return docTables.value.filter(tbl => {
     if (tbl.rows.length < 2) return false;
@@ -347,7 +347,6 @@ onMounted(async () => {
       fileInfo.value.size = statusData.fileSize || 0;
       fileInfo.value.pageCount = statusData.result?.pageCount || 0;
     } catch (err: any) {
-      console.error('Failed to load job:', err);
       fileInfo.value.name = jobId;
     }
   }
@@ -593,14 +592,28 @@ function triggerDownload(blob: Blob, filename: string) {
                 <th class="col-field">提取字段</th>
                 <th class="col-value">提取内容</th>
                 <th class="col-page">所在页码</th>
+                <th class="col-action">操作</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in sectionData" :key="row.field" class="data-row">
-                <td class="col-field">{{ row.field }}</td>
-                <td class="col-value">{{ row.value }}</td>
-                <td class="col-page"><span class="page-link">{{ row.page }}</span></td>
-              </tr>
+              <template v-for="(row, idx) in paginatedData" :key="row.field">
+                <tr v-if="idx > 0" class="row-spacer"><td colspan="4"></td></tr>
+                <tr class="data-row">
+                  <td class="col-field">{{ row.field }}</td>
+                  <td class="col-value">{{ row.value }}</td>
+                  <td class="col-page"><span class="page-link">{{ row.page }}</span></td>
+                  <td class="col-action">
+                    <div class="action-btns">
+                      <button class="icon-btn" title="复制" @click="handleCopy(row.field)">
+                        <span class="icon ri-file-copy-line"></span>
+                      </button>
+                      <button class="icon-btn" title="编辑" @click="handleEdit(row.field)">
+                        <span class="icon ri-pencil-line"></span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>
@@ -651,7 +664,7 @@ function triggerDownload(blob: Blob, filename: string) {
         </template>
         </template>
 
-        <div v-if="activeSection !== 'score'" class="bottom-bar">
+        <div class="bottom-bar">
           <div class="pagination">
             <span class="page-info">共 {{ totalRows }} 条</span>
             <select class="page-size-select" :value="pageSize" @change="pageSize = Number(($event.target as HTMLSelectElement).value); currentPage = 1">

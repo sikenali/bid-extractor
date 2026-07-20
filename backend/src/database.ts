@@ -344,8 +344,8 @@ export function initializeDatabase() {
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '评分标准细则', '(?:评分(?:标准|细则|规则|依据))[：:]?\\s*([^\\n]+)', 'regex', 'score')`);
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '价格扣除', '(?:价格(?:扣除|优惠|折扣|减除))[：:]?\\s*([^\\n]+)', 'regex', 'score')`);
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '优先采购', '(?:优先(?:采购|选购)|强制(?:采购|选购))[：:]?\\s*([^\\n]+)', 'regex', 'score')`);
-  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '客观分', '(?:客观(?:分|评分|分值)[：:]?\\s*([^\\n]+|\\d{1,3}\\s*分)', 'regex', 'score')`);
-  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '主观分', '(?:主观(?:分|评分|分值)[：:]?\\s*([^\\n]+|\\d{1,3}\\s*分)', 'regex', 'score')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '客观分', '(?:客观(?:分|评分|分值)[：:]?\\s*([^\\n]+|\\d{1,3}\\s*分))', 'regex', 'score')`);
+  db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '主观分', '(?:主观(?:分|评分|分值)[：:]?\\s*([^\\n]+|\\d{1,3}\\s*分))', 'regex', 'score')`);
 
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '评标委员会', '', 'keyword', 'score')`);
   db.exec(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES ('${uid()}', '中小企业优惠', '', 'keyword', 'score')`);

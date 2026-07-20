@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { ElMessage } from 'element-plus';
 
 const props = withDefaults(defineProps<{
   loading?: boolean;
@@ -16,15 +17,12 @@ const selectedFile = ref<File | null>(null);
 
 function validateFile(file: File): boolean {
   const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
-  if (ext === '.pdf') {
-    return true;
-  }
   if (ext === '.doc') {
-    alert('不支持 .doc 格式，请转换成 Docx 格式后再上传～');
+    ElMessage.warning('不支持 .doc 格式，请转换成 Docx 格式后再上传～');
     return false;
   }
   if (ext !== '.docx') {
-    alert('仅支持 .docx / .pdf 格式');
+    ElMessage.warning('仅支持 .docx 格式');
     return false;
   }
   return true;
@@ -90,7 +88,7 @@ function triggerFileInput() {
       <p class="upload-title">
         {{ selectedFile ? `已选择: ${selectedFile.name}` : '上传招标文件' }}
       </p>
-      <p class="upload-hint">支持 DOCX / PDF 格式，单个文件不超过 50MB</p>
+      <p class="upload-hint">支持 DOCX 格式，单个文件不超过 50MB</p>
     </template>
     <template v-else>
       <p class="upload-title">正在解析: {{ props.fileName }}</p>
@@ -114,7 +112,7 @@ function triggerFileInput() {
       id="fileInput"
       type="file"
       class="file-input"
-      accept=".docx,.pdf"
+      accept=".docx"
       :disabled="props.loading"
       @change="handleFileSelect"
     />

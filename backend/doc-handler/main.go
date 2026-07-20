@@ -289,7 +289,6 @@ func extractStructuredValue(afterText string) (string, bool) {
 		`(\d+(?:\.\d+)?)\s*分`,
 		`满分\s*(\d+)`,
 		`分值\s*(\d+)`,
-		`^[：:]\s*([^。\n]{2,80})`,
 	}
 	for _, p := range patterns {
 		re, err := regexp.Compile(p)
@@ -360,22 +359,41 @@ func extractByKeyword(paragraphs []string, keyword string, reverse bool) (string
 		after = strings.TrimSpace(after)
 		after = strings.TrimLeft(after, "：:　 \t,-—–")
 		after = strings.TrimSpace(after)
-		if after == "" {
-			continue
+
+		if len([]rune(after)) >= 2 {
+			if val, ok := extractStructuredValue(after); ok {
+				return val, true
+			}
+			runes := []rune(after)
+			if len(runes) > 80 {
+				after = string(runes[:80])
+			}
+			if dot := strings.IndexAny(after, "。；"); dot > 0 {
+				after = after[:dot]
+			}
+			after = strings.TrimSpace(after)
+			if len([]rune(after)) >= 2 {
+				return after, true
+			}
 		}
-		if val, ok := extractStructuredValue(after); ok {
-			return val, true
-		}
-		runes := []rune(after)
-		if len(runes) > 80 {
-			after = string(runes[:80])
-		}
-		if dot := strings.IndexAny(after, "。；"); dot > 0 {
-			after = after[:dot]
-		}
-		after = strings.TrimSpace(after)
-		if after != "" {
-			return after, true
+
+		before := strings.TrimSpace(para[:idx])
+		if before != "" {
+			runes := []rune(before)
+			if len(runes) > 40 {
+				before = string(runes[len(runes)-40:])
+			}
+			if dot := strings.LastIndexAny(before, "。；"); dot >= 0 {
+				before = strings.TrimSpace(before[dot+1:])
+			}
+			if before != "" {
+				if val, ok := extractStructuredValue(before); ok {
+					return val, true
+				}
+				if len([]rune(before)) >= 2 {
+					return before, true
+				}
+			}
 		}
 	}
 	return "", false
@@ -402,7 +420,6 @@ func matchSpecificity(match string) int {
 func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraphs map[string][]string, tables []DocTable) (map[string]interface{}, map[string]string) {
 	extracts := make(map[string]interface{})
 	groups := make(map[string]string)
-	keywordSet := make(map[string]bool)
 	bestScore := make(map[string]int)
 	for _, rule := range rules {
 		g := rule.Group
@@ -420,29 +437,29 @@ func applyRules(text string, rules []Rule, paragraphs []string, groupToParagraph
 		if rule.Category == "keyword" || rule.Pattern == "" {
 			if g == "score" && tables != nil {
 				if val, found := extractFromTables(tables, rule.Name); found {
-					extracts[rule.Name] = val
-					groups[rule.Name] = g
-					keywordSet[rule.Name] = true
-					bestScore[rule.Name] = 9999
+					sc := matchSpecificity(val)
+					if prev, exists := bestScore[rule.Name]; !exists || sc > prev {
+						extracts[rule.Name] = val
+						groups[rule.Name] = g
+						bestScore[rule.Name] = sc
+					}
 					continue
 				}
 			}
 			if scope != nil {
 				if val, found := extractByKeyword(scope, rule.Name, g == "score"); found {
-					extracts[rule.Name] = val
-					groups[rule.Name] = g
-					keywordSet[rule.Name] = true
-					bestScore[rule.Name] = 9999
+					sc := matchSpecificity(val)
+					if prev, exists := bestScore[rule.Name]; !exists || sc > prev {
+						extracts[rule.Name] = val
+						groups[rule.Name] = g
+						bestScore[rule.Name] = sc
+					}
 					continue
 				}
 			}
 			if rule.Pattern == "" {
 				continue
 			}
-		}
-
-		if keywordSet[rule.Name] {
-			continue
 		}
 
 		scopeText := strings.Join(scope, "\n")
