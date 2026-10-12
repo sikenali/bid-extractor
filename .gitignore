@@ -12,7 +12,7 @@ uploads/
 backend/uploads/
 
 # 敏感密钥与本地设计数据
-data/.enc_key
+**/.enc_key
 scratch/
 
 # 构建产物与编辑器缓存

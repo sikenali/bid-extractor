@@ -159,10 +159,7 @@ async function handleTest(key: SavedKey) {
   testError.value[key.id] = '';
   try {
     const result = await testApiKey({
-      provider: key.provider,
-      model: key.model,
-      key: '',
-      endpoint: key.baseUrl || undefined,
+      id: key.id,
     });
     if (result.available) {
       testSuccess.value[key.id] = true;

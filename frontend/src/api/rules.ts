@@ -31,9 +31,4 @@ export async function deleteRule(id: string): Promise<{ deleted: boolean }> {
   return response.data;
 }
 
-export async function discoverRules(fieldNames: string[], groupName: string): Promise<{ inserted: string[]; count: number }> {
-  const response = await apiClient.post('/rules/discover', { fieldNames, groupName });
-  return response.data;
-}
-
 

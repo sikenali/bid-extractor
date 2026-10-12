@@ -101,15 +101,41 @@ router.put('/apikeys/:id/toggle', (req, res) => {
 
 // Test API key connectivity
 router.post('/test-key', (req, res) => {
-  const { provider, model, key, endpoint, format } = req.body;
-  if (!key || !model) {
+  const { id, provider, model, key, endpoint, format } = req.body;
+
+  let realKey = key;
+  let realProvider = provider;
+  let realModel = model;
+  let realEndpoint = endpoint;
+  let realFormat = format;
+
+  // 已保存的密钥：按 id 读取并解密
+  if (id) {
+    const row = db.prepare('SELECT * FROM api_configs WHERE id = ?').get(id) as any;
+    if (!row) {
+      res.status(404).json({ available: false, error: '未找到该密钥配置' });
+      return;
+    }
+    try {
+      realKey = decrypt(row.api_key);
+    } catch {
+      res.status(400).json({ available: false, error: '密钥解密失败，请重新保存' });
+      return;
+    }
+    realProvider = row.provider;
+    realModel = row.model;
+    realEndpoint = row.base_url || undefined;
+    realFormat = (row as any).format || 'openai';
+  }
+
+  if (!realKey || !realModel) {
     res.status(400).json({ available: false, error: 'key and model are required' });
     return;
   }
 
   const timeout = 8000;
-  const url = endpoint ? normalizeEndpoint(endpoint) : getDefaultBaseURL(provider);
-  const isAnthropic = format === 'anthropic' || provider.toLowerCase().includes('anthropic');
+  const url = realEndpoint ? normalizeEndpoint(realEndpoint) : getDefaultBaseURL(realProvider);
+  const isAnthropic = realFormat === 'anthropic' || String(realProvider).toLowerCase().includes('anthropic');
 
   const testUrl = isAnthropic
     ? new URL('/v1/messages', url)
@@ -123,7 +149,7 @@ router.post('/test-key', (req, res) => {
     path: testUrl.pathname + testUrl.search,
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${key}`,
+      'Authorization': `Bearer ${realKey}`,
       'Content-Type': 'application/json',
     },
     timeout,
@@ -139,7 +165,7 @@ router.post('/test-key', (req, res) => {
         res.json({ available: false, error: 'API key 无效' });
       } else if (response.statusCode === 404 && !isAnthropic) {
         // Models endpoint not found, try a minimal chat completion
-        testChatCompletion(url, key, model, isAnthropic, (result) => {
+        testChatCompletion(url, realKey, realModel, isAnthropic, (result) => {
           res.json(result);
         });
       } else {
@@ -240,10 +266,12 @@ const DEFAULT_TEMPLATES = [
 ];
 
 function seedTemplates() {
-  const existing = db.prepare('SELECT COUNT(*) as c FROM templates').get() as { c: number };
-  if (existing.c > 0) return;
-  const stmt = db.prepare('INSERT OR IGNORE INTO templates (id, name, description, category, type) VALUES (?, ?, ?, ?, ?)');
-  for (const t of DEFAULT_TEMPLATES) stmt.run(t.id, t.name, t.description, t.category, t.type);
+  try {
+    const existing = db.prepare('SELECT COUNT(*) as c FROM templates').get() as { c: number };
+    if (existing.c > 0) return;
+    const stmt = db.prepare('INSERT OR IGNORE INTO templates (id, name, description, category, type) VALUES (?, ?, ?, ?, ?)');
+    for (const t of DEFAULT_TEMPLATES) stmt.run(t.id, t.name, t.description, t.category, t.type);
+  } catch { /* templates table not yet created */ }
 }
 seedTemplates();
 

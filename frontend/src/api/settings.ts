@@ -80,7 +80,7 @@ export async function deleteApiKey(id: string): Promise<void> {
   await apiClient.delete(`/settings/apikeys/${id}`);
 }
 
-export async function testApiKey(data: { provider: string; model: string; key: string; endpoint?: string; format?: string }): Promise<{ available: boolean; error?: string }> {
+export async function testApiKey(data: { id?: string; provider?: string; model?: string; key?: string; endpoint?: string; format?: string }): Promise<{ available: boolean; error?: string }> {
   const res = await apiClient.post('/settings/test-key', data);
   return res.data;
 }

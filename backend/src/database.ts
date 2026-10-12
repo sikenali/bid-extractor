@@ -5,7 +5,7 @@ import fs from 'fs';
 import crypto from 'node:crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const baseDir = process.env.BID_EXTRACTOR_DATA_DIR || path.join(__dirname, '..', '..');
+const baseDir = process.env.BID_EXTRACTOR_DATA_DIR || path.join(__dirname, '..');
 const dataDir = path.join(baseDir, 'data');
 
 if (!fs.existsSync(dataDir)) {
