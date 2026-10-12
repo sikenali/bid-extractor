@@ -169,7 +169,7 @@ const biddingSites = [
 }
 
 .close-btn:hover {
-  background: rgba(245, 240, 232, 0.8);
+  background: var(--color-border-soft, #EDE9E0);
 }
 
 .website-grid {
@@ -205,13 +205,13 @@ const biddingSites = [
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(196, 58, 49, 0.4), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-primary, #C0392B) 45%, transparent), transparent);
   opacity: 0;
   transition: opacity 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .site-card:hover {
-  box-shadow: 0 8px 24px rgba(196, 58, 49, 0.1),
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-primary, #C0392B) 16%, transparent),
               0 2px 8px rgba(0, 0, 0, 0.04);
   transform: translateY(-3px);
   border-color: rgba(232, 213, 192, 0.8);
@@ -301,9 +301,9 @@ const biddingSites = [
 }
 
 .site-link:hover {
-  background: rgba(196, 58, 49, 0.1);
+  background: color-mix(in srgb, var(--color-primary, #C0392B) 14%, transparent);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(196, 58, 49, 0.1);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary, #C0392B) 18%, transparent);
 }
 
 .site-link i {
@@ -328,8 +328,8 @@ const biddingSites = [
 }
 
 .footer-link:hover {
-  background: rgba(196, 58, 49, 0.1);
-  color: rgba(196, 58, 49, 0.8);
+  background: color-mix(in srgb, var(--color-primary, #C0392B) 14%, transparent);
+  color: var(--color-primary, #C0392B);
 }
 
 .modal-enter-active,
