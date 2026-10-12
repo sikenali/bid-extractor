@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { ref, watch, computed, onUnmounted } from 'vue';
 import { OpenFileViewer } from '@open-file-viewer/vue';
+import { pdfPlugin, officePlugin, textPlugin, imagePlugin } from '@open-file-viewer/core';
 import '@open-file-viewer/core/style.css';
+
+// 库默认只带 fallback 兜底插件，必须显式注册类型插件，否则所有文件都显示 ofv-fallback
+const viewerPlugins = [pdfPlugin(), officePlugin(), imagePlugin(), textPlugin()];
 
 const props = defineProps<{ visible: boolean; filename: string; fileId?: string; initialPage?: number | null }>();
 const emit = defineEmits<{ close: [] }>();
@@ -118,6 +122,7 @@ onUnmounted(() => { previewBlob.value = null; });
           :file-name="props.filename"
           :mime-type="mimeType || undefined"
           :initial-page="props.initialPage ?? undefined"
+          :plugins="viewerPlugins"
           locale="zh-CN"
           :toolbar="true"
           height="100%"

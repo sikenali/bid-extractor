@@ -146,12 +146,10 @@ const btnLabel = computed(() => {
 
       <!-- file selected: centered icon + name + size (kept as-is during upload, animation lives in StepStrip below) -->
       <template v-else>
-        <UiTip text="替换文件" placement="left">
         <UiTip text="替换文件" placement="left" class="replace-tip">
           <button v-if="!uploading" class="replace-icon" @click.stop="handleReplace">
             <span class="ri-refresh-line icon"></span>
           </button>
-        </UiTip>
         </UiTip>
         <div class="file-centered">
           <div class="file-icon" :class="'fmt-' + getExt(selectedFile).replace('.', '')">

@@ -1,16 +1,21 @@
 <template>
   <footer class="page-footer">
-    <div class="footer-left" @click="$emit('credit-query')">
-      <span class="footer-mark ri-shield-check-line"></span>
-    </div>
+    <UiTip text="企业信用查询平台" placement="top">
+      <div class="footer-left" @click="$emit('credit-query')">
+        <span class="footer-mark ri-shield-check-line"></span>
+      </div>
+    </UiTip>
     <span class="footer-copy">© {{ year }} {{ BRAND_NAME }} Powered by <a href="https://lazycat.cloud" target="_blank" rel="noopener noreferrer" class="footer-link">LightOS</a></span>
-    <span class="footer-right ri-links-line" @click="$emit('bidding-sites')"></span>
+    <UiTip text="招标采购网站导航" placement="top">
+      <span class="footer-right ri-links-line" @click="$emit('bidding-sites')"></span>
+    </UiTip>
   </footer>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import { BRAND_NAME } from '@/constants/brand';
+import { UiTip } from '@/components/ui';
 defineEmits(['credit-query', 'bidding-sites'])
 
 const year = ref(new Date().getFullYear())

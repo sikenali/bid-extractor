@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import SettingsModal from '@/components/layout/SettingsModal.vue';
+import { UiTip } from '@/components/ui';
 import { BRAND_NAME } from '@/constants/brand';
 
 const props = withDefaults(defineProps<{
@@ -27,12 +28,16 @@ const showSettingsModal = ref(false);
       <span class="page-title">{{ title || '' }}</span>
     </div>
     <div class="nav-right">
-      <button v-if="showBack" class="nav-btn" title="返回上传主界面" @click="router.push('/upload')">
-        <span class="ri-arrow-left-s-line icon"></span>
-      </button>
-      <button class="nav-btn" title="设置" @click="showSettingsModal = true">
-        <span class="ri-settings-3-line icon"></span>
-      </button>
+      <UiTip v-if="showBack" text="返回上传主界面" placement="bottom">
+        <button class="nav-btn" @click="router.push('/upload')">
+          <span class="ri-arrow-left-s-line icon"></span>
+        </button>
+      </UiTip>
+      <UiTip text="设置" placement="bottom">
+        <button class="nav-btn" @click="showSettingsModal = true">
+          <span class="ri-settings-3-line icon"></span>
+        </button>
+      </UiTip>
     </div>
     <SettingsModal v-model:visible="showSettingsModal" />
   </header>
