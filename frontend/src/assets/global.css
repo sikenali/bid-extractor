@@ -15,6 +15,7 @@
   --color-text-faint: #A7A296;
   --color-border: #E5DFD3;
   --color-border-soft: #EDE9E0;
+  --color-border-hover: #D9D2C2;
   --color-success: #4E9B7A;
   --color-success-strong: #3E8A6B;
   --color-success-soft: #E4F0EA;
@@ -131,6 +132,7 @@
   --color-text-faint: #7E7E92;
   --color-border: #3A3A5A;
   --color-border-soft: #3A3A5A;
+  --color-border-hover: #4C4C66;
   --color-info: #82AEDD;
   --color-info-soft: #1B2A3A;
   --color-success: #5CB98C;

@@ -181,7 +181,7 @@ function selectTab(key: string) {
 }
 
 .close-btn:hover {
-  background: rgba(245, 240, 232, 0.8);
+  background: var(--color-border-soft, #EDE9E0);
 }
 
 .panel-body {

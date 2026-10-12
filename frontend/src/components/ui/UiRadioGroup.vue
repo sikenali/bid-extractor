@@ -81,7 +81,7 @@ function pick(opt: UiRadioOption, disabled?: boolean) {
   transition: background-color 0.15s;
   outline: none;
 }
-.ui-radio:hover:not(.is-disabled) { background-color: rgba(0, 0, 0, 0.025); }
+.ui-radio:hover:not(.is-disabled) { background-color: color-mix(in srgb, var(--color-primary, #C0392B) 7%, transparent); }
 .ui-radio:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary, #C0392B) 35%, transparent); }
 .ui-radio-circle {
   width: 18px;
