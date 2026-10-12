@@ -1,0 +1,168 @@
+import { Router } from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { parseDocument } from '../services/docProcessor.js';
+import type { ParseResult } from '../services/docProcessor.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const router = Router();
+
+const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads');
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+interface JobEntry {
+  filename: string;
+  size: number;
+  result: ParseResult;
+  createdAt: number;
+}
+
+const JOB_TTL_MS = 60 * 60 * 1000; // 1 hour
+const jobStore = new Map<string, JobEntry>();
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`;
+    cb(null, uniqueName);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.docx', '.pdf', '.md', '.txt', '.xlsx', '.csv', '.html'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, allowed.includes(ext));
+  }
+});
+
+// ── Cleanup: expired jobs ────────────────────────────────────────────
+function cleanupExpiredJobs() {
+  const now = Date.now();
+  for (const [key, entry] of jobStore.entries()) {
+    if (now - entry.createdAt > JOB_TTL_MS) {
+      jobStore.delete(key);
+    }
+  }
+}
+
+// ── Cleanup: old uploaded files (> 24 hours) ─────────────────────────
+function cleanupOldUploads() {
+  if (!fs.existsSync(UPLOAD_DIR)) return;
+  const now = Date.now();
+  const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+  try {
+    const files = fs.readdirSync(UPLOAD_DIR);
+    for (const file of files) {
+      const filePath = path.join(UPLOAD_DIR, file);
+      try {
+        const stat = fs.statSync(filePath);
+        if (stat.isFile() && now - stat.mtimeMs > maxAge) {
+          fs.unlinkSync(filePath);
+        }
+      } catch {
+        // skip individual file errors
+      }
+    }
+  } catch {
+    // skip directory read errors
+  }
+}
+
+// Run cleanup on startup
+cleanupOldUploads();
+
+// Periodic cleanup: jobs every 10 min, uploads every 1 hour
+setInterval(cleanupExpiredJobs, 10 * 60 * 1000);
+setInterval(cleanupOldUploads, 60 * 60 * 1000);
+
+router.post('/', upload.single('file'), async (req, res) => {
+  if (!req.file) {
+    res.status(400).json({ error: 'No file uploaded' });
+    return;
+  }
+
+  try {
+    const result = await parseDocument(req.file.path);
+
+    if (result.status === 'error') {
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(400).json({
+        error: result.error || '解析失败'
+      });
+    }
+
+    const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+    const jobId = req.file.filename;
+
+    jobStore.set(jobId, {
+      filename: originalName,
+      size: req.file.size,
+      result,
+      createdAt: Date.now()
+    });
+
+    res.status(201).json({
+      id: jobId,
+      filename: originalName,
+      size: req.file.size,
+      status: 'parsed',
+      result
+    });
+  } catch (err: any) {
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: err.message || '解析过程中发生错误' });
+  }
+});
+
+router.get('/:id/status', (req, res) => {
+  const job = jobStore.get(req.params.id);
+  if (!job) {
+    return res.status(404).json({ error: 'Job not found' });
+  }
+
+  const filePath = path.join(UPLOAD_DIR, req.params.id);
+  const fileStat = fs.existsSync(filePath) ? fs.statSync(filePath) : null;
+
+  res.json({
+    id: req.params.id,
+    status: 'parsed',
+    progress: 100,
+    filename: job.filename,
+    fileSize: fileStat?.size || job.size,
+    result: job.result
+  });
+});
+
+router.delete('/:id', (req, res) => {
+  const filePath = path.join(UPLOAD_DIR, req.params.id);
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+  jobStore.delete(req.params.id);
+  res.json({ deleted: true });
+});
+
+router.get('/file/:filename', (req, res) => {
+  const filePath = path.join(UPLOAD_DIR, req.params.filename);
+  if (!fs.existsSync(filePath)) {
+    res.status(404).json({ error: 'File not found' });
+    return;
+  }
+  res.sendFile(filePath);
+});
+
+export default router;

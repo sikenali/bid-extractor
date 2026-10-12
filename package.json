@@ -1,0 +1,36 @@
+{
+  "name": "bid-extractor",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build": "npm run build --workspaces"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.3.0",
+    "@types/node": "^26.6.4",
+    "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "@open-file-viewer/core": "^0.1.49",
+    "@open-file-viewer/vue": "^0.1.49",
+    "docxtemplater": "^3.71.0",
+    "file-saver": "^2.0.5",
+    "jszip-utils": "^0.1.0",
+    "pizzip": "^3.3.0"
+  }
+  ,
+  "allowScripts": {
+    "better-sqlite3": true,
+    "_excavator": true
+  }
+}

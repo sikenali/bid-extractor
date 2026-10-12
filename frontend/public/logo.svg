@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Red circle background -->
+  <circle cx="50" cy="50" r="48" fill="#C43D3D"/>
+  <!-- Gorilla face silhouette -->
+  <!-- Head -->
+  <ellipse cx="50" cy="52" rx="24" ry="22" fill="white"/>
+  <!-- Ears -->
+  <circle cx="28" cy="42" r="8" fill="white"/>
+  <circle cx="72" cy="42" r="8" fill="white"/>
+  <circle cx="28" cy="42" r="5" fill="#C43D3D"/>
+  <circle cx="72" cy="42" r="5" fill="#C43D3D"/>
+  <!-- Brow ridge -->
+  <path d="M34 44 Q50 38 66 44" stroke="#C43D3D" stroke-width="2" fill="none"/>
+  <!-- Eyes -->
+  <circle cx="41" cy="50" r="3" fill="#C43D3D"/>
+  <circle cx="59" cy="50" r="3" fill="#C43D3D"/>
+  <!-- Eye shine -->
+  <circle cx="42" cy="49" r="1" fill="white"/>
+  <circle cx="60" cy="49" r="1" fill="white"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="58" rx="4" ry="3" fill="#C43D3D" opacity="0.3"/>
+  <circle cx="48" cy="58" r="1.5" fill="#C43D3D"/>
+  <circle cx="52" cy="58" r="1.5" fill="#C43D3D"/>
+  <!-- Mouth -->
+  <path d="M44 63 Q50 67 56 63" stroke="#C43D3D" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- Document/book icon overlay -->
+  <rect x="38" y="26" width="24" height="18" rx="2" fill="white" stroke="#C43D3D" stroke-width="1.2"/>
+  <line x1="42" y1="31" x2="58" y2="31" stroke="#C43D3D" stroke-width="1" opacity="0.6"/>
+  <line x1="42" y1="34" x2="55" y2="34" stroke="#C43D3D" stroke-width="1" opacity="0.6"/>
+  <line x1="42" y1="37" x2="52" y2="37" stroke="#C43D3D" stroke-width="1" opacity="0.6"/>
+</svg>
