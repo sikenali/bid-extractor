@@ -48,6 +48,8 @@ withDefaults(defineProps<{
 .ui-tip-bubble {
   position: absolute;
   z-index: var(--z-tooltip, 1070);
+  width: max-content;
+  max-width: 260px;
   padding: 7px 12px;
   border-radius: 9px;
   background-color: var(--color-bg-white, #FFFFFF);
@@ -57,8 +59,9 @@ withDefaults(defineProps<{
   font-weight: 400;
   line-height: 1.5;
   font-family: "SourceHanSans-Regular", var(--font-family-cn), sans-serif;
-  white-space: normal;
-  word-break: break-word;
+  /* 单行横排：绝对定位气泡在窄父级中会坍缩成单字竖排，nowrap + max-content 双保险 */
+  white-space: nowrap;
+  word-break: keep-all;
   pointer-events: none;
   opacity: 0;
   transform: scale(0.96);
