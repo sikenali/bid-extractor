@@ -204,30 +204,30 @@ onUnmounted(() => {
 }
 .step-pill.active .step-label { color: var(--color-primary, #C0392B); font-weight: 600; }
 
-/* --- processing (loading, already passed) --- */
-.step-pill.processing {
-  background-color: var(--color-primary, #C0392B);
-  border-color: var(--color-primary, #C0392B);
+/* --- loading: passed steps → design done colors (pulse kept) --- */
+.step-strip-root.loading .step-pill.processing {
+  background-color: var(--color-success-soft, #E8F5EF);
+  border-color: var(--color-success, #4E9B7A);
   animation: processPulse 0.8s ease forwards;
 }
-.step-pill.processing .step-num {
-  background-color: rgba(255,255,255,0.25);
+.step-strip-root.loading .step-pill.processing .step-num {
+  background-color: var(--color-success, #4E9B7A);
   color: #fff;
 }
-.step-pill.processing .step-label { color: rgba(255,255,255,0.9); }
-.step-pill.processing::before { opacity: 1; }
+.step-strip-root.loading .step-pill.processing .step-label { color: var(--color-success, #3E8A6B); }
+.step-strip-root.loading .step-pill.processing::before { opacity: 0; }
 
-/* --- next (loading, about to activate) --- */
-.step-pill.next {
+/* --- loading: current step → design active colors (glow+bounce kept) --- */
+.step-strip-root.loading .step-pill.next {
   border-color: var(--color-primary, #C0392B);
   animation: nextGlow 1s ease-in-out infinite;
 }
-.step-pill.next .step-num {
-  background-color: var(--color-bg-white, #fff);
-  color: var(--color-primary, #C0392B);
+.step-strip-root.loading .step-pill.next .step-num {
+  background-color: var(--color-primary, #C0392B);
+  color: #fff;
   animation: numBounce 0.6s ease-in-out infinite;
 }
-.step-pill.next .step-label { color: var(--color-text-secondary, #6E6A60); }
+.step-strip-root.loading .step-pill.next .step-label { color: var(--color-primary, #C0392B); }
 
 /* --- line states --- */
 .step-line.filled::after { left: 0; }
