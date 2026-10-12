@@ -5,7 +5,8 @@ export default defineConfig({
     plugins: [vue()],
     resolve: {
         alias: {
-            '@': path.resolve(__dirname, 'src')
+            '@': path.resolve(__dirname, 'src'),
+            '@napi-rs/canvas': path.resolve(__dirname, 'src/shims/napi-canvas.ts')
         }
     },
     server: {

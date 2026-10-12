@@ -29,6 +29,7 @@ interface SkillItem {
 const skills = ref<SkillItem[]>([]);
 const loading = ref(false);
 const importLoading = ref(false);
+const syncLoading = ref(false);
 const expandedSkill = ref<string | null>(null);
 const selectedFileName = ref('');
 const viewMode = ref<'list' | 'grid'>('list');
@@ -212,6 +213,24 @@ async function handleResetSkills() {
   } catch { /* cancelled */ }
 }
 
+async function handleSyncSkills() {
+  syncLoading.value = true;
+  try {
+    const res = await apiClient.post('/rules/sync-skills');
+    const result = res.data;
+    if (result.synced > 0) {
+      ElMessage.success(`同步成功：${result.synced} 个本地技能已导入`);
+    } else {
+      ElMessage.info(result.message || '本地没有可同步的技能文件');
+    }
+    await loadSkills();
+  } catch (err: any) {
+    ElMessage.error(err?.response?.data?.error || '同步失败');
+  } finally {
+    syncLoading.value = false;
+  }
+}
+
 async function loadSkills() {
   loading.value = true;
   try {
@@ -329,9 +348,9 @@ onMounted(loadSkills);
           <span class="icon ri-file-upload-line"></span>
           <span>导入技能</span>
         </button>
-        <button class="btn-sync">
-          <span class="icon ri-refresh-line"></span>
-          <span>同步技能</span>
+        <button class="btn-sync" :disabled="syncLoading" @click="handleSyncSkills">
+          <span class="icon" :class="syncLoading ? 'ri-loader-4-line spinning' : 'ri-refresh-line'"></span>
+          <span>{{ syncLoading ? '同步中...' : '同步技能' }}</span>
         </button>
       </div>
       <div class="toolbar-right">
@@ -469,6 +488,7 @@ onMounted(loadSkills);
                   <button class="action-btn edit" @click="openEdit(skill)">修改</button>
                   <button class="action-btn delete" @click="handleDelete(skill)">删除</button>
                   <UiSwitch :model-value="skill.enabled" size="sm" @click="toggleEnabled(skill)" />
+                </div>
               </div>
             </div>
           </div>

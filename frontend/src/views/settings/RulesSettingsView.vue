@@ -1,21 +1,33 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import RuleDialog from '@/components/settings/RuleDialog.vue';
 import apiClient from '@/api/client';
 import { getRules, addRule, updateRule, deleteRule } from '@/api/rules';
+import { UiInput, UiTip } from '@/components/ui';
 
 interface RuleItem {
   id: string;
   name: string;
   description: string;
+  groupName: string;
 }
+
+const GROUP_META = [
+  { key: 'info', label: '项目信息', icon: 'ri-file-list-3-line' },
+  { key: 'business', label: '商务条款', icon: 'ri-file-paper-2-line' },
+  { key: 'tech', label: '技术条款', icon: 'ri-search-eye-line' },
+  { key: 'score', label: '评分标准', icon: 'ri-layout-line' },
+  { key: 'seal', label: '封标信息', icon: 'ri-mail-send-line' },
+  { key: 'star', label: '标星条款', icon: 'ri-star-s-line' },
+];
+const groupLabel = (key: string) => GROUP_META.find(g => g.key === key)?.label || key;
 
 const rules = ref<RuleItem[]>([]);
 const loading = ref(false);
 
-function toItem(r: { id: string; fieldName: string; pattern: string }): RuleItem {
-  return { id: r.id, name: r.fieldName, description: r.pattern };
+function toItem(r: { id: string; fieldName: string; pattern: string; groupName?: string }): RuleItem {
+  return { id: r.id, name: r.fieldName, description: r.pattern, groupName: r.groupName || 'info' };
 }
 
 async function loadRules() {
@@ -33,7 +45,21 @@ onMounted(loadRules);
 
 const showRuleDialog = ref(false);
 const dialogMode = ref<'regex' | 'keyword'>('regex');
-const editingRule = ref<{ id: string; fieldName: string; pattern: string } | null>(null);
+const editingRule = ref<{ id: string; fieldName: string; pattern: string; groupName: string } | null>(null);
+const searchTerm = ref('');
+const activeGroup = ref('');
+
+const filteredRules = computed(() => {
+  const q = searchTerm.value.trim().toLowerCase();
+  return rules.value.filter(r =>
+    (!activeGroup.value || r.groupName === activeGroup.value) &&
+    (!q || r.name.toLowerCase().includes(q) || (r.description || '').toLowerCase().includes(q)),
+  );
+});
+
+function toggleGroup(key: string) {
+  activeGroup.value = activeGroup.value === key ? '' : key;
+}
 
 function handleAddRule(mode: 'regex' | 'keyword') {
   dialogMode.value = mode;
@@ -43,16 +69,17 @@ function handleAddRule(mode: 'regex' | 'keyword') {
 
 function handleEditRule(rule: RuleItem) {
   dialogMode.value = 'regex';
-  editingRule.value = { id: rule.id, fieldName: rule.name, pattern: rule.description };
+  editingRule.value = { id: rule.id, fieldName: rule.name, pattern: rule.description, groupName: rule.groupName };
   showRuleDialog.value = true;
 }
 
 async function handleResetRules() {
   try {
-    await ElMessageBox.confirm('确定恢复默认规则？当前自定义规则将被清空。', '确认恢复默认');
-    await apiClient.post('/rules/reset');
+    await ElMessageBox.confirm('确定补齐默认规则？已有规则不受影响。', '补齐默认规则');
+    const res: any = await apiClient.post('/rules/reset');
     await loadRules();
-    ElMessage.success('已恢复默认规则');
+    const added = res?.data?.added ?? 0;
+    ElMessage.success(added > 0 ? `已补齐 ${added} 条默认规则` : '默认规则齐全，无需补齐');
   } catch { /* cancelled */ }
 }
 
@@ -65,18 +92,20 @@ async function handleDeleteRule(id: string) {
   } catch { /* cancelled */ }
 }
 
-async function handleRuleSubmit(data: { fieldName: string; pattern: string; category: string }) {
+async function handleRuleSubmit(data: { fieldName: string; pattern: string; category: string; groupName: string }) {
   try {
     if (editingRule.value) {
       const updated = await updateRule(editingRule.value.id, {
         fieldName: data.fieldName,
         pattern: data.pattern,
         category: data.category,
+        groupName: data.groupName,
       });
       const row = rules.value.find(r => r.id === editingRule.value?.id);
       if (row) {
         row.name = updated.fieldName;
         row.description = updated.pattern;
+        row.groupName = (updated as any).groupName || data.groupName;
       }
       ElMessage.success('规则已更新');
     } else {
@@ -85,9 +114,9 @@ async function handleRuleSubmit(data: { fieldName: string; pattern: string; cate
         pattern: data.pattern,
         category: data.category,
         enabled: true,
-        groupName: 'info',
+        groupName: data.groupName,
       });
-      rules.value.unshift(toItem(created));
+      rules.value.unshift(toItem(created as any));
       ElMessage.success('规则已添加');
     }
   } catch {
@@ -132,9 +161,24 @@ async function handleRuleSubmit(data: { fieldName: string; pattern: string; cate
         </button>
       </div>
       <div class="toolbar-right">
-        <div class="search-box">
-          <span class="icon ri-search-line"></span>
-          <span>搜索规则名称或描述</span>
+        <UiInput
+          v-model="searchTerm"
+          type="search"
+          class="toolbar-search"
+          placeholder="搜索规则名称或描述"
+          clearable
+        />
+        <div class="group-filter">
+          <UiTip v-for="g in GROUP_META" :key="g.key" :text="g.label" placement="top">
+            <button
+              class="group-icon-btn"
+              :class="{ active: activeGroup === g.key }"
+              :title="g.label"
+              @click="toggleGroup(g.key)"
+            >
+              <span class="icon" :class="g.icon"></span>
+            </button>
+          </UiTip>
         </div>
       </div>
     </div>
@@ -146,22 +190,29 @@ async function handleRuleSubmit(data: { fieldName: string; pattern: string; cate
           <tr>
             <th>规则名称</th>
             <th>规则描述</th>
+            <th>分组</th>
             <th>操作</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="rule in rules" :key="rule.id">
+          <tr v-for="rule in filteredRules" :key="rule.id">
             <td class="rule-name">{{ rule.name }}</td>
-            <td class="rule-desc">{{ rule.description }}</td>
+            <td class="rule-desc">{{ rule.description || '—' }}</td>
+            <td class="rule-group"><span class="group-tag">{{ groupLabel(rule.groupName) }}</span></td>
             <td class="rule-actions">
-              <span class="action-link edit" @click="handleEditRule(rule)">修改</span>
-              <span class="action-link delete" @click="handleDeleteRule(rule.id)">删除</span>
+              <div class="row-actions">
+                <button class="action-btn edit" @click="handleEditRule(rule)">修改</button>
+                <button class="action-btn delete" @click="handleDeleteRule(rule.id)">删除</button>
+              </div>
             </td>
+          </tr>
+          <tr v-if="filteredRules.length === 0" class="empty-row">
+            <td colspan="4" class="empty-cell">暂无规则，可点击新增规则添加</td>
           </tr>
         </tbody>
       </table>
       <div class="table-footer">
-        共 18 条规则 · 已启用 14 · 当前显示 1-6
+        共 {{ filteredRules.length }} 条规则<span v-if="activeGroup"> · 当前分组：{{ groupLabel(activeGroup) }}</span>
       </div>
     </div>
 
@@ -287,26 +338,41 @@ async function handleRuleSubmit(data: { fieldName: string; pattern: string; cate
   font-style: normal;
   font-size: 20px;
 }
-.toolbar-right .search-box {
-  display: inline-flex;
+.toolbar-right {
+  display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 16px;
-  height: 46px;
-  width: 548px;
+}
+.toolbar-search { width: 320px; }
+.group-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
   border: 0.7px solid var(--color-border, #E5DFD3);
   background-color: var(--color-bg-white, #FFFFFF);
-  border-radius: 10px;
-  font-size: 15px;
-  color: var(--color-text-faint, #A7A296);
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  border-radius: 12px;
 }
-.search-box .icon {
+.group-icon-btn {
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted, #8A8578);
+  transition: background-color 0.15s, color 0.15s;
+}
+.group-icon-btn .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
-  font-size: 18px;
-  color: var(--color-text-faint, #A7A296);
+  font-size: 19px;
 }
+.group-icon-btn:hover { background-color: var(--color-bg-secondary, #F7F3EA); color: var(--color-text-primary, #1F1D1A); }
+.group-icon-btn.active { background-color: var(--color-primary-soft, #FBE9E7); color: var(--color-primary, #C0392B); }
 
 .table-card {
   background-color: var(--color-bg-white, #FFFFFF);
@@ -354,21 +420,47 @@ async function handleRuleSubmit(data: { fieldName: string; pattern: string; cate
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .rule-actions {
+  width: 260px;
+}
+.group-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 13px;
+  color: var(--color-primary, #C0392B);
+  background-color: var(--color-primary-soft, #FBE9E7);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  white-space: nowrap;
+}
+.empty-row .empty-cell {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--color-text-muted, #8A8578);
+  font-size: 14px;
+}
+.row-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 36px;
+  gap: 24px;
 }
-.action-link {
+.action-btn {
   font-size: 15px;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  background: none;
+  border: none;
   cursor: pointer;
+  padding: 0;
+  transition: opacity 0.2s;
 }
-.action-link.edit {
+.action-btn.edit {
   color: var(--color-info, #4A72A8);
 }
-.action-link.delete {
+.action-btn.delete {
   color: var(--color-error, #E74C3C);
+}
+.action-btn:hover {
+  opacity: 0.7;
 }
 .table-footer {
   padding: 0 40px;

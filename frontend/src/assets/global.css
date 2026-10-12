@@ -449,3 +449,20 @@ h6 { font-size: var(--text-md); margin-bottom: var(--spacing-2); }
   background-color: var(--color-primary-soft);
   color: var(--color-primary);
 }
+
+/* Element Plus 消息提示统一使用强调色 */
+:root {
+  --el-color-primary: var(--color-primary);
+  --el-message-primary-icon-color: var(--color-primary);
+  --el-message-success-icon-color: var(--color-primary);
+  --el-message-success-bg-color: var(--color-primary-soft);
+  --el-message-info-icon-color: var(--color-primary);
+  --el-message-info-bg-color: var(--color-primary-soft);
+}
+.el-message {
+  --el-message-border-color: var(--color-primary-soft);
+}
+.el-message--success .el-message__content,
+.el-message--info .el-message__content {
+  color: var(--color-text-body);
+}

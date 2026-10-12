@@ -12,7 +12,8 @@ const showCreditModal = ref(false);
 const showBiddingModal = ref(false);
 
 function handleSuccess(jobId: string) {
-  router.replace({ path: '/project', query: { jobId } });
+  try { sessionStorage.setItem('bidextractor.lastJobId', jobId); } catch {}
+  router.replace({ path: '/result' });
 }
 </script>
 

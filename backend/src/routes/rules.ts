@@ -35,6 +35,103 @@ function writeSkills(skills: SkillMeta[]) {
   fs.writeFileSync(skillsPath, JSON.stringify(skills, null, 2));
 }
 
+const localSkillsDir = path.join(__dirname, '..', '..', 'data', 'skills');
+
+interface SkillParseResult {
+  name: string;
+  description: string;
+  group: string;
+  type: 'rules' | 'prompt';
+  fields: string[];
+  content?: string;
+  inserted: number;
+  skipped: string[];
+}
+
+function parseSkillContent(content: string, filename: string): SkillParseResult {
+  const nameFromFile = filename.replace(/\.(md|yaml|yml)$/i, '');
+  const fmMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+
+  // Plain markdown prompt — store as prompt skill
+  if (!fmMatch) {
+    return {
+      name: nameFromFile,
+      description: content.split('\n')[0]?.replace(/^#\s*/, '') || nameFromFile,
+      group: 'info',
+      type: 'prompt',
+      fields: [],
+      content,
+      inserted: 0,
+      skipped: [],
+    };
+  }
+
+  const fm = load(fmMatch[1]) as any;
+
+  // YAML but no rules array — also store as prompt
+  if (!fm || !Array.isArray(fm.rules)) {
+    return {
+      name: nameFromFile,
+      description: fm?.description || nameFromFile,
+      group: fm?.group || 'info',
+      type: 'prompt',
+      fields: [],
+      content: content.replace(/^---[\s\S]*?---\n*/, ''),
+      inserted: 0,
+      skipped: [],
+    };
+  }
+
+  const name = fm.name || nameFromFile;
+  const defaultGroup = fm.group || 'info';
+  const existing = db.prepare('SELECT field_name, group_name FROM extraction_rules').all() as any[];
+  const existingSet = new Set(existing.map((r: any) => `${r.field_name}|${r.group_name}`));
+
+  const allFields: string[] = [];
+  const skipped: string[] = [];
+  let inserted = 0;
+
+  for (const rule of fm.rules) {
+    if (!rule.field) continue;
+    const group = rule.group || defaultGroup;
+    const category = rule.type === 'regex' ? 'regex' : 'keyword';
+    const pattern = rule.pattern || '';
+    const key = `${rule.field}|${group}`;
+    allFields.push(rule.field);
+
+    if (existingSet.has(key)) {
+      skipped.push(rule.field);
+      continue;
+    }
+
+    db.prepare(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, ?, ?, ?)`)
+      .run(crypto.randomUUID(), rule.field, pattern, category, group);
+    inserted++;
+    existingSet.add(key);
+  }
+
+  return {
+    name,
+    description: fm.description || '',
+    group: defaultGroup,
+    type: 'rules',
+    fields: allFields,
+    inserted,
+    skipped,
+  };
+}
+
+function saveSkillMeta(meta: SkillMeta) {
+  const skills = readSkills();
+  const existing = skills.findIndex(s => s.name === meta.name);
+  if (existing >= 0) {
+    skills[existing] = meta;
+  } else {
+    skills.push(meta);
+  }
+  writeSkills(skills);
+}
+
 const router = Router();
 
 // Curated vocabulary suggestions per group
@@ -355,108 +452,64 @@ router.post('/import-skill', upload.single('file'), (req, res) => {
       return;
     }
     const content = req.file.buffer.toString('utf-8');
-    let name = req.file.originalname.replace(/\.(md|yaml|yml)$/i, '');
-
-    const fmMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
-    if (!fmMatch) {
-      // Plain markdown prompt — store as prompt skill
-      const skills = readSkills();
-      const existing = skills.findIndex(s => s.name === name);
-      const meta: SkillMeta = {
-        name,
-        description: content.split('\n')[0]?.replace(/^#\s*/, '') || name,
-        group: 'info',
-        type: 'prompt',
-        fields: [],
-        enabled: true,
-        content,
-        importedAt: new Date().toISOString(),
-      };
-      if (existing >= 0) {
-        skills[existing] = meta;
-      } else {
-        skills.push(meta);
-      }
-      writeSkills(skills);
-      res.json({ name, description: meta.description, group: 'info', type: 'prompt', count: 0 });
-      return;
-    }
-
-    const fm = load(fmMatch[1]) as any;
-    if (!fm || !Array.isArray(fm.rules)) {
-      // YAML but no rules array — also store as prompt
-      const skills = readSkills();
-      const existing = skills.findIndex(s => s.name === name);
-      const meta: SkillMeta = {
-        name,
-        description: fm?.description || name,
-        group: fm?.group || 'info',
-        type: 'prompt',
-        fields: [],
-        enabled: true,
-        content: content.replace(/^---[\s\S]*?---\n*/, ''),
-        importedAt: new Date().toISOString(),
-      };
-      if (existing >= 0) {
-        skills[existing] = meta;
-      } else {
-        skills.push(meta);
-      }
-      writeSkills(skills);
-      res.json({ name, description: meta.description, group: meta.group, type: 'prompt', count: 0 });
-      return;
-    }
-
-    name = fm.name || req.file.originalname.replace(/\.md$/i, '');
-    const defaultGroup = fm.group || 'info';
-    const inserted: { field: string; group: string; category: string }[] = [];
-    const skipped: string[] = [];
-    const existing = db.prepare('SELECT field_name, group_name FROM extraction_rules').all() as any[];
-    const existingSet = new Set(existing.map((r: any) => `${r.field_name}|${r.group_name}`));
-
-    for (const rule of fm.rules) {
-      if (!rule.field) continue;
-      const group = rule.group || defaultGroup;
-      const category = rule.type === 'regex' ? 'regex' : 'keyword';
-      const pattern = rule.pattern || '';
-      const key = `${rule.field}|${group}`;
-
-      if (existingSet.has(key)) {
-        skipped.push(rule.field);
-        continue;
-      }
-
-      const id = crypto.randomUUID();
-      db.prepare(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, ?, ?, ?)`)
-        .run(id, rule.field, pattern, category, group);
-      inserted.push({ field: rule.field, group, category });
-      existingSet.add(key);
-    }
-
-    // Persist skill metadata (always save, even if all rules were skipped)
-    {
-      const skills = readSkills();
-      const existing = skills.findIndex(s => s.name === name);
-      const allFields = fm.rules.map((r: any) => r.field).filter(Boolean);
-      const meta: SkillMeta = {
-        name,
-        description: fm.description || '',
-        group: defaultGroup,
-        type: 'rules',
-        fields: allFields,
-        importedAt: new Date().toISOString(),
-      };
-      if (existing >= 0) {
-        skills[existing] = meta;
-      } else {
-        skills.push(meta);
-      }
-      writeSkills(skills);
-    }
-
-    res.json({ name, description: fm.description || '', group: defaultGroup, inserted, skipped, count: inserted.length });
+    const result = parseSkillContent(content, req.file.originalname);
+    const meta: SkillMeta = {
+      name: result.name,
+      description: result.description,
+      group: result.group,
+      type: result.type,
+      fields: result.fields,
+      content: result.content,
+      importedAt: new Date().toISOString(),
+    };
+    saveSkillMeta(meta);
+    res.json({
+      name: meta.name,
+      description: meta.description,
+      group: meta.group,
+      type: meta.type,
+      inserted: result.inserted,
+      skipped: result.skipped,
+      count: result.inserted,
+    });
   } catch (err: any) {
     res.status(400).json({ error: `Failed to parse skill file: ${err.message}` });
+  }
+});
+
+// Sync skills from local directory (backend/data/skills/*.md)
+router.post('/sync-skills', (_req, res) => {
+  try {
+    if (!fs.existsSync(localSkillsDir)) {
+      res.json({ synced: 0, skills: [], message: '本地技能目录不存在' });
+      return;
+    }
+    const files = fs.readdirSync(localSkillsDir).filter(f => /\.(md|yaml|yml)$/i.test(f));
+    const results: any[] = [];
+    for (const file of files) {
+      const content = fs.readFileSync(path.join(localSkillsDir, file), 'utf-8');
+      const result = parseSkillContent(content, file);
+      const meta: SkillMeta = {
+        name: result.name,
+        description: result.description,
+        group: result.group,
+        type: result.type,
+        fields: result.fields,
+        content: result.content,
+        importedAt: new Date().toISOString(),
+      };
+      saveSkillMeta(meta);
+      results.push({
+        file,
+        name: result.name,
+        type: result.type,
+        inserted: result.inserted,
+        skipped: result.skipped.length,
+      });
+    }
+    res.json({ synced: results.length, skills: results });
+  } catch (err: any) {
+    res.status(400).json({ error: `Failed to sync skills: ${err.message}` });
   }
 });
 
@@ -532,14 +585,55 @@ router.post('/corrections', (req, res) => {
   res.json({ saved: true, fieldName, group: g });
 });
 
+// Ensure default core field rules exist (non-destructive: only fills gaps,
+// never deletes user rules). Covers the 6 extraction groups.
+const SEED_CORE_RULES: Array<{ id: string; field: string; group: string }> = [
+  { id: 'seed_info_project_no', field: '项目编号', group: 'info' },
+  { id: 'seed_info_bid_no', field: '招标编号', group: 'info' },
+  { id: 'seed_info_purchase_mode', field: '采购方式', group: 'info' },
+  { id: 'seed_info_budget', field: '预算金额', group: 'info' },
+  { id: 'seed_info_deadline', field: '投标截止时间', group: 'info' },
+  { id: 'seed_info_open_time', field: '开标时间', group: 'info' },
+  { id: 'seed_info_buyer', field: '采购人', group: 'info' },
+  { id: 'seed_info_agent', field: '采购代理', group: 'info' },
+  { id: 'seed_business_bid_bond', field: '投标保证金', group: 'business' },
+  { id: 'seed_business_perf_bond', field: '履约保证金', group: 'business' },
+  { id: 'seed_business_payment', field: '付款方式', group: 'business' },
+  { id: 'seed_business_warranty', field: '质保期', group: 'business' },
+  { id: 'seed_business_validity', field: '投标有效期', group: 'business' },
+  { id: 'seed_tech_spec', field: '技术规格', group: 'tech' },
+  { id: 'seed_tech_param', field: '技术参数', group: 'tech' },
+  { id: 'seed_tech_accept', field: '验收标准', group: 'tech' },
+  { id: 'seed_tech_service', field: '售后服务', group: 'tech' },
+  { id: 'seed_score_method', field: '评标办法', group: 'score' },
+  { id: 'seed_score_std', field: '评分标准', group: 'score' },
+  { id: 'seed_score_business', field: '商务评分', group: 'score' },
+  { id: 'seed_score_tech', field: '技术评分', group: 'score' },
+  { id: 'seed_score_price', field: '价格评分', group: 'score' },
+  { id: 'seed_seal_req', field: '密封要求', group: 'seal' },
+  { id: 'seed_seal_original', field: '正本', group: 'seal' },
+  { id: 'seed_seal_copy', field: '副本', group: 'seal' },
+  { id: 'seed_seal_electronic', field: '电子文件', group: 'seal' },
+  { id: 'seed_seal_submit', field: '递交方式', group: 'seal' },
+];
+
 // Reset all extraction rules to seed defaults
 router.post('/reset', (_req, res) => {
-  db.prepare('DELETE FROM extraction_rules').run();
-  db.prepare('INSERT OR IGNORE INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, ?, ?, ?)')
-    .run('info_project_name', '项目名称',
-      '(?:(?:项目|采购|工程|服务)\\s*(?:名称|内容|概述|概况)|招标内容|本次招标(?:内容|范围)|采购内容)[：:]?\\s*((?:(?!(?:项目|招标|采购)编号|招标方式|采购方式)[^\\n]){6,})',
-      'regex', 'info');
-  res.json({ ok: true });
+  const existing = new Set(
+    (db.prepare('SELECT field_name, group_name FROM extraction_rules').all() as any[])
+      .map(r => `${r.field_name}|${r.group_name}`),
+  );
+  const stmt = db.prepare('INSERT OR IGNORE INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, ?, ?, ?)');
+  stmt.run('info_project_name', '项目名称',
+    '(?:(?:项目|采购|工程|服务)\\s*(?:名称|内容|概述|概况)|招标内容|本次招标(?:内容|范围)|采购内容)[：:]?\\s*((?:(?!(?:项目|招标|采购)编号|招标方式|采购方式)[^\\n]){6,})',
+    'regex', 'info');
+  let added = 0;
+  for (const s of SEED_CORE_RULES) {
+    if (existing.has(`${s.field}|${s.group}`)) continue;
+    const r = stmt.run(s.id, s.field, '', 'keyword', s.group);
+    if (r.changes > 0) added++;
+  }
+  res.json({ ok: true, added });
 });
 
 // Reset skills to empty (user-imported skills only)

@@ -9,7 +9,8 @@ const router = createRouter({
       children: [
         { path: '', redirect: '/upload' },
         { path: 'upload', component: () => import('@/views/UploadView.vue') },
-        { path: 'project', component: () => import('@/views/ProjectView.vue') },
+        { path: 'result', component: () => import('@/views/ProjectView.vue') },
+        { path: 'project', redirect: (to) => ({ path: '/result', query: to.query }) },
       ],
     },
     {

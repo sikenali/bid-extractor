@@ -1,21 +1,31 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import { UiModal, UiInput } from '@/components/ui';
+import { UiModal, UiInput, UiRadioGroup } from '@/components/ui';
+
+const RULE_GROUPS = [
+  { value: 'info', label: '项目信息' },
+  { value: 'business', label: '商务条款' },
+  { value: 'tech', label: '技术条款' },
+  { value: 'score', label: '评分标准' },
+  { value: 'seal', label: '封标信息' },
+  { value: 'star', label: '标星条款' },
+];
 
 const props = defineProps<{
   visible: boolean;
   mode: 'regex' | 'keyword';
-  editRule?: { id: string; fieldName: string; pattern: string } | null;
+  editRule?: { id: string; fieldName: string; pattern: string; groupName?: string } | null;
 }>();
 
 const emit = defineEmits<{
   close: []
-  submit: [data: { fieldName: string; pattern: string; category: string }]
+  submit: [data: { fieldName: string; pattern: string; category: string; groupName: string }]
 }>();
 
 const dialogVisible = ref(false);
 const fieldName = ref('');
 const pattern = ref('');
+const groupName = ref('info');
 
 const dialogTitle = computed(() => {
   const action = props.editRule ? '编辑' : '添加';
@@ -28,9 +38,11 @@ watch(() => props.visible, (val) => {
     if (props.editRule) {
       fieldName.value = props.editRule.fieldName;
       pattern.value = props.editRule.pattern;
+      groupName.value = props.editRule.groupName || 'info';
     } else {
       fieldName.value = '';
       pattern.value = '';
+      groupName.value = 'info';
     }
   }
 });
@@ -44,7 +56,8 @@ function handleSubmit() {
   emit('submit', {
     fieldName: fieldName.value.trim(),
     pattern: pattern.value.trim(),
-    category: props.mode
+    category: props.mode,
+    groupName: groupName.value,
   });
   dialogVisible.value = false;
 }
@@ -60,6 +73,10 @@ function handleSubmit() {
     :confirm-disabled="!fieldName.trim()"
     @confirm="handleSubmit"
   >
+    <div class="form-group">
+      <label class="form-label">所属分组</label>
+      <UiRadioGroup v-model="groupName" :options="RULE_GROUPS" />
+    </div>
     <div class="form-group">
       <label class="form-label">字段名称</label>
       <UiInput

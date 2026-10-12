@@ -95,6 +95,18 @@ interface FlatParagraph {
   level: number;
 }
 
+/** officeparser 节点文本可能在 n.text，也可能嵌在 children 里（直接 text 优先，避免 heading 重复拼接） */
+function nodeText(n: any): string {
+  if (!n) return '';
+  if (typeof n.text === 'string' && n.text.trim()) return n.text;
+  const parts: string[] = [];
+  for (const c of n.children || []) {
+    const t = nodeText(c);
+    if (t) parts.push(t);
+  }
+  return parts.join('');
+}
+
 function flattenContent(nodes: any[]): FlatParagraph[] {
   const out: FlatParagraph[] = [];
   let chapter = '';
@@ -103,11 +115,11 @@ function flattenContent(nodes: any[]): FlatParagraph[] {
       if (!n) continue;
       if (n.type === 'heading') {
         const level = n.metadata?.level ?? 1;
-        const title = (n.text || '').trim();
+        const title = nodeText(n).trim();
         if (title) chapter = title;
         out.push({ text: title, chapter, level });
       } else if (n.type === 'paragraph') {
-        const t = (n.text || '').trim();
+        const t = nodeText(n).trim();
         if (t) out.push({ text: t, chapter, level: 0 });
       } else if (n.type === 'table') {
         // tables are collected separately by collectTables(); skip their
@@ -133,7 +145,7 @@ function collectTables(nodes: any[]): string[][][] {
           const cells: string[] = [];
           for (const cell of row.children || []) {
             if (cell.type !== 'cell') continue;
-            cells.push((cell.text || '').trim());
+            cells.push(nodeText(cell).trim());
           }
           rows.push(cells);
         }
@@ -234,6 +246,18 @@ function extractValueForKeyword(text: string, fieldName: string): string | null 
   return rest.trim() || null;
 }
 
+/** 关键字取值串到下一个字段时截断（如“预算金额…投标截止时间…”），保证取值干净 */
+function truncateAtOtherFields(value: string, fieldNames: string[], self: string): string {
+  let cut = -1;
+  for (const f of fieldNames) {
+    if (!f || f === self || [...f].length < 2) continue;
+    const at = value.indexOf(f);
+    if (at > 0 && (cut < 0 || at < cut)) cut = at;
+  }
+  if (cut < 0) return value;
+  return value.slice(0, cut).replace(/[：:、,，；;\s]+$/, '').trim();
+}
+
 function applyRuleExtraction(
   rules: FieldRule[],
   paras: ParagraphMeta[],
@@ -242,6 +266,7 @@ function applyRuleExtraction(
   const groups: Record<string, string> = {};
   const fieldParaMap: Record<string, number> = {};
   const fieldGroups: Record<string, string> = {};
+  const allNames = rules.map(r => r.fieldName);
 
   for (const rule of rules) {
     let matched = false;
@@ -258,6 +283,7 @@ function applyRuleExtraction(
       }
       if (value == null) {
         value = extractValueForKeyword(para.text, rule.fieldName);
+        if (value) value = truncateAtOtherFields(value, allNames, rule.fieldName) || null;
       }
       if (value) {
         extracts[rule.fieldName] = {

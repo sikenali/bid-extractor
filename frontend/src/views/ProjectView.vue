@@ -13,6 +13,7 @@ import { getParseStatus } from '@/api/upload';
 import { getExportSettings } from '@/api/settings';
 import apiClient from '@/api/client';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, AlignmentType } from 'docx';
+import { saveAs } from 'file-saver';
 
 const route = useRoute();
 const router = useRouter();
@@ -264,7 +265,6 @@ function buildFieldPageMap(
 }
 
 onMounted(async () => {
-  const jobId = route.query.jobId as string;
   const stateResult = (window as any).history?.state?.uploadResult as any;
 
   if (stateResult && stateResult.result) {
@@ -272,7 +272,13 @@ onMounted(async () => {
     return;
   }
 
-  if (!jobId) return;
+  const jobId = (route.query.jobId as string)
+    || (window as any).history?.state?.jobId as string
+    || (() => { try { return sessionStorage.getItem('bidextractor.lastJobId') || ''; } catch { return ''; } })();
+  if (!jobId) {
+    loadError.value = '暂无解析任务，请先上传招标文件';
+    return;
+  }
   loading.value = true;
   loadError.value = '';
   try {
@@ -433,6 +439,7 @@ async function handleExport() {
     grouped[g].push(row);
   }
   if (format === 'markdown') exportMarkdown(grouped, baseName);
+  else if (format === 'pdf') exportPdf(grouped, baseName);
   else await exportDocx(grouped, baseName);
 }
 
@@ -490,13 +497,47 @@ async function exportDocx(grouped: Record<string, ExtractedField[]>, baseName: s
   }
 }
 
+function exportPdf(grouped: Record<string, ExtractedField[]>, baseName: string) {
+  const esc = (s: string) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+  let body = `<h1>${esc(baseName)} — 提取结果</h1>`;
+  for (const g of ['info', 'business', 'tech', 'score', 'seal', 'star']) {
+    const rows = grouped[g];
+    if (!rows || rows.length === 0) continue;
+    body += `<h2>${esc(sectionLabels[g] || g)}</h2><table><thead><tr><th>字段</th><th>内容</th><th>所在页面</th></tr></thead><tbody>`;
+    for (const row of rows) {
+      body += `<tr><td>${esc(row.field)}</td><td>${esc(row.value || '—')}</td><td>${esc(row.page || '')}</td></tr>`;
+    }
+    body += '</tbody></table>';
+  }
+  const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>${esc(baseName)} — 提取结果</title>`
+    + `<style>body{font-family:sans-serif;color:#111;padding:24px;}h1{font-size:22px;margin-bottom:16px;}h2{font-size:17px;margin:24px 0 8px;}table{width:100%;border-collapse:collapse;font-size:13px;}th,td{border:1px solid #999;padding:6px 10px;text-align:left;vertical-align:top;}thead{background:#f0f0f0;}</style>`
+    + `</head><body>${body}</body></html>`;
+  const frame = document.createElement('iframe');
+  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+  document.body.appendChild(frame);
+  const doc = frame.contentDocument || frame.contentWindow?.document;
+  if (!doc) {
+    document.body.removeChild(frame);
+    ElMessage.error('PDF 导出失败');
+    return;
+  }
+  doc.open();
+  doc.write(html);
+  doc.close();
+  frame.onload = () => {
+    setTimeout(() => {
+      frame.contentWindow?.focus();
+      frame.contentWindow?.print();
+      setTimeout(() => document.body.removeChild(frame), 1000);
+      ElMessage.success('已调起打印，请选择另存为 PDF');
+    }, 300);
+  };
+  // 兜底：部分浏览器 iframe onload 不触发
+  setTimeout(() => { if (document.body.contains(frame)) { try { frame.contentWindow?.print(); } catch {} } }, 1500);
+}
+
 function triggerDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  saveAs(blob, filename);
 }
 </script>
 
