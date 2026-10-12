@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { UiSwitch, UiSelectCard } from '@/components/ui';
 
 interface ExportItem {
   key: string;
@@ -68,20 +69,15 @@ onMounted(() => {
     <div class="section-card">
       <div class="card-title">默认导出格式</div>
       <div class="format-group">
-        <div
-          v-for="fmt in formats"
-          :key="fmt.key"
-          class="format-card"
-          :class="{ active: selectedFormat === fmt.key }"
-          @click="selectedFormat = fmt.key"
-        >
-          <div class="format-icon" :style="{ backgroundColor: fmt.iconColor }">
-            <span class="icon-text">{{ fmt.iconText }}</span>
-          </div>
-          <div class="format-info">
-            <div class="format-name">{{ fmt.name }}</div>
-            <div class="format-desc">{{ fmt.desc }}</div>
-          </div>
+        <div v-for="fmt in formats" :key="fmt.key" class="format-cell">
+          <UiSelectCard
+            :selected="selectedFormat === fmt.key"
+            :title="fmt.name"
+            :desc="fmt.desc"
+            :icon-text="fmt.iconText"
+            :icon-color="fmt.iconColor"
+            @select="selectedFormat = fmt.key"
+          />
         </div>
       </div>
     </div>
@@ -94,39 +90,21 @@ onMounted(() => {
           <div class="setting-name">保留原始模板样式</div>
           <div class="setting-desc">导出时沿用模板的页眉页脚与标题层级</div>
         </div>
-        <div
-          class="toggle-switch"
-          :class="{ active: wordSettings.preserveTemplate }"
-          @click="wordSettings.preserveTemplate = !wordSettings.preserveTemplate"
-        >
-          <div class="toggle-circle"></div>
-        </div>
+        <UiSwitch v-model="wordSettings.preserveTemplate" />
       </div>
       <div class="setting-item">
         <div class="setting-info">
           <div class="setting-name">自动生成目录与页码</div>
           <div class="setting-desc">按二级标题生成可跳转目录并标注页码</div>
         </div>
-        <div
-          class="toggle-switch"
-          :class="{ active: wordSettings.autoTable }"
-          @click="wordSettings.autoTable = !wordSettings.autoTable"
-        >
-          <div class="toggle-circle"></div>
-        </div>
+        <UiSwitch v-model="wordSettings.autoTable" />
       </div>
       <div class="setting-item">
         <div class="setting-info">
           <div class="setting-name">嵌入正文所用字体</div>
           <div class="setting-desc">避免他人电脑打开时出现字体替换</div>
         </div>
-        <div
-          class="toggle-switch"
-          :class="{ active: wordSettings.embedFont }"
-          @click="wordSettings.embedFont = !wordSettings.embedFont"
-        >
-          <div class="toggle-circle"></div>
-        </div>
+        <UiSwitch v-model="wordSettings.embedFont" />
       </div>
     </div>
 
@@ -138,39 +116,21 @@ onMounted(() => {
           <div class="setting-name">矢量高清输出 300dpi</div>
           <div class="setting-desc">文字与图片均不压缩，适合打印装订后送审</div>
         </div>
-        <div
-          class="toggle-switch"
-          :class="{ active: pdfSettings.vectorHD }"
-          @click="pdfSettings.vectorHD = !pdfSettings.vectorHD"
-        >
-          <div class="toggle-circle"></div>
-        </div>
+        <UiSwitch v-model="pdfSettings.vectorHD" />
       </div>
       <div class="setting-item">
         <div class="setting-info">
           <div class="setting-name">保留书签导航树</div>
           <div class="setting-desc">按章节层级生成左侧书签，评委可快速跳转</div>
         </div>
-        <div
-          class="toggle-switch"
-          :class="{ active: pdfSettings.keepBookmarks }"
-          @click="pdfSettings.keepBookmarks = !pdfSettings.keepBookmarks"
-        >
-          <div class="toggle-circle"></div>
-        </div>
+        <UiSwitch v-model="pdfSettings.keepBookmarks" />
       </div>
       <div class="setting-item">
         <div class="setting-info">
           <div class="setting-name">添加内部稿水印</div>
           <div class="setting-desc">叠加「回旋镖 · 内部稿」对角淡色水印</div>
         </div>
-        <div
-          class="toggle-switch"
-          :class="{ active: pdfSettings.addWatermark }"
-          @click="pdfSettings.addWatermark = !pdfSettings.addWatermark"
-        >
-          <div class="toggle-circle"></div>
-        </div>
+        <UiSwitch v-model="pdfSettings.addWatermark" />
       </div>
     </div>
 
@@ -182,26 +142,14 @@ onMounted(() => {
           <div class="setting-name">保留表格与图片链接</div>
           <div class="setting-desc">表格转为 Markdown 语法，图片保留相对路径</div>
         </div>
-        <div
-          class="toggle-switch"
-          :class="{ active: mdSettings.preserveTable }"
-          @click="mdSettings.preserveTable = !mdSettings.preserveTable"
-        >
-          <div class="toggle-circle"></div>
-        </div>
+        <UiSwitch v-model="mdSettings.preserveTable" />
       </div>
       <div class="setting-item">
         <div class="setting-info">
           <div class="setting-name">一级标题自动降级</div>
           <div class="setting-desc">便于直接粘贴到团队 Wiki 的文档树中</div>
         </div>
-        <div
-          class="toggle-switch"
-          :class="{ active: mdSettings.downgradeTitle }"
-          @click="mdSettings.downgradeTitle = !mdSettings.downgradeTitle"
-        >
-          <div class="toggle-circle"></div>
-        </div>
+        <UiSwitch v-model="mdSettings.downgradeTitle" />
       </div>
     </div>
   </div>
@@ -310,62 +258,10 @@ onMounted(() => {
   display: flex;
   gap: 24px;
   margin-top: 20px;
-  height: 154px;
   align-items: stretch;
 }
-.format-card {
-  flex: 1;
-  border: 0.7px solid #EFECE3;
-  background-color: #FFFFFF;
-  border-radius: 14px;
-  padding: 20px;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  transition: all 0.2s;
-}
-.format-card.active {
-  border-color: #E0C98A;
-  background-color: #FBF5E6;
-}
-.format-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.icon-text {
-  font-weight: 700;
-  color: #fff;
-  font-family: "SourceHanSans-Bold", var(--font-family-cn);
-  font-size: 17px;
-  line-height: 1;
-}
-.format-card:nth-child(2) .icon-text,
-.format-card:nth-child(3) .icon-text {
-  font-size: 14px;
-}
-.format-info {
-  display: flex;
-  flex-direction: column;
-  margin-top: 16px;
-}
-.format-name {
-  font-size: 17px;
-  font-weight: 500;
-  color: #1F1D1A;
-  font-family: "SourceHanSans-Medium", var(--font-family-cn);
-}
-.format-desc {
-  font-size: 13px;
-  color: #8A8578;
-  margin-top: 8px;
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
-}
+.format-cell { flex: 1; display: flex; }
+.format-cell > * { flex: 1; }
 
 /* 设置项 */
 .setting-item {
@@ -392,28 +288,5 @@ onMounted(() => {
   font-size: 15px;
   color: #8A8578;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
-}
-.toggle-switch {
-  width: 46px;
-  height: 26px;
-  flex-shrink: 0;
-  border-radius: 9999px;
-  padding: 3px;
-  cursor: pointer;
-  background-color: #E3E0D6;
-  transition: background-color 0.2s;
-  display: flex;
-  justify-content: flex-start;
-}
-.toggle-switch.active {
-  background-color: #C6A45C;
-  justify-content: flex-end;
-}
-.toggle-circle {
-  width: 21px;
-  height: 20px;
-  border-radius: 9999px;
-  background-color: #fff;
-  transition: transform 0.2s;
 }
 </style>
