@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { BRAND_NAME } from '@/constants/brand';
 
 const route = useRoute();
 const router = useRouter();
@@ -36,7 +37,7 @@ function backToWorkspace() {
           <circle cx="2.5" cy="-2.7" r="2.5" fill="var(--color-primary, #BE3B2E)"/>
         </svg>
       </div>
-      <span class="brand-name">回旋镖 · 设置</span>
+      <span class="brand-name">{{ BRAND_NAME }} · 设置</span>
     </div>
 
     <div class="divider"></div>

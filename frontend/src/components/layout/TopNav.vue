@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import SettingsModal from '@/components/layout/SettingsModal.vue';
+import { BRAND_NAME } from '@/constants/brand';
 
 const props = withDefaults(defineProps<{
   title?: string;
@@ -21,7 +22,7 @@ const showSettingsModal = ref(false);
       <div class="tool-mark">
         <span class="ri-target-line tool-logo"></span>
       </div>
-      <span class="brand-cn">{{ brand || '文取猩' }}</span>
+      <span class="brand-cn">{{ brand || BRAND_NAME }}</span>
       <span class="divider"></span>
       <span class="page-title">{{ title || '' }}</span>
     </div>

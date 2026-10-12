@@ -180,9 +180,17 @@ export function initializeDatabase() {
       category TEXT DEFAULT 'default',
       type TEXT DEFAULT 'bidding',
       content TEXT,
+      enabled INTEGER DEFAULT 1,
       created_at TEXT DEFAULT (datetime('now'))
     )`);
   }
+  // Migration: templates.enabled for DBs created before this column existed
+  try {
+    const tplCols = db.prepare(`PRAGMA table_info(templates)`).all() as any[];
+    if (!tplCols.some(c => c.name === 'enabled')) {
+      db.exec(`ALTER TABLE templates ADD COLUMN enabled INTEGER DEFAULT 1`);
+    }
+  } catch { /* ignore */ }
 
   // Seed default records
   const existingExport = db.prepare('SELECT id FROM export_settings WHERE id = 1').get() as { id: number } | undefined;

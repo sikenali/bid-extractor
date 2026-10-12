@@ -2,7 +2,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import apiClient from '@/api/client';
-import { UiInput, UiSwitch } from '@/components/ui';
+import { UiInput, UiSwitch, UiModal } from '@/components/ui';
 
 interface RuleItem {
   id: string;
@@ -33,6 +33,35 @@ const expandedSkill = ref<string | null>(null);
 const selectedFileName = ref('');
 const viewMode = ref<'list' | 'grid'>('list');
 const searchTerm = ref('');
+const showEditDialog = ref(false);
+const editingSkill = ref<SkillItem | null>(null);
+const editName = ref('');
+const editDesc = ref('');
+
+function openEdit(skill: SkillItem) {
+  editingSkill.value = skill;
+  editName.value = skill.name;
+  editDesc.value = skill.description;
+  showEditDialog.value = true;
+}
+
+async function confirmEdit() {
+  if (!editingSkill.value || !editName.value.trim()) {
+    ElMessage.warning('请输入技能名称');
+    return;
+  }
+  try {
+    const res = await apiClient.put(`/rules/skills/${encodeURIComponent(editingSkill.value.name)}`, {
+      name: editName.value.trim(),
+      description: editDesc.value.trim(),
+    });
+    await loadSkills();
+    showEditDialog.value = false;
+    ElMessage.success('技能已更新');
+  } catch {
+    ElMessage.error('保存失败');
+  }
+}
 
 const groupColors: Record<string, string> = {
   info: '#C0392B',
@@ -238,8 +267,15 @@ function triggerFileInput() {
 }
 
 async function toggleEnabled(skill: SkillItem) {
-  skill.enabled = !skill.enabled;
-  ElMessage.success(skill.enabled ? `已启用「${skill.name}」` : `已禁用「${skill.name}」`);
+  const next = !skill.enabled;
+  skill.enabled = next;
+  try {
+    await apiClient.put(`/rules/skills/${encodeURIComponent(skill.name)}`, { enabled: next });
+    ElMessage.success(next ? `已启用「${skill.name}」` : `已禁用「${skill.name}」`);
+  } catch {
+    skill.enabled = !next;
+    ElMessage.error('操作失败');
+  }
 }
 
 async function handleDelete(skill: SkillItem) {
@@ -356,9 +392,11 @@ onMounted(loadSkills);
               <span class="row-desc">{{ skill.description }}</span>
             </div>
             <div class="col-actions">
-              <button class="action-btn edit" @click.stop="ElMessage.info('编辑功能开发中')">修改</button>
+              <div class="row-actions">
+              <button class="action-btn edit" @click.stop="openEdit(skill)">修改</button>
               <button class="action-btn delete" @click.stop="handleDelete(skill)">删除</button>
               <UiSwitch :model-value="skill.enabled" size="sm" @click.stop="toggleEnabled(skill)" />
+              </div>
             </div>
           </div>
           <!-- 表尾统计 -->
@@ -428,10 +466,9 @@ onMounted(loadSkills);
               <div class="card-desc">{{ skill.description }}</div>
               <div class="card-footer">
                 <div class="card-actions">
-                  <button class="action-btn edit" @click="ElMessage.info('编辑功能开发中')">修改</button>
+                  <button class="action-btn edit" @click="openEdit(skill)">修改</button>
                   <button class="action-btn delete" @click="handleDelete(skill)">删除</button>
-                </div>
-                <UiSwitch :model-value="skill.enabled" size="sm" @click="toggleEnabled(skill)" />
+                  <UiSwitch :model-value="skill.enabled" size="sm" @click="toggleEnabled(skill)" />
               </div>
             </div>
           </div>
@@ -451,6 +488,25 @@ onMounted(loadSkills);
       <span class="icon ri-loader-4-line spinning"></span>
       <span>正在导入: {{ selectedFileName }}</span>
     </div>
+
+    <!-- 编辑技能弹窗 -->
+    <UiModal
+      v-model="showEditDialog"
+      title="编辑技能"
+      subtitle="修改技能名称与描述（规则明细不受影响）"
+      icon="ri-edit-line"
+      :width="560"
+      @confirm="confirmEdit"
+    >
+      <div class="form-group">
+        <label class="form-label">技能名称 <span class="required">*</span></label>
+        <UiInput v-model="editName" placeholder="请输入技能名称" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">技能描述</label>
+        <UiInput v-model="editDesc" multiline :rows="3" placeholder="请输入技能描述（可选）" />
+      </div>
+    </UiModal>
   </div>
 </template>
 
@@ -742,6 +798,8 @@ onMounted(loadSkills);
 .col-actions {
   width: 260px;
   flex-shrink: 0;
+}
+.row-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -967,6 +1025,11 @@ onMounted(loadSkills);
 @media (max-width: 1620px) {
   .grid-cards { grid-template-columns: repeat(2, 1fr); }
 }
+/* 编辑弹窗表单（壳为 UiModal） */
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+.form-group .ui-input { width: 100%; }
+.form-label { font-size: 14px; color: var(--color-text-body, #3A3A3A); font-weight: 500; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
+.form-label .required { color: var(--color-primary, #C0392B); }
 @media (max-width: 768px) {
   .grid-cards { grid-template-columns: 1fr; }
 }

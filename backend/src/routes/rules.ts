@@ -17,6 +17,7 @@ interface SkillMeta {
   fields: string[];
   content?: string;
   importedAt: string;
+  enabled?: boolean;
 }
 
 function readSkills(): SkillMeta[] {
@@ -316,6 +317,20 @@ router.get('/skills', (req, res) => {
   res.json(result);
 });
 
+// Update a skill (toggle enabled / rename / edit description)
+router.put('/skills/:name', (req, res) => {
+  const skills = readSkills();
+  const idx = skills.findIndex(s => s.name === req.params.name);
+  if (idx < 0) { res.status(404).json({ error: 'Skill not found' }); return; }
+  const { enabled, name, description } = req.body;
+  if (typeof enabled === 'boolean') skills[idx].enabled = enabled;
+  else if (enabled === 0 || enabled === 1) skills[idx].enabled = enabled === 1;
+  if (typeof name === 'string' && name.trim()) skills[idx].name = name.trim();
+  if (typeof description === 'string') skills[idx].description = description;
+  writeSkills(skills);
+  res.json(skills[idx]);
+});
+
 // Delete a skill and its rules
 router.delete('/skills/:name', (req, res) => {
   const skills = readSkills();
@@ -353,6 +368,7 @@ router.post('/import-skill', upload.single('file'), (req, res) => {
         group: 'info',
         type: 'prompt',
         fields: [],
+        enabled: true,
         content,
         importedAt: new Date().toISOString(),
       };
@@ -377,6 +393,7 @@ router.post('/import-skill', upload.single('file'), (req, res) => {
         group: fm?.group || 'info',
         type: 'prompt',
         fields: [],
+        enabled: true,
         content: content.replace(/^---[\s\S]*?---\n*/, ''),
         importedAt: new Date().toISOString(),
       };

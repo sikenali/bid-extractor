@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import RuleDialog from '@/components/settings/RuleDialog.vue';
 import apiClient from '@/api/client';
+import { getRules, addRule, updateRule, deleteRule } from '@/api/rules';
 
 interface RuleItem {
   id: string;
@@ -10,14 +11,25 @@ interface RuleItem {
   description: string;
 }
 
-const rules = ref<RuleItem[]>([
-  { id: '1', name: '废标条款强制校对', description: '命中未按要求签字盖章等红线时阻断提交' },
-  { id: '2', name: '报价一致性校验', description: '校验大写金额、单价×数量与合价是否一致' },
-  { id: '3', name: '工期承诺合规检查', description: '检查工期是否超出招标文件最大限定天数' },
-  { id: '4', name: '资质门槛匹配规则', description: '比对业绩数量、证书等级是否满足准入条件' },
-  { id: '5', name: '敏感信息脱敏规则', description: '自动识别并遮挡身份证号、银行账号与联系方式' },
-  { id: '6', name: '字体字号统一规则', description: '正文仿宋 GB2312 三号、行距固定值 28 磅' },
-]);
+const rules = ref<RuleItem[]>([]);
+const loading = ref(false);
+
+function toItem(r: { id: string; fieldName: string; pattern: string }): RuleItem {
+  return { id: r.id, name: r.fieldName, description: r.pattern };
+}
+
+async function loadRules() {
+  loading.value = true;
+  try {
+    rules.value = (await getRules()).map(toItem);
+  } catch {
+    ElMessage.error('加载规则失败');
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(loadRules);
 
 const showRuleDialog = ref(false);
 const dialogMode = ref<'regex' | 'keyword'>('regex');
@@ -39,38 +51,49 @@ async function handleResetRules() {
   try {
     await ElMessageBox.confirm('确定恢复默认规则？当前自定义规则将被清空。', '确认恢复默认');
     await apiClient.post('/rules/reset');
+    await loadRules();
     ElMessage.success('已恢复默认规则');
-    rules.value = [
-      { id: '1', name: '废标条款强制校对', description: '命中未按要求签字盖章等红线时阻断提交' },
-      { id: '2', name: '报价一致性校验', description: '校验大写金额、单价×数量与合价是否一致' },
-      { id: '3', name: '工期承诺合规检查', description: '检查工期是否超出招标文件最大限定天数' },
-      { id: '4', name: '资质门槛匹配规则', description: '比对业绩数量、证书等级是否满足准入条件' },
-      { id: '5', name: '敏感信息脱敏规则', description: '自动识别并遮挡身份证号、银行账号与联系方式' },
-      { id: '6', name: '字体字号统一规则', description: '正文仿宋 GB2312 三号、行距固定值 28 磅' },
-    ];
   } catch { /* cancelled */ }
 }
 
-function handleDeleteRule(id: string) {
-  if (confirm('确定要删除此规则吗？')) {
+async function handleDeleteRule(id: string) {
+  try {
+    await ElMessageBox.confirm('确定要删除此规则吗？', '确认删除');
+    await deleteRule(id);
     rules.value = rules.value.filter(r => r.id !== id);
-  }
+    ElMessage.success('已删除');
+  } catch { /* cancelled */ }
 }
 
-function handleRuleSubmit(data: { fieldName: string; pattern: string; category: string }) {
-  showRuleDialog.value = false;
-  if (editingRule.value) {
-    const rule = rules.value.find(r => r.id === editingRule.value?.id);
-    if (rule) {
-      rule.name = data.fieldName;
-      rule.description = data.pattern;
+async function handleRuleSubmit(data: { fieldName: string; pattern: string; category: string }) {
+  try {
+    if (editingRule.value) {
+      const updated = await updateRule(editingRule.value.id, {
+        fieldName: data.fieldName,
+        pattern: data.pattern,
+        category: data.category,
+      });
+      const row = rules.value.find(r => r.id === editingRule.value?.id);
+      if (row) {
+        row.name = updated.fieldName;
+        row.description = updated.pattern;
+      }
+      ElMessage.success('规则已更新');
+    } else {
+      const created = await addRule({
+        fieldName: data.fieldName,
+        pattern: data.pattern,
+        category: data.category,
+        enabled: true,
+        groupName: 'info',
+      });
+      rules.value.unshift(toItem(created));
+      ElMessage.success('规则已添加');
     }
-  } else {
-    rules.value.push({
-      id: Date.now().toString(),
-      name: data.fieldName,
-      description: data.pattern
-    });
+  } catch {
+    ElMessage.error('保存失败');
+  } finally {
+    showRuleDialog.value = false;
   }
 }
 </script>

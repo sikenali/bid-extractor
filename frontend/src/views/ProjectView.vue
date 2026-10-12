@@ -12,6 +12,7 @@ import { UiModal, UiInput } from '@/components/ui';
 import { getParseStatus } from '@/api/upload';
 import { getExportSettings } from '@/api/settings';
 import apiClient from '@/api/client';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, AlignmentType } from 'docx';
 
 const route = useRoute();
 const router = useRouter();
@@ -447,10 +448,46 @@ function exportMarkdown(grouped: Record<string, ExtractedField[]>, baseName: str
   triggerDownload(new Blob([md], { type: 'text/markdown;charset=utf-8' }), `${baseName}.md`);
 }
 
-// @ts-nocheck
 async function exportDocx(grouped: Record<string, ExtractedField[]>, baseName: string) {
-  // TODO: 暂不支持 Docx 导出，待完善类型定义后启用
-  ElMessage.info('Docx 导出功能开发中，请选用 Markdown 格式');
+  try {
+    const children: (Paragraph | Table)[] = [
+      new Paragraph({
+        heading: HeadingLevel.TITLE,
+        children: [new TextRun({ text: `${baseName} — 提取结果`, bold: true, size: 44 })],
+      }),
+    ];
+    for (const g of ['info', 'business', 'tech', 'score', 'seal', 'star']) {
+      const rows = grouped[g];
+      if (!rows || rows.length === 0) continue;
+      children.push(new Paragraph({
+        heading: HeadingLevel.HEADING_1,
+        children: [new TextRun({ text: sectionLabels[g] || g, bold: true, size: 32 })],
+      }));
+      const header = ['字段', '内容', '所在页面'].map(t =>
+        new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text: t, bold: true })] })],
+          shading: { fill: 'F2F2F2' },
+        }),
+      );
+      const body = rows.map(r => new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph(String(r.field || ''))] }),
+          new TableCell({ children: [new Paragraph(String(r.value || '—'))] }),
+          new TableCell({ children: [new Paragraph(String(r.page || ''))] }),
+        ],
+      }));
+      children.push(new Table({
+        rows: [new TableRow({ children: header }), ...body],
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        alignment: AlignmentType.CENTER,
+      }));
+    }
+    const blob = await Packer.toBlob(new Document({ sections: [{ children }] }));
+    triggerDownload(blob, `${baseName}.docx`);
+    ElMessage.success('Docx 已导出');
+  } catch {
+    ElMessage.error('Docx 导出失败');
+  }
 }
 
 function triggerDownload(blob: Blob, filename: string) {

@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import { ElMessage } from 'element-plus';
+import { getExportSettings, setExportSettings } from '@/api/settings';
 import { UiSwitch, UiSelectCard } from '@/components/ui';
+import { BRAND_NAME } from '@/constants/brand';
 
 interface ExportItem {
   key: string;
@@ -35,9 +38,69 @@ const mdSettings = ref({
 
 const selectedFormat = ref('docx');
 
-onMounted(() => {
-  selectedFormat.value = 'docx';
+let ready = false;
+const num = (v: boolean) => (v ? 1 : 0);
+
+async function persist() {
+  if (!ready) return;
+  try {
+    await setExportSettings({
+      format: selectedFormat.value,
+      word_keep_style: num(wordSettings.value.preserveTemplate),
+      word_toc: num(wordSettings.value.autoTable),
+      word_embed_font: num(wordSettings.value.embedFont),
+      pdf_high_res: num(pdfSettings.value.vectorHD),
+      pdf_bookmarks: num(pdfSettings.value.keepBookmarks),
+      pdf_watermark: num(pdfSettings.value.addWatermark),
+      md_keep_tables: num(mdSettings.value.preserveTable),
+      md_demote_heading: num(mdSettings.value.downgradeTitle),
+    });
+  } catch {
+    ElMessage.error('保存导出设置失败');
+  }
+}
+
+function applyLoaded(s: Record<string, any>) {
+  selectedFormat.value = s.format || 'docx';
+  wordSettings.value = {
+    preserveTemplate: (s.word_keep_style ?? 1) === 1,
+    autoTable: (s.word_toc ?? 1) === 1,
+    embedFont: (s.word_embed_font ?? 0) === 1,
+  };
+  pdfSettings.value = {
+    vectorHD: (s.pdf_high_res ?? 1) === 1,
+    keepBookmarks: (s.pdf_bookmarks ?? 1) === 1,
+    addWatermark: (s.pdf_watermark ?? 0) === 1,
+  };
+  mdSettings.value = {
+    preserveTable: (s.md_keep_tables ?? 1) === 1,
+    downgradeTitle: (s.md_demote_heading ?? 0) === 1,
+  };
+}
+
+onMounted(async () => {
+  try {
+    applyLoaded(await getExportSettings());
+  } catch {
+    // 后端不可用时保持本地默认值
+  } finally {
+    ready = true;
+  }
 });
+
+watch([selectedFormat, wordSettings, pdfSettings, mdSettings], persist, { deep: true });
+
+async function resetAll() {
+  applyLoaded({
+    format: 'docx',
+    word_keep_style: 1, word_toc: 1, word_embed_font: 0,
+    pdf_high_res: 1, pdf_bookmarks: 1, pdf_watermark: 0,
+    md_keep_tables: 1, md_demote_heading: 0,
+  });
+  ready = true;
+  await persist();
+  ElMessage.success('已恢复默认导出设置');
+}
 </script>
 
 <template>
@@ -58,7 +121,7 @@ onMounted(() => {
             <p>配置 Word、PDF、Markdown 三类成品的输出规格与默认行为</p>
           </div>
         </div>
-        <button class="reset-button" @click="() => {}">
+        <button class="reset-button" @click="resetAll">
           <span class="icon ri-restart-line"></span>
           恢复默认
         </button>
@@ -128,7 +191,7 @@ onMounted(() => {
       <div class="setting-item">
         <div class="setting-info">
           <div class="setting-name">添加内部稿水印</div>
-          <div class="setting-desc">叠加「回旋镖 · 内部稿」对角淡色水印</div>
+          <div class="setting-desc">叠加「{{ BRAND_NAME }} · 内部稿」对角淡色水印</div>
         </div>
         <UiSwitch v-model="pdfSettings.addWatermark" />
       </div>

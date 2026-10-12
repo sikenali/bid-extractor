@@ -268,4 +268,25 @@ router.delete('/templates/:id', (req, res) => {
   res.json({ deleted: true });
 });
 
+router.put('/templates/:id', (req, res) => {
+  const { name, description, category, enabled } = req.body;
+  const row = db.prepare('SELECT * FROM templates WHERE id = ?').get(req.params.id) as any;
+  if (!row) { res.status(404).json({ error: 'Not found' }); return; }
+  db.prepare('UPDATE templates SET name=?, description=?, category=?, enabled=? WHERE id=?').run(
+    name ?? row.name,
+    description ?? row.description,
+    category ?? row.category,
+    enabled ?? row.enabled ?? 1,
+    req.params.id,
+  );
+  res.json(db.prepare('SELECT * FROM templates WHERE id = ?').get(req.params.id));
+});
+
+router.post('/templates/reset', (_req, res) => {
+  db.prepare('DELETE FROM templates').run();
+  const stmt = db.prepare('INSERT OR IGNORE INTO templates (id, name, description, category, type, enabled) VALUES (?, ?, ?, ?, ?, 1)');
+  for (const t of DEFAULT_TEMPLATES) stmt.run(t.id, t.name, t.description, t.category, t.type);
+  res.json({ templates: db.prepare('SELECT * FROM templates ORDER BY created_at DESC').all() });
+});
+
 export default router;

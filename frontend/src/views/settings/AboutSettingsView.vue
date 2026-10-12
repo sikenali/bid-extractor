@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
+import { BRAND_NAME, BRAND_TITLE } from '@/constants/brand';
 
 const router = useRouter();
 const currentYear = new Date().getFullYear();
+// 应用版本号：当前为常量，后续打包时从软件版本提取显示
+const appVersion = 'V1.0.0';
 </script>
 
 <template>
@@ -36,9 +39,11 @@ const currentYear = new Date().getFullYear();
         <span class="ri-target-line badge-logo"></span>
       </div>
 
-      <div class="about-name">文取猩 · 智能标书解决方案平台</div>
+      <div class="about-name">{{ BRAND_TITLE }}</div>
 
       <div class="about-slogan">智能化文件提取工具</div>
+
+      <div class="about-version">版本: {{ appVersion }}</div>
 
       <div class="about-repo" @click="router.push('/settings/theme')">
         <span class="repo-left">GitHub 开源仓库</span>
@@ -49,7 +54,7 @@ const currentYear = new Date().getFullYear();
         </span>
       </div>
 
-      <div class="about-copy">© {{ currentYear }} 文取猩 · sikenali</div>
+      <div class="about-copy">© {{ currentYear }} {{ BRAND_NAME }} · sikenali</div>
     </div>
   </div>
 </template>
@@ -178,6 +183,13 @@ const currentYear = new Date().getFullYear();
   margin-top: 16px;
   font-size: 16px;
   color: var(--color-text-secondary, #6E6A60);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  line-height: 1.4;
+}
+.about-version {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--color-text-muted, #8A8578);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
   line-height: 1.4;
 }

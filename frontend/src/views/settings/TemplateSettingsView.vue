@@ -60,8 +60,15 @@ function applyFilter() {
 }
 
 async function toggleEnabled(tpl: TemplateItem) {
-  tpl.enabled = !tpl.enabled;
-  ElMessage.success(tpl.enabled ? `已启用「${tpl.name}」` : `已停用「${tpl.name}」`);
+  const next = !tpl.enabled;
+  tpl.enabled = next;
+  try {
+    await apiClient.put(`/settings/templates/${tpl.id}`, { enabled: next });
+    ElMessage.success(next ? `已启用「${tpl.name}」` : `已停用「${tpl.name}」`);
+  } catch {
+    tpl.enabled = !next;
+    ElMessage.error('操作失败');
+  }
 }
 
 async function handleDelete(tpl: TemplateItem) {
@@ -100,10 +107,51 @@ async function handleAdd() {
 async function handleReset() {
   try {
     await ElMessageBox.confirm('确定恢复默认模板？自定义模板将被清除。', '确认恢复默认');
-    templates.value = getPlaceholderTemplates();
-    filteredTemplates.value = templates.value;
+    const res: any = await apiClient.post('/settings/templates/reset');
+    templates.value = ((res.data?.templates || []) as any[]).map((t: any) => ({
+      ...t,
+      enabled: t.enabled ?? true,
+    }));
+    applyFilter();
     ElMessage.success('已恢复默认模板');
   } catch { /* cancelled */ }
+}
+
+const showEditDialog = ref(false);
+const editingTpl = ref<TemplateItem | null>(null);
+const editName = ref('');
+const editDesc = ref('');
+const editCategory = ref('');
+
+function openEdit(tpl: TemplateItem) {
+  editingTpl.value = tpl;
+  editName.value = tpl.name;
+  editDesc.value = tpl.description;
+  editCategory.value = tpl.category;
+  showEditDialog.value = true;
+}
+
+async function confirmEdit() {
+  if (!editingTpl.value || !editName.value.trim()) {
+    ElMessage.warning('请输入模板名称');
+    return;
+  }
+  try {
+    const res: any = await apiClient.put(`/settings/templates/${editingTpl.value.id}`, {
+      name: editName.value.trim(),
+      description: editDesc.value.trim(),
+      category: editCategory.value.trim() || '自定义',
+    });
+    const idx = templates.value.findIndex(t => t.id === editingTpl.value?.id);
+    if (idx >= 0) {
+      templates.value[idx] = { ...templates.value[idx], ...res.data, enabled: res.data.enabled ?? true };
+    }
+    applyFilter();
+    showEditDialog.value = false;
+    ElMessage.success('模板已更新');
+  } catch {
+    ElMessage.error('保存失败');
+  }
 }
 
 onMounted(() => {
@@ -184,7 +232,7 @@ onMounted(() => {
               </td>
               <td class="col-action">
                 <div class="row-actions">
-                  <button class="action-btn edit" @click="ElMessage.info('编辑功能开发中')">修改</button>
+                  <button class="action-btn edit" @click="openEdit(tpl)">修改</button>
                   <button class="action-btn delete" @click="handleDelete(tpl)">删除</button>
                   <UiSwitch :model-value="tpl.enabled" size="sm" @update:model-value="toggleEnabled(tpl)" />
                 </div>
@@ -216,7 +264,7 @@ onMounted(() => {
           </div>
           <div class="grid-card-footer">
             <div class="grid-card-actions">
-              <button class="action-btn edit" @click="ElMessage.info('编辑功能开发中')">修改</button>
+              <button class="action-btn edit" @click="openEdit(tpl)">修改</button>
               <button class="action-btn delete" @click="handleDelete(tpl)">删除</button>
               <UiSwitch :model-value="tpl.enabled" size="sm" @update:model-value="toggleEnabled(tpl)" />
             </div>
@@ -245,6 +293,29 @@ onMounted(() => {
       <div class="form-group">
         <label class="form-label">所属分类</label>
         <UiInput v-model="newTemplateCategory" placeholder="例如：商务标、技术标" />
+      </div>
+    </UiModal>
+
+    <!-- 编辑模板弹窗 -->
+    <UiModal
+      v-model="showEditDialog"
+      title="编辑模板"
+      subtitle="修改模板基本信息"
+      icon="ri-edit-line"
+      :width="560"
+      @confirm="confirmEdit"
+    >
+      <div class="form-group">
+        <label class="form-label">模板名称 <span class="required">*</span></label>
+        <UiInput v-model="editName" placeholder="请输入模板名称" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">模板描述</label>
+        <UiInput v-model="editDesc" multiline :rows="3" placeholder="请输入模板描述（可选）" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">所属分类</label>
+        <UiInput v-model="editCategory" placeholder="例如：商务标、技术标" />
       </div>
     </UiModal>
   </div>

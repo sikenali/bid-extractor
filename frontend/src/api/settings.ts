@@ -10,12 +10,27 @@ export async function setTheme(type: string): Promise<{ type: string }> {
   return response.data;
 }
 
-export async function getExportSettings(): Promise<{ format: string; include_table_of_contents: number; page_numbers: number }> {
+export interface ExportSettings {
+  format: string;
+  include_table_of_contents?: number;
+  page_numbers?: number;
+  header_footer?: number;
+  word_keep_style?: number;
+  word_toc?: number;
+  word_embed_font?: number;
+  pdf_high_res?: number;
+  pdf_bookmarks?: number;
+  pdf_watermark?: number;
+  md_keep_tables?: number;
+  md_demote_heading?: number;
+}
+
+export async function getExportSettings(): Promise<ExportSettings & { format: string }> {
   const response = await apiClient.get('/settings/export');
   return response.data;
 }
 
-export async function setExportSettings(data: { format: string; include_table_of_contents?: number; page_numbers?: number; header_footer?: number }): Promise<void> {
+export async function setExportSettings(data: ExportSettings): Promise<void> {
   await apiClient.put('/settings/export', data);
 }
 
@@ -49,6 +64,11 @@ export async function updateTemplate(id: number, data: Omit<TemplateData, 'id' |
 
 export async function deleteTemplate(id: number): Promise<void> {
   await apiClient.delete(`/settings/templates/${id}`);
+}
+
+export async function resetTemplates(): Promise<{ templates: TemplateData[] }> {
+  const response = await apiClient.post('/settings/templates/reset');
+  return response.data;
 }
 
 export async function toggleApiKey(id: string): Promise<{ enabled: number }> {

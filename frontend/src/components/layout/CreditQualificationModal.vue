@@ -90,7 +90,8 @@ const creditSites = [
 .settings-panel {
   width: 1120px;
   max-height: 90vh;
-  background: var(--color-bg-white, #FFFFFF);
+  background: var(--color-bg-secondary, #F7F3EA);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 16px;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.1);
   padding: 36px 40px;
