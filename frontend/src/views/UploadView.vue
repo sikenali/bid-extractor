@@ -63,7 +63,10 @@ function handleDrop(e: DragEvent) {
   isDragging.value = false;
   const files = e.dataTransfer?.files;
   if (files && files.length > 0 && !uploading.value) {
-    if (validateFile(files[0])) startUpload(files[0]);
+    if (validateFile(files[0])) {
+      selectedFile.value = files[0];
+      progressFileName.value = files[0].name;
+    }
   }
 }
 
@@ -74,14 +77,17 @@ function triggerFileInput() {
 function handleFileSelect(event: Event) {
   const input = event.target as HTMLInputElement;
   if (input.files && input.files.length > 0 && !uploading.value) {
-    if (validateFile(input.files[0])) startUpload(input.files[0]);
-    else input.value = '';
+    if (validateFile(input.files[0])) {
+      selectedFile.value = input.files[0];
+      progressFileName.value = input.files[0].name;
+    } else {
+      input.value = '';
+    }
   }
 }
 
 function startUpload(file: File) {
-  selectedFile.value = file;
-  progressFileName.value = file.name;
+  if (!selectedFile.value) return;
   uploading.value = true;
   progressPercent.value = 0;
 
@@ -133,14 +139,14 @@ onUnmounted(() => {
     <div class="upload-body">
       <div
         class="upload-card"
-        :class="{ dragging: isDragging, uploading: uploading }"
+        :class="{ dragging: isDragging, hasFile: !!selectedFile && !uploading, uploading: uploading }"
         @dragover="handleDragOver"
         @dragleave="handleDragLeave"
         @drop="handleDrop"
-        @click="triggerFileInput"
+        @click="!uploading && triggerFileInput()"
       >
-        <!-- icon + hint (initial state) -->
-        <template v-if="!uploading && !selectedFile">
+        <!-- initial state: upload icon + hint + format badges -->
+        <template v-if="!selectedFile">
           <div class="upload-icon-wrap">
             <span class="ri-upload-cloud-2-line icon"></span>
           </div>
@@ -155,29 +161,33 @@ onUnmounted(() => {
           </div>
         </template>
 
-        <!-- file selected, not yet uploading -->
-        <template v-else-if="selectedFile && !uploading">
-          <div class="file-info">
+        <!-- file selected, not uploading: show file info + extract button -->
+        <template v-else-if="!uploading">
+          <div class="file-card">
             <div class="file-icon" :class="'fmt-' + getExt(selectedFile).replace('.', '')">
-              <svg v-if="getExt(selectedFile) === '.docx' || getExt(selectedFile) === '.wps'" width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <!-- docx / wps -->
+              <svg v-if="getExt(selectedFile) === '.docx' || getExt(selectedFile) === '.wps'" width="32" height="32" viewBox="0 0 28 28" fill="none">
                 <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="1.6"/>
                 <path d="M8 9h12M8 13h12M8 17h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
               </svg>
-              <svg v-else-if="getExt(selectedFile) === '.xlsx'" width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <!-- xlsx -->
+              <svg v-else-if="getExt(selectedFile) === '.xlsx'" width="32" height="32" viewBox="0 0 28 28" fill="none">
                 <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="1.6"/>
-                <path d="M8 9h12M8 13h12M8 17h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                <path d="M14 7v14" stroke="currentColor" stroke-width="1.2"/>
+                <path d="M8 9h12M8 13h12M8 17h12M14 7v14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
               </svg>
-              <svg v-else-if="getExt(selectedFile) === '.pdf'" width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <!-- pdf -->
+              <svg v-else-if="getExt(selectedFile) === '.pdf'" width="32" height="32" viewBox="0 0 28 28" fill="none">
                 <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="1.6"/>
                 <path d="M9 10l4 3-4 3V10z" fill="currentColor"/>
                 <path d="M17 10l4 3-4 3V10z" fill="currentColor" opacity="0.5"/>
               </svg>
-              <svg v-else-if="getExt(selectedFile) === '.md'" width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <!-- md -->
+              <svg v-else-if="getExt(selectedFile) === '.md'" width="32" height="32" viewBox="0 0 28 28" fill="none">
                 <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="1.6"/>
-                <text x="7" y="20" font-family="sans-serif" font-size="10" font-weight="700" fill="currentColor">M</text>
+                <text x="8" y="21" font-family="sans-serif" font-size="11" font-weight="700" fill="currentColor">M</text>
               </svg>
-              <svg v-else width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <!-- txt / other -->
+              <svg v-else width="32" height="32" viewBox="0 0 28 28" fill="none">
                 <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="1.6"/>
                 <path d="M9 9h10M9 13h10M9 17h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
               </svg>
@@ -187,47 +197,48 @@ onUnmounted(() => {
               <p class="file-size">{{ formatSize(selectedFile.size) }}</p>
             </div>
           </div>
-          <div class="file-actions">
-            <button class="replace-btn" @click.stop="handleReplace">
-              <span class="icon ri-refresh-line"></span>
+          <div class="card-actions">
+            <button class="btn-replace" @click.stop="handleReplace">
+              <span class="ri-refresh-line icon"></span>
               替换文件
             </button>
-            <button class="extract-btn" @click.stop="startUpload(selectedFile!)">一键提取</button>
+            <button class="btn-extract" @click.stop="startUpload(selectedFile!)">
+              一键提取
+            </button>
           </div>
         </template>
 
-        <!-- uploading -->
+        <!-- uploading: show compact file info + progress bar -->
         <template v-else>
-          <div class="uploading-content">
-            <div class="file-info-inline">
-              <div class="file-icon-sm" :class="'fmt-' + getExt(selectedFile!).replace('.', '')">
-                <svg v-if="getExt(selectedFile!) === '.docx' || getExt(selectedFile!) === '.wps'" width="18" height="18" viewBox="0 0 28 28" fill="none">
-                  <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="2"/>
-                  <path d="M8 9h12M8 13h12M8 17h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                </svg>
-                <svg v-else-if="getExt(selectedFile!) === '.xlsx'" width="18" height="18" viewBox="0 0 28 28" fill="none">
-                  <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="2"/>
-                  <path d="M8 9h12M8 13h12M8 17h12M14 7v14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                </svg>
-                <svg v-else-if="getExt(selectedFile!) === '.pdf'" width="18" height="18" viewBox="0 0 28 28" fill="none">
-                  <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="2"/>
-                  <path d="M9 10l4 3-4 3V10z" fill="currentColor"/><path d="M17 10l4 3-4 3V10z" fill="currentColor" opacity="0.5"/>
-                </svg>
-                <svg v-else width="18" height="18" viewBox="0 0 28 28" fill="none">
-                  <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="2"/>
-                  <path d="M9 9h10M9 13h10M9 17h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                </svg>
-              </div>
-              <span class="uploading-name">{{ progressFileName }}</span>
+          <div class="uploading-inner">
+            <div class="file-icon-sm" :class="'fmt-' + getExt(selectedFile!).replace('.', '')">
+              <svg v-if="getExt(selectedFile!) === '.docx' || getExt(selectedFile!) === '.wps'" width="20" height="20" viewBox="0 0 28 28" fill="none">
+                <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M8 9h12M8 13h12M8 17h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+              <svg v-else-if="getExt(selectedFile!) === '.xlsx'" width="20" height="20" viewBox="0 0 28 28" fill="none">
+                <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M8 9h12M8 13h12M8 17h12M14 7v14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+              <svg v-else-if="getExt(selectedFile!) === '.pdf'" width="20" height="20" viewBox="0 0 28 28" fill="none">
+                <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M9 10l4 3-4 3V10z" fill="currentColor"/><path d="M17 10l4 3-4 3V10z" fill="currentColor" opacity="0.5"/>
+              </svg>
+              <svg v-else width="20" height="20" viewBox="0 0 28 28" fill="none">
+                <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M9 9h10M9 13h10M9 17h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
             </div>
-            <div class="progress-track">
-              <div class="progress-bar" :style="{ width: progressPercent + '%' }">
-                <div class="shimmer"></div>
+            <div class="uploading-info">
+              <p class="uploading-name">{{ progressFileName }}</p>
+              <div class="progress-track">
+                <div class="progress-bar" :style="{ width: progressPercent + '%' }">
+                  <div class="shimmer"></div>
+                </div>
               </div>
+              <p class="progress-text">{{ Math.round(progressPercent) }}%</p>
             </div>
-            <p class="progress-text">{{ Math.round(progressPercent) }}%</p>
           </div>
-          <StepStrip :steps="steps" :loading="uploading" />
         </template>
 
         <input
@@ -239,6 +250,12 @@ onUnmounted(() => {
           @change="handleFileSelect"
         />
       </div>
+
+      <StepStrip
+        :steps="steps"
+        :loading="uploading"
+        button-label="一键提取"
+      />
     </div>
 
     <PageFooter @credit-query="showCreditModal = true" @bidding-sites="showBiddingModal = true" />
@@ -262,10 +279,13 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding: 0 32px;
+  gap: 48px;
 }
+
+/* ── upload card ────────────────────────────────────── */
 .upload-card {
-  width: 520px;
-  min-height: 320px;
+  width: 875px;
+  min-height: 345px;
   background-color: #FFFFFF;
   border: 0.7px solid #E5DFD3;
   border-radius: 14px;
@@ -273,23 +293,30 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   transition: border-color 0.2s, background-color 0.2s;
-  padding: 40px 32px;
-  gap: 20px;
   position: relative;
   overflow: hidden;
+  gap: 20px;
 }
 .upload-card.dragging {
   border-color: #C0392B;
   background-color: #FBE9E7;
 }
+.upload-card.hasFile {
+  cursor: default;
+  justify-content: center;
+  gap: 28px;
+}
 .upload-card.uploading {
   cursor: default;
+  justify-content: center;
+  gap: 20px;
 }
+
+/* initial state */
 .upload-icon-wrap {
-  width: 64px;
-  height: 64px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   background-color: #F7F3EA;
   display: flex;
@@ -299,23 +326,21 @@ onUnmounted(() => {
 .upload-icon-wrap .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
-  font-size: 28px;
+  font-size: 34px;
   color: #8A8578;
 }
 .upload-hint {
   margin: 0;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 500;
   color: #1F1D1A;
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
-  line-height: 1.3;
-  text-align: center;
+  line-height: 1.2;
 }
 .format-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-top: 8px;
+  gap: 12px;
 }
 .fmt {
   width: 26px;
@@ -329,74 +354,43 @@ onUnmounted(() => {
   font-family: "SourceHanSans-Bold", var(--font-family-cn);
   line-height: 1;
 }
-.fmt-w { background-color: #2B579A; font-size: 11px; }
-.fmt-x { background-color: #217346; font-size: 11px; }
-.fmt-p { background-color: #C0392B; font-size: 11px; }
+.fmt-w   { background-color: #2B579A; font-size: 11px; }
+.fmt-x   { background-color: #217346; font-size: 11px; }
+.fmt-p   { background-color: #C0392B; font-size: 11px; }
 .fmt-pdf { background-color: #B03A2E; font-size: 9px; }
-.fmt-md { background-color: #4A6FA5; font-size: 9px; }
-.fmt-tx { background-color: #5A5750; font-size: 9px; }
+.fmt-md  { background-color: #4A6FA5; font-size: 9px; }
+.fmt-tx  { background-color: #5A5750; font-size: 9px; }
 
-/* file info card */
-.file-info {
+/* ── file selected state ───────────────────────────── */
+.file-card {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   width: 100%;
-  padding: 16px 20px;
+  max-width: 620px;
+  padding: 20px 24px;
   background-color: #FDFCF9;
   border: 0.7px solid #EDE9E0;
-  border-radius: 10px;
-}
-.file-info-inline {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  border-radius: 12px;
 }
 .file-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 10px;
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
-.file-icon-sm {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.file-icon.fmt-docx, .file-icon.fmt-wps,
-.file-icon-sm.fmt-docx, .file-icon-sm.fmt-wps {
-  background-color: #2B579A; color: #fff;
-}
-.file-icon.fmt-xlsx,
-.file-icon-sm.fmt-xlsx {
-  background-color: #217346; color: #fff;
-}
-.file-icon.fmt-pdf,
-.file-icon-sm.fmt-pdf {
-  background-color: #C0392B; color: #fff;
-}
-.file-icon.fmt-md,
-.file-icon-sm.fmt-md {
-  background-color: #4A6FA5; color: #fff;
-}
-.file-icon.fmt-txt,
-.file-icon-sm.fmt-txt {
-  background-color: #5A5750; color: #fff;
-}
-.file-meta {
-  flex: 1;
-  min-width: 0;
-}
+.file-icon.fmt-docx, .file-icon.fmt-wps { background-color: #2B579A; color: #fff; }
+.file-icon.fmt-xlsx                   { background-color: #217346; color: #fff; }
+.file-icon.fmt-pdf                    { background-color: #C0392B; color: #fff; }
+.file-icon.fmt-md                     { background-color: #4A6FA5; color: #fff; }
+.file-icon.fmt-txt                    { background-color: #5A5750; color: #fff; }
+.file-meta { flex: 1; min-width: 0; }
 .file-name {
-  margin: 0 0 4px 0;
-  font-size: 15px;
+  margin: 0 0 6px 0;
+  font-size: 16px;
   font-weight: 500;
   color: #1F1D1A;
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
@@ -406,31 +400,88 @@ onUnmounted(() => {
 }
 .file-size {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: #8A8578;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-.uploading-name {
-  font-size: 14px;
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.btn-replace {
+  height: 48px;
+  padding: 0 22px;
+  border: 0.7px solid #E5DFD3;
+  border-radius: 10px;
+  background-color: #FCFBF8;
   color: #3A3A3A;
+  font-size: 15px;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.2s;
+}
+.btn-replace:hover { background-color: #F7F3EA; }
+.btn-replace .icon {
+  font-family: "remixicon", sans-serif;
+  font-style: normal;
+  font-size: 16px;
+}
+.btn-extract {
+  width: 200px;
+  height: 48px;
+  border: none;
+  border-radius: 10px;
+  background-color: #C0392B;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+.btn-extract:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-extract:active { transform: translateY(0); }
+
+/* ── uploading state ───────────────────────────────── */
+.uploading-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 600px;
+}
+.file-icon-sm {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.file-icon-sm.fmt-docx, .file-icon-sm.fmt-wps { background-color: #2B579A; color: #fff; }
+.file-icon-sm.fmt-xlsx                      { background-color: #217346; color: #fff; }
+.file-icon-sm.fmt-pdf                       { background-color: #C0392B; color: #fff; }
+.file-icon-sm.fmt-md                        { background-color: #4A6FA5; color: #fff; }
+.file-icon-sm.fmt-txt                       { background-color: #5A5750; color: #fff; }
+.uploading-info { flex: 1; min-width: 0; }
+.uploading-name {
+  margin: 0 0 10px 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1F1D1A;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 260px;
 }
-
-.uploading-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  gap: 12px;
-}
-
 .progress-track {
   width: 100%;
-  max-width: 320px;
   height: 6px;
   background-color: #F7F3EA;
   border-radius: 9999px;
@@ -457,54 +508,11 @@ onUnmounted(() => {
   100% { left: 100%; }
 }
 .progress-text {
-  margin: 0;
+  margin: 6px 0 0 0;
   font-size: 13px;
   color: #6E6A60;
-}
-
-.file-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-top: 8px;
-}
-.replace-btn {
-  height: 48px;
-  padding: 0 20px;
-  border: 0.7px solid #E5DFD3;
-  border-radius: 10px;
-  background-color: #FCFBF8;
-  color: #3A3A3A;
-  font-size: 15px;
-  font-weight: 500;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: background-color 0.2s;
 }
-.replace-btn:hover { background-color: #F7F3EA; }
-.replace-btn .icon {
-  font-family: "remixicon", sans-serif;
-  font-style: normal;
-  font-size: 16px;
-}
-.extract-btn {
-  width: 200px;
-  height: 48px;
-  border: none;
-  border-radius: 10px;
-  background-color: #C0392B;
-  color: #fff;
-  font-size: 16px;
-  font-weight: 500;
-  font-family: "SourceHanSans-Medium", var(--font-family-cn);
-  cursor: pointer;
-  transition: opacity 0.2s, transform 0.15s;
-}
-.extract-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-.extract-btn:active { transform: translateY(0); }
 
 .file-input-hidden { display: none; }
 </style>
