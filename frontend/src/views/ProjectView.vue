@@ -12,7 +12,27 @@ import { UiModal, UiInput } from '@/components/ui';
 import { getParseStatus } from '@/api/upload';
 import { getExportSettings } from '@/api/settings';
 import apiClient from '@/api/client';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, AlignmentType } from 'docx';
+import Docxtemplater from 'docxtemplater';
+import PizZip from 'pizzip';
+import { saveAs } from 'file-saver';
+import JSZipUtils from 'jszip-utils';
+
+const exporting = ref(false);
+const exportProgress = ref(0);
+const exportStage = ref('');
+
+function paint() {
+  return new Promise<void>(r => setTimeout(r, 30));
+}
+
+function loadTemplateBytes(url: string): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    JSZipUtils.getBinaryContent(url, (err: Error | null, data: ArrayBuffer) => {
+      if (err) reject(err);
+      else resolve(data);
+    });
+  });
+}
 import { saveAs } from 'file-saver';
 
 const route = useRoute();
@@ -456,84 +476,165 @@ function exportMarkdown(grouped: Record<string, ExtractedField[]>, baseName: str
 }
 
 async function exportDocx(grouped: Record<string, ExtractedField[]>, baseName: string) {
+  if (exporting.value) return;
+  exporting.value = true;
+  exportProgress.value = 5;
+  exportStage.value = '正在加载模板…';
   try {
-    const children: (Paragraph | Table)[] = [
-      new Paragraph({
-        heading: HeadingLevel.TITLE,
-        children: [new TextRun({ text: `${baseName} — 提取结果`, bold: true, size: 44 })],
-      }),
-    ];
-    for (const g of ['info', 'business', 'tech', 'score', 'seal', 'star']) {
-      const rows = grouped[g];
-      if (!rows || rows.length === 0) continue;
-      children.push(new Paragraph({
-        heading: HeadingLevel.HEADING_1,
-        children: [new TextRun({ text: sectionLabels[g] || g, bold: true, size: 32 })],
-      }));
-      const header = ['字段', '内容', '所在页面'].map(t =>
-        new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: t, bold: true })] })],
-          shading: { fill: 'F2F2F2' },
-        }),
-      );
-      const body = rows.map(r => new TableRow({
-        children: [
-          new TableCell({ children: [new Paragraph(String(r.field || ''))] }),
-          new TableCell({ children: [new Paragraph(String(r.value || '—'))] }),
-          new TableCell({ children: [new Paragraph(String(r.page || ''))] }),
-        ],
-      }));
-      children.push(new Table({
-        rows: [new TableRow({ children: header }), ...body],
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        alignment: AlignmentType.CENTER,
-      }));
-    }
-    const blob = await Packer.toBlob(new Document({ sections: [{ children }] }));
-    triggerDownload(blob, `${baseName}.docx`);
+    await paint();
+    const tplUrl = `${import.meta.env.BASE_URL}template/extract-template.docx`;
+    const bytes = await loadTemplateBytes(tplUrl);
+    exportProgress.value = 25;
+    exportStage.value = '正在填充数据…';
+    await paint();
+    const zip = new PizZip(bytes);
+    const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+    const groups = ['info', 'business', 'tech', 'score', 'seal', 'star']
+      .map(g => ({
+        name: sectionLabels[g] || g,
+        rows: (grouped[g] || []).map(r => ({
+          field: String(r.field || ''),
+          value: String(r.value || '—'),
+          page: String(r.page || ''),
+        })),
+      }))
+      .filter(g => g.rows.length > 0);
+    doc.render({ title: `${baseName} — 提取结果`, groups });
+    exportProgress.value = 60;
+    exportStage.value = '正在生成文档…';
+    await paint();
+    const blob = doc.getZip().generate({
+      type: 'blob',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    });
+    exportProgress.value = 90;
+    exportStage.value = '正在保存文件…';
+    await paint();
+    saveAs(blob, `${baseName}.docx`);
+    exportProgress.value = 100;
+    exportStage.value = '';
     ElMessage.success('Docx 已导出');
-  } catch {
-    ElMessage.error('Docx 导出失败');
+  } catch (err: any) {
+    ElMessage.error('Docx 导出失败：' + (err?.message || '模板加载异常'));
+  } finally {
+    setTimeout(() => {
+      exporting.value = false;
+      exportProgress.value = 0;
+      exportStage.value = '';
+    }, 600);
   }
 }
 
-function exportPdf(grouped: Record<string, ExtractedField[]>, baseName: string) {
-  const esc = (s: string) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
-  let body = `<h1>${esc(baseName)} — 提取结果</h1>`;
-  for (const g of ['info', 'business', 'tech', 'score', 'seal', 'star']) {
-    const rows = grouped[g];
-    if (!rows || rows.length === 0) continue;
-    body += `<h2>${esc(sectionLabels[g] || g)}</h2><table><thead><tr><th>字段</th><th>内容</th><th>所在页面</th></tr></thead><tbody>`;
-    for (const row of rows) {
-      body += `<tr><td>${esc(row.field)}</td><td>${esc(row.value || '—')}</td><td>${esc(row.page || '')}</td></tr>`;
+async function exportPdf(grouped: Record<string, ExtractedField[]>, baseName: string) {
+  try {
+    const [{ PDFDocument, rgb }, fontkit] = await Promise.all([
+      import('pdf-lib'),
+      import('@pdf-lib/fontkit').then(m => m.default),
+    ]);
+    const [regBytes, boldBytes] = await Promise.all([
+      fetch('/fonts/NotoSansSC-Regular.otf').then(r => { if (!r.ok) throw new Error(); return r.arrayBuffer(); }),
+      fetch('/fonts/NotoSansSC-Bold.otf').then(r => { if (!r.ok) throw new Error(); return r.arrayBuffer(); }),
+    ]);
+    const pdf = await PDFDocument.create();
+    pdf.registerFontkit(fontkit as any);
+    const fontReg = await pdf.embedFont(regBytes);
+    const fontBold = await pdf.embedFont(boldBytes);
+
+    const PW = 595.28, PH = 841.89, M = 48;
+    const CW = PW - M * 2;
+    const fieldW = 110, pageW = 60, valueW = CW - fieldW - pageW;
+    const titleSize = 20, h2Size = 15, bodySize = 11, lineGap = 5, cellPad = 6;
+    const lineH = (s: number) => s + lineGap;
+
+    const wrap = (text: string, font: any, size: number, maxW: number): string[] => {
+      const out: string[] = [];
+      let line = '';
+      const push = () => { out.push(line); line = ''; };
+      for (const ch of String(text ?? '')) {
+        if (ch === '\n') { push(); continue; }
+        if (font.widthOfTextAtSize(line + ch, size) > maxW && line) push();
+        line += ch;
+      }
+      push();
+      return out.length ? out : [''];
+    };
+
+    let page = pdf.addPage([PW, PH]);
+    let y = PH - M;
+    const newPage = () => { page = pdf.addPage([PW, PH]); y = PH - M; };
+    const need = (h: number) => { if (y - h < M) newPage(); };
+
+    page.drawText(`${baseName} — 提取结果`, { x: M, y: y - titleSize, size: titleSize, font: fontBold });
+    y -= titleSize + 18;
+
+    const drawHeader = () => {
+      const h = lineH(bodySize) + cellPad * 2;
+      need(h);
+      const cols = [
+        { t: '字段', w: fieldW }, { t: '内容', w: valueW }, { t: '所在页面', w: pageW },
+      ];
+      let x = M;
+      for (const c of cols) {
+        page.drawRectangle({ x, y: y - h, width: c.w, height: h, color: rgb(0.95, 0.95, 0.95), borderColor: rgb(0.6, 0.6, 0.6), borderWidth: 0.7 });
+        page.drawText(c.t, { x: x + cellPad, y: y - cellPad - bodySize, size: bodySize, font: fontBold });
+        x += c.w;
+      }
+      y -= h;
+    };
+
+    const drawRow = (valueLines: string[][]) => {
+      // valueLines: already-wrapped lines per column [fieldLines, valueLines, pageLines]
+      let li = 0;
+      const total = Math.max(valueLines[0].length, valueLines[1].length, valueLines[2].length);
+      let firstChunk = true;
+      while (li < total) {
+        const availH = y - M;
+        const perLine = lineH(bodySize);
+        const fitLines = Math.max(1, Math.floor((availH - cellPad * 2) / perLine));
+        const chunk = [0, 1, 2].map(ci => valueLines[ci].slice(li, li + fitLines));
+        const used = Math.max(chunk[0].length, chunk[1].length, chunk[2].length);
+        const h = used * perLine + cellPad * 2;
+        if (!firstChunk || h > availH) { newPage(); drawHeader(); }
+        const colX = [M, M + fieldW, M + fieldW + valueW];
+        const colW = [fieldW, valueW, pageW];
+        const fonts = [fontReg, fontReg, fontReg];
+        for (let ci = 0; ci < 3; ci++) {
+          page.drawRectangle({ x: colX[ci], y: y - h, width: colW[ci], height: h, borderColor: rgb(0.6, 0.6, 0.6), borderWidth: 0.7 });
+          chunk[ci].forEach((ln, k) => {
+            page.drawText(ln || ' ', { x: colX[ci] + cellPad, y: y - cellPad - bodySize - k * perLine, size: bodySize, font: fonts[ci] });
+          });
+        }
+        y -= h;
+        li += fitLines;
+        firstChunk = false;
+      }
+    };
+
+    for (const g of ['info', 'business', 'tech', 'score', 'seal', 'star']) {
+      const rows = grouped[g];
+      if (!rows || rows.length === 0) continue;
+      need(lineH(h2Size) + 14);
+      page.drawText(sectionLabels[g] || g, { x: M, y: y - h2Size, size: h2Size, font: fontBold });
+      y -= h2Size + 10;
+      drawHeader();
+      for (const row of rows) {
+        drawRow(
+          [
+            wrap(row.field, fontReg, bodySize, fieldW - cellPad * 2),
+            wrap(row.value || '—', fontReg, bodySize, valueW - cellPad * 2),
+            wrap(row.page || '', fontReg, bodySize, pageW - cellPad * 2),
+          ],
+        );
+      }
+      y -= 10;
     }
-    body += '</tbody></table>';
-  }
-  const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>${esc(baseName)} — 提取结果</title>`
-    + `<style>body{font-family:sans-serif;color:#111;padding:24px;}h1{font-size:22px;margin-bottom:16px;}h2{font-size:17px;margin:24px 0 8px;}table{width:100%;border-collapse:collapse;font-size:13px;}th,td{border:1px solid #999;padding:6px 10px;text-align:left;vertical-align:top;}thead{background:#f0f0f0;}</style>`
-    + `</head><body>${body}</body></html>`;
-  const frame = document.createElement('iframe');
-  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
-  document.body.appendChild(frame);
-  const doc = frame.contentDocument || frame.contentWindow?.document;
-  if (!doc) {
-    document.body.removeChild(frame);
+
+    const bytes = await pdf.save();
+    saveAs(new Blob([bytes as any], { type: 'application/pdf' }), `${baseName}.pdf`);
+    ElMessage.success('PDF 已导出');
+  } catch {
     ElMessage.error('PDF 导出失败');
-    return;
   }
-  doc.open();
-  doc.write(html);
-  doc.close();
-  frame.onload = () => {
-    setTimeout(() => {
-      frame.contentWindow?.focus();
-      frame.contentWindow?.print();
-      setTimeout(() => document.body.removeChild(frame), 1000);
-      ElMessage.success('已调起打印，请选择另存为 PDF');
-    }, 300);
-  };
-  // 兜底：部分浏览器 iframe onload 不触发
-  setTimeout(() => { if (document.body.contains(frame)) { try { frame.contentWindow?.print(); } catch {} } }, 1500);
 }
 
 function triggerDownload(blob: Blob, filename: string) {
@@ -569,10 +670,14 @@ function triggerDownload(blob: Blob, filename: string) {
               <span class="icon ri-eye-line"></span>
               <span>预览</span>
             </button>
-            <button class="btn-outline" @click="handleExport">
-              <span class="icon ri-download-2-line"></span>
-              <span>导出</span>
+            <button class="btn-outline" @click="handleExport" :disabled="exporting">
+              <span v-if="exporting" class="icon ri-loader-4-line spinning"></span>
+              <span v-else class="icon ri-download-2-line"></span>
+              <span>{{ exporting ? (exportStage || '导出中…') : '导出' }}</span>
             </button>
+            <div v-if="exporting" class="export-progress">
+              <div class="export-progress-bar" :style="{ width: exportProgress + '%' }"></div>
+            </div>
           </div>
         </div>
 
@@ -784,6 +889,22 @@ function triggerDownload(blob: Blob, filename: string) {
 }
 .btn-outline:hover {
   background-color: var(--color-bg-secondary, #F7F3EA);
+}
+.btn-outline:disabled { opacity: 0.7; cursor: wait; }
+.btn-outline .spinning { animation: spin 1s linear infinite; display: inline-flex; }
+.export-progress {
+  width: 140px;
+  height: 5px;
+  border-radius: 9999px;
+  background-color: var(--color-bg-secondary, #F7F3EA);
+  overflow: hidden;
+  align-self: center;
+}
+.export-progress-bar {
+  height: 100%;
+  border-radius: 9999px;
+  background-color: var(--color-primary, #C0392B);
+  transition: width 0.25s ease;
 }
 .btn-outline .icon {
   font-family: "remixicon", sans-serif;
