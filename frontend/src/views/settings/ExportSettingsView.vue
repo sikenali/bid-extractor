@@ -165,8 +165,8 @@ onMounted(() => {
 
 /* 页面头部卡片 */
 .page-header-card {
-  background-color: #FFFFFF;
-  border: 0.7px solid #EFECE3;
+  background-color: var(--color-bg-white, #FFFFFF);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 16px;
   padding: 20px 24px;
 }
@@ -190,19 +190,19 @@ onMounted(() => {
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .breadcrumb span {
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
 }
 .breadcrumb span.sep {
-  color: #C9C3B6;
+  color: var(--color-text-faint, #A7A296);
 }
 .breadcrumb span.current {
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   font-weight: 500;
 }
 .header-title h1 {
   font-size: 30px;
   font-weight: 700;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   margin: 12px 0 0 0;
   letter-spacing: -0.5px;
   font-family: "SourceHanSans-Bold", var(--font-family-cn);
@@ -210,7 +210,7 @@ onMounted(() => {
 }
 .header-title p {
   font-size: 15px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   margin: 8px 0 0 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
@@ -220,18 +220,18 @@ onMounted(() => {
   gap: 8px;
   padding: 0 20px;
   height: 48px;
-  border: 0.7px solid #E8E4D8;
-  background-color: #FFFFFF;
+  border: 0.7px solid var(--color-border, #E5DFD3);
+  background-color: var(--color-bg-white, #FFFFFF);
   border-radius: 12px;
   font-size: 15px;
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .reset-button:hover {
-  background-color: #F7F4EA;
+  background-color: var(--color-bg-secondary, #F7F3EA);
 }
 .reset-button .icon {
   font-family: "remixicon", sans-serif;
@@ -241,15 +241,15 @@ onMounted(() => {
 
 /* 通用卡片 */
 .section-card {
-  background-color: #FFFFFF;
-  border: 0.7px solid #EFECE3;
+  background-color: var(--color-bg-white, #FFFFFF);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 16px;
   padding: 24px 40px;
 }
 .card-title {
   font-size: 17px;
   font-weight: 500;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 
@@ -281,12 +281,12 @@ onMounted(() => {
 .setting-name {
   font-size: 16px;
   font-weight: 500;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 .setting-desc {
   font-size: 15px;
-  color: #8A8578;
+  color: var(--color-text-muted, #8A8578);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 </style>

@@ -159,7 +159,7 @@ onUnmounted(() => {
   justify-content: center;
 }
 .ui-tab.is-active .ui-tab-badge { background-color: var(--color-primary, #C0392B); }
-.ui-tab:not(.is-active) .ui-tab-badge { background-color: #C9C3B6; }
+.ui-tab:not(.is-active) .ui-tab-badge { background-color: var(--color-text-faint, #A7A296); }
 
 .ui-tab-indicator {
   position: absolute;

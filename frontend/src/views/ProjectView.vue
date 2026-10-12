@@ -618,14 +618,14 @@ function triggerDownload(blob: Blob, filename: string) {
 }
 .sidebar {
   width: 300px;
-  background-color: #FFFFFF;
+  background-color: var(--color-bg-white, #FFFFFF);
   padding: 24px 20px;
-  border-right: 0.7px solid #EDE9E0;
+  border-right: 0.7px solid var(--color-border-soft, #EDE9E0);
 }
 .sidebar-title {
   padding: 0 12px;
   font-size: 15px;
-  color: #8A8578;
+  color: var(--color-text-muted, #8A8578);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
   margin-bottom: 16px;
 }
@@ -644,21 +644,21 @@ function triggerDownload(blob: Blob, filename: string) {
   transition: background-color 0.2s;
 }
 .sidebar-item:hover {
-  background-color: #F7F5EF;
+  background-color: var(--color-bg-secondary, #F7F3EA);
 }
 .sidebar-item.active {
-  background-color: #FBE9E7;
+  background-color: var(--color-primary-soft, #FBE9E7);
 }
 .sidebar-item-label {
   font-size: 16px;
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .sidebar-item-count {
   color: inherit;
 }
 .sidebar-item.active .sidebar-item-label {
-  color: #C0392B;
+  color: var(--color-primary, #C0392B);
   font-weight: 500;
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
@@ -681,7 +681,7 @@ function triggerDownload(blob: Blob, filename: string) {
   font-size: 22px;
   font-weight: 700;
   font-family: "SourceHanSans-Bold", var(--font-family-cn);
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   line-height: 1.2;
 }
 .action-group {
@@ -695,29 +695,29 @@ function triggerDownload(blob: Blob, filename: string) {
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 0.7px solid #E5DFD3;
+  border: 0.7px solid var(--color-border, #E5DFD3);
   border-radius: 10px;
-  background-color: #FCFBF8;
+  background-color: var(--color-bg-card, #FCFBF8);
   font-size: 15px;
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
   cursor: pointer;
   transition: background-color 0.2s;
 }
 .btn-outline:hover {
-  background-color: #F7F3EA;
+  background-color: var(--color-bg-secondary, #F7F3EA);
 }
 .btn-outline .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 17px;
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
 }
 
 .table-card {
-  border: 0.7px solid #EDE9E0;
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 12px;
-  background-color: #FFFFFF;
+  background-color: var(--color-bg-white, #FFFFFF);
   overflow: hidden;
 }
 .extract-table {
@@ -725,14 +725,14 @@ function triggerDownload(blob: Blob, filename: string) {
   border-collapse: collapse;
 }
 .extract-table thead tr {
-  background-color: #F7F3EA;
+  background-color: var(--color-bg-secondary, #F7F3EA);
 }
 .extract-table th {
   height: 54px;
   padding: 0 24px;
   font-size: 15px;
   font-weight: 400;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   text-align: left;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
@@ -760,23 +760,23 @@ function triggerDownload(blob: Blob, filename: string) {
   padding: 0 24px;
   font-size: 16px;
   vertical-align: middle;
-  border-top: 0.7px solid #EDE9E0;
+  border-top: 0.7px solid var(--color-border-soft, #EDE9E0);
   box-sizing: border-box;
 }
 .extract-table tbody tr:nth-child(2n) {
-  background-color: #FDFCF9;
+  background-color: var(--color-bg-card, #FCFBF8);
 }
 .data-row .col-name {
   font-weight: 500;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 .data-row .col-value {
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .page-link {
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
   cursor: pointer;
 }
@@ -801,14 +801,14 @@ function triggerDownload(blob: Blob, filename: string) {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 18px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
 }
-.icon-btn:hover .icon { color: #C0392B; }
+.icon-btn:hover .icon { color: var(--color-primary, #C0392B); }
 .empty-row td {
   height: auto;
   padding: 48px 0;
   text-align: center;
-  color: #8A8578;
+  color: var(--color-text-muted, #8A8578);
   font-size: 13px;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
@@ -830,7 +830,7 @@ function triggerDownload(blob: Blob, filename: string) {
 }
 .score-label {
   font-size: 16px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .score-pill {
@@ -838,16 +838,16 @@ function triggerDownload(blob: Blob, filename: string) {
   padding: 0 16px;
   border: 0.7px solid #E5DCC2;
   border-radius: 8px;
-  background-color: #FFFFFF;
+  background-color: var(--color-bg-white, #FFFFFF);
   display: flex;
   align-items: center;
   font-size: 15px;
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .score-note {
   font-size: 15px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 
@@ -858,7 +858,7 @@ function triggerDownload(blob: Blob, filename: string) {
 }
 .page-info {
   font-size: 15px;
-  color: #8A8578;
+  color: var(--color-text-muted, #8A8578);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .pagination {
@@ -869,9 +869,9 @@ function triggerDownload(blob: Blob, filename: string) {
 .page-btn {
   width: 34px;
   height: 34px;
-  border: 0.7px solid #E5DFD3;
+  border: 0.7px solid var(--color-border, #E5DFD3);
   border-radius: 8px;
-  background-color: #FCFBF8;
+  background-color: var(--color-bg-card, #FCFBF8);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -882,16 +882,16 @@ function triggerDownload(blob: Blob, filename: string) {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 18px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
 }
 .page-num {
   width: 34px;
   height: 34px;
-  border: 0.7px solid #E5DFD3;
+  border: 0.7px solid var(--color-border, #E5DFD3);
   border-radius: 8px;
-  background-color: #FCFBF8;
+  background-color: var(--color-bg-card, #FCFBF8);
   font-size: 15px;
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -899,8 +899,8 @@ function triggerDownload(blob: Blob, filename: string) {
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .page-num.active {
-  background-color: #C0392B;
-  border-color: #C0392B;
+  background-color: var(--color-primary, #C0392B);
+  border-color: var(--color-primary, #C0392B);
   color: #fff;
   font-weight: 500;
 }
@@ -921,15 +921,15 @@ function triggerDownload(blob: Blob, filename: string) {
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #EDE9E0;
-  border-top-color: #C0392B;
+  border: 3px solid var(--color-border-soft, #EDE9E0);
+  border-top-color: var(--color-primary, #C0392B);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading-text {
   font-size: 14px;
-  color: #8A8578;
+  color: var(--color-text-muted, #8A8578);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .error-box {
@@ -949,14 +949,14 @@ function triggerDownload(blob: Blob, filename: string) {
   margin-left: auto;
   padding: 6px 16px;
   border-radius: 6px;
-  border: 1px solid #C0392B;
+  border: 1px solid var(--color-primary, #C0392B);
   background: transparent;
-  color: #C0392B;
+  color: var(--color-primary, #C0392B);
   font-size: 13px;
   cursor: pointer;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
   transition: background 0.2s, color 0.2s;
 }
-.retry-btn:hover { background: #C0392B; color: #fff; }
+.retry-btn:hover { background: var(--color-primary, #C0392B); color: #fff; }
 .table-card.is-loading { position: relative; }
 </style>

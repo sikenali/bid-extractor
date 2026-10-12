@@ -1,12 +1,18 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import SettingsModal from '@/components/layout/SettingsModal.vue';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   title?: string;
   brand?: string;
-}>();
+  showBack?: boolean;
+}>(), {
+  showBack: true,
+});
 
 const router = useRouter();
+const showSettingsModal = ref(false);
 </script>
 
 <template>
@@ -20,13 +26,14 @@ const router = useRouter();
       <span class="page-title">{{ title || '' }}</span>
     </div>
     <div class="nav-right">
-      <button class="nav-btn" title="返回" @click="router.back()">
+      <button v-if="showBack" class="nav-btn" title="返回上传主界面" @click="router.push('/upload')">
         <span class="ri-arrow-left-s-line icon"></span>
       </button>
-      <button class="nav-btn" title="设置" @click="router.push('/settings/theme')">
+      <button class="nav-btn" title="设置" @click="showSettingsModal = true">
         <span class="ri-settings-3-line icon"></span>
       </button>
     </div>
+    <SettingsModal v-model:visible="showSettingsModal" />
   </header>
 </template>
 
@@ -37,8 +44,8 @@ const router = useRouter();
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #FFFFFF;
-  border-bottom: 0.7px solid #EDE9E0;
+  background-color: var(--color-bg-white, #FFFFFF);
+  border-bottom: 0.7px solid var(--color-border-soft, #EDE9E0);
 }
 .nav-left {
   display: flex;
@@ -49,7 +56,7 @@ const router = useRouter();
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background-color: #FBE9E7;
+  background-color: var(--color-primary-soft, #FBE9E7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -58,23 +65,23 @@ const router = useRouter();
   width: 9px;
   height: 8px;
   border-radius: 50%;
-  background-color: #C0392B;
+  background-color: var(--color-primary, #C0392B);
 }
 .brand-cn {
   font-size: 20px;
   font-weight: 700;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Bold", var(--font-family-cn);
   line-height: 1.2;
 }
 .divider {
   width: 2px;
   height: 20px;
-  background-color: #E5DFD3;
+  background-color: var(--color-border, #E5DFD3);
 }
 .page-title {
   font-size: 16px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
   line-height: 1.2;
 }
@@ -87,8 +94,8 @@ const router = useRouter();
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  border: 0.7px solid #E5DFD3;
-  background-color: #FFFFFF;
+  border: 0.7px solid var(--color-border, #E5DFD3);
+  background-color: var(--color-bg-white, #FFFFFF);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,12 +103,12 @@ const router = useRouter();
   transition: background-color 0.2s ease;
 }
 .nav-btn:hover {
-  background-color: #F7F3EA;
+  background-color: var(--color-bg-secondary, #F7F3EA);
 }
 .nav-btn .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 20px;
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
 }
 </style>

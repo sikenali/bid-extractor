@@ -39,17 +39,17 @@ onMounted(() => { year.value = new Date().getFullYear() })
 }
 .footer-left:hover {
   border-color: rgba(196, 58, 49, 0.4);
-  color: rgba(196, 58, 49, 1);
+  color: var(--color-primary, #C0392B);
 }
 .footer-mark {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 14px;
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
 }
 .footer-copy {
   font-size: 14px;
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
 }
 .footer-link {
   color: var(--color-primary);
@@ -64,11 +64,11 @@ onMounted(() => { year.value = new Date().getFullYear() })
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 18px;
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
   cursor: pointer;
   transition: color 0.2s;
 }
 .footer-right:hover {
-  color: rgba(196, 58, 49, 1);
+  color: var(--color-primary, #C0392B);
 }
 </style>

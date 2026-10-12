@@ -51,7 +51,7 @@ function toggle() {
   border-radius: 9999px;
   padding: 3px;
   cursor: pointer;
-  background-color: #E3E0D6;
+  background-color: var(--color-border, #E5DFD3);
   transition: background-color 0.22s ease, opacity 0.2s;
   display: flex;
   justify-content: flex-start;

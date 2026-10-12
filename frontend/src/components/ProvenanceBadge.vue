@@ -21,5 +21,5 @@ const hasProvenance = computed(() => props.page != null || !!props.chapter);
 
 <style scoped>
 .prov-badge { cursor: pointer; margin-left: 8px; }
-.prov-source { margin-top: 4px; color: #909399; font-size: 12px; }
+.prov-source { margin-top: 4px; color: var(--color-text-faint, #A7A296); font-size: 12px; }
 </style>

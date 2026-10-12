@@ -18,7 +18,7 @@ function handleSuccess(jobId: string) {
 
 <template>
   <div class="upload-view">
-    <TopNav title="上传招标文件" />
+    <TopNav title="智能标书解决方案平台-提取" :show-back="false" />
 
     <div class="upload-body">
       <UploadCard @success="handleSuccess" />
@@ -36,7 +36,7 @@ function handleSuccess(jobId: string) {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #FAF7F2;
+  background-color: var(--color-bg-main, #FAF7F2);
 }
 .upload-body {
   flex: 1;

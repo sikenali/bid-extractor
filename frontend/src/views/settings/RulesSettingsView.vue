@@ -161,8 +161,8 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
 }
 
 .page-header-card {
-  background-color: #FFFFFF;
-  border: 0.7px solid #EFECE3;
+  background-color: var(--color-bg-white, #FFFFFF);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 16px;
   padding: 20px 24px;
 }
@@ -186,19 +186,19 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .breadcrumb span {
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
 }
 .breadcrumb span.sep {
-  color: #C9C3B6;
+  color: var(--color-text-faint, #A7A296);
 }
 .breadcrumb span.current {
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   font-weight: 500;
 }
 .header-title h1 {
   font-size: 30px;
   font-weight: 700;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   margin: 12px 0 0 0;
   letter-spacing: -0.5px;
   font-family: "SourceHanSans-Bold", var(--font-family-cn);
@@ -206,7 +206,7 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
 }
 .header-title p {
   font-size: 15px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   margin: 8px 0 0 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
@@ -216,18 +216,18 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
   gap: 8px;
   padding: 0 20px;
   height: 48px;
-  border: 0.7px solid #E8E4D8;
-  background-color: #FFFFFF;
+  border: 0.7px solid var(--color-border, #E5DFD3);
+  background-color: var(--color-bg-white, #FFFFFF);
   border-radius: 12px;
   font-size: 15px;
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .reset-button:hover {
-  background-color: #F7F4EA;
+  background-color: var(--color-bg-secondary, #F7F3EA);
 }
 .reset-button .icon {
   font-family: "remixicon", sans-serif;
@@ -246,7 +246,7 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
   gap: 8px;
   padding: 0 20px;
   height: 46px;
-  background-color: #C6A45C;
+  background-color: var(--color-primary, #C0392B);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -271,23 +271,23 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
   padding: 0 16px;
   height: 46px;
   width: 548px;
-  border: 0.7px solid #E8E4D8;
-  background-color: #FFFFFF;
+  border: 0.7px solid var(--color-border, #E5DFD3);
+  background-color: var(--color-bg-white, #FFFFFF);
   border-radius: 10px;
   font-size: 15px;
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .search-box .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 18px;
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
 }
 
 .table-card {
-  background-color: #FFFFFF;
-  border: 0.7px solid #EFECE3;
+  background-color: var(--color-bg-white, #FFFFFF);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 16px;
   overflow: hidden;
 }
@@ -296,13 +296,13 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
   border-collapse: collapse;
 }
 .rule-table thead {
-  background-color: #F7F4EA;
+  background-color: var(--color-bg-secondary, #F7F3EA);
 }
 .rule-table thead tr th {
   text-align: left;
   font-size: 15px;
   font-weight: 400;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   padding: 0 40px;
   height: 52px;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
@@ -314,7 +314,7 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
   padding: 0 40px;
   height: 76px;
   vertical-align: middle;
-  border-bottom: 0.7px solid #F0EDE4;
+  border-bottom: 0.7px solid var(--color-border-soft, #EDE9E0);
 }
 .rule-table tbody tr td:last-child {
   text-align: right;
@@ -322,12 +322,12 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
 .rule-name {
   font-size: 16px;
   font-weight: 500;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 .rule-desc {
   font-size: 15px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .rule-actions {
@@ -353,7 +353,7 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
   display: flex;
   align-items: center;
   font-size: 14px;
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 </style>

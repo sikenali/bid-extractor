@@ -92,9 +92,7 @@ function selectAccent(key: string) {
   const accent = accents.find(a => a.key === key);
   if (!accent) return;
   localStorage.setItem('accent', key);
-  localStorage.setItem('accent-color', accent.color);
-  const root = document.documentElement;
-  root.style.setProperty('--color-primary', accent.color);
+  themeStore.applyAccent(accent.color);
 }
 
 function selectLayout(key: string) {
@@ -110,9 +108,8 @@ function resetAll() {
   themeStore.setTheme('parchment');
   saveTheme('parchment').catch(() => {});
   localStorage.setItem('accent', 'vermilion');
-  localStorage.setItem('accent-color', '#BE3B2E');
+  themeStore.applyAccent('#BE3B2E');
   localStorage.setItem('layout', 'sidebar');
-  document.documentElement.style.setProperty('--color-primary', '#BE3B2E');
   ElMessage.success('已恢复默认');
 }
 </script>
@@ -272,8 +269,8 @@ function resetAll() {
 
 /* 页面头部卡片 */
 .page-header-card {
-  background-color: #FFFFFF;
-  border: 0.7px solid #EFECE3;
+  background-color: var(--color-bg-white, #FFFFFF);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 16px;
   padding: 20px 24px;
 }
@@ -297,19 +294,19 @@ function resetAll() {
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .breadcrumb span {
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
 }
 .breadcrumb span.sep {
-  color: #C9C3B6;
+  color: var(--color-text-faint, #A7A296);
 }
 .breadcrumb span.current {
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   font-weight: 500;
 }
 .header-title h1 {
   font-size: 30px;
   font-weight: 700;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   margin: 12px 0 0 0;
   letter-spacing: -0.5px;
   font-family: "SourceHanSans-Bold", var(--font-family-cn);
@@ -317,7 +314,7 @@ function resetAll() {
 }
 .header-title p {
   font-size: 15px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   margin: 8px 0 0 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
@@ -327,18 +324,18 @@ function resetAll() {
   gap: 8px;
   padding: 0 20px;
   height: 48px;
-  border: 0.7px solid #E8E4D8;
-  background-color: #FFFFFF;
+  border: 0.7px solid var(--color-border, #E5DFD3);
+  background-color: var(--color-bg-white, #FFFFFF);
   border-radius: 12px;
   font-size: 15px;
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .reset-button:hover {
-  background-color: #F7F4EA;
+  background-color: var(--color-bg-secondary, #F7F3EA);
 }
 .reset-button .icon {
   font-family: "remixicon", sans-serif;
@@ -348,15 +345,15 @@ function resetAll() {
 
 /* 通用卡片 */
 .section-card {
-  background-color: #FFFFFF;
-  border: 0.7px solid #EFECE3;
+  background-color: var(--color-bg-white, #FFFFFF);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 16px;
   padding: 24px 28px;
 }
 .card-title {
   font-size: 17px;
   font-weight: 500;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 
@@ -377,8 +374,8 @@ function resetAll() {
 .theme-preview-card {
   flex: 1;
   position: relative;
-  border: 0.7px solid #EFECE3;
-  background-color: #FFFFFF;
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
+  background-color: var(--color-bg-white, #FFFFFF);
   border-radius: 14px;
   padding: 24px;
   cursor: pointer;
@@ -413,12 +410,12 @@ function resetAll() {
 .preview-info .preview-name {
   font-size: 16px;
   font-weight: 500;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 .preview-info .preview-desc {
   font-size: 14px;
-  color: #8A8578;
+  color: var(--color-text-muted, #8A8578);
   margin-top: 8px;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
@@ -452,11 +449,11 @@ function resetAll() {
 }
 .accent-name {
   font-size: 15px;
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .accent-name.current {
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-weight: 500;
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
@@ -470,8 +467,8 @@ function resetAll() {
 .layout-card {
   flex: 1;
   position: relative;
-  border: 0.7px solid #EFECE3;
-  background-color: #FFFFFF;
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
+  background-color: var(--color-bg-white, #FFFFFF);
   border-radius: 14px;
   padding: 24px;
   cursor: pointer;
@@ -607,12 +604,12 @@ function resetAll() {
 .layout-info .layout-name {
   font-size: 16px;
   font-weight: 500;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 .layout-info .layout-desc {
   font-size: 14px;
-  color: #8A8578;
+  color: var(--color-text-muted, #8A8578);
   margin: 8px 0 0 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }

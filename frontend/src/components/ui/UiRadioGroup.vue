@@ -87,8 +87,8 @@ function pick(opt: UiRadioOption, disabled?: boolean) {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 1.5px solid #D4CFC2;
-  background-color: #fff;
+  border: 1.5px solid var(--color-border, #E5DFD3);
+  background-color: var(--color-bg-white, #fff);
   display: flex;
   align-items: center;
   justify-content: center;

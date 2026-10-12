@@ -4,6 +4,8 @@ import { getTheme as getThemeFromAPI, setTheme as setThemeToAPI } from '@/api/se
 
 export type ThemeType = 'parchment' | 'dark' | 'white';
 
+const ACCENT_KEY = 'accent-color';
+
 const themeTokens: Record<ThemeType, Record<string, string>> = {
   parchment: {
     '--color-primary': '#C0392B',
@@ -13,10 +15,19 @@ const themeTokens: Record<ThemeType, Record<string, string>> = {
     '--color-bg-card': '#FCFBF8',
     '--color-bg-white': '#FFFFFF',
     '--color-text-primary': '#1F1D1A',
+    '--color-text-body': '#3A3A3A',
     '--color-text-secondary': '#6E6A60',
     '--color-text-muted': '#8A8578',
+    '--color-text-faint': '#A7A296',
     '--color-border': '#E5DFD3',
     '--color-border-soft': '#EDE9E0',
+    '--color-success': '#4E9B7A',
+    '--color-success-strong': '#3E8A6B',
+    '--color-success-soft': '#E4F0EA',
+    '--color-warning': '#F39C12',
+    '--color-warning-soft': '#FEF5E7',
+    '--color-error': '#E74C3C',
+    '--color-error-soft': '#FADCDA',
   },
   dark: {
     '--color-primary': '#E05050',
@@ -26,10 +37,19 @@ const themeTokens: Record<ThemeType, Record<string, string>> = {
     '--color-bg-card': '#2A2A4A',
     '--color-bg-white': '#1E1E38',
     '--color-text-primary': '#E0E0E0',
+    '--color-text-body': '#D2D2DE',
     '--color-text-secondary': '#A0A0B0',
-    '--color-text-muted': '#707080',
+    '--color-text-muted': '#8A8A98',
+    '--color-text-faint': '#6E6E80',
     '--color-border': '#3A3A5A',
     '--color-border-soft': '#3A3A5A',
+    '--color-success': '#5CB98C',
+    '--color-success-strong': '#7BC8A4',
+    '--color-success-soft': '#1D3329',
+    '--color-warning': '#F2B23E',
+    '--color-warning-soft': '#38300F',
+    '--color-error': '#E86A5A',
+    '--color-error-soft': '#3A2326',
   },
   white: {
     '--color-primary': '#C0392B',
@@ -39,15 +59,37 @@ const themeTokens: Record<ThemeType, Record<string, string>> = {
     '--color-bg-card': '#F5F5F5',
     '--color-bg-white': '#FFFFFF',
     '--color-text-primary': '#1A1A1A',
+    '--color-text-body': '#3A3A3A',
     '--color-text-secondary': '#666666',
-    '--color-text-muted': '#999999',
+    '--color-text-muted': '#8A8578',
+    '--color-text-faint': '#A7A296',
     '--color-border': '#E0E0E0',
     '--color-border-soft': '#E0E0E0',
+    '--color-success': '#4E9B7A',
+    '--color-success-strong': '#3E8A6B',
+    '--color-success-soft': '#E4F0EA',
+    '--color-warning': '#F39C12',
+    '--color-warning-soft': '#FEF5E7',
+    '--color-error': '#E74C3C',
+    '--color-error-soft': '#FADCDA',
   },
 };
 
 export const useThemeStore = defineStore('theme', () => {
   const currentTheme = ref<ThemeType>('parchment');
+  const currentAccent = ref<string | null>(null);
+
+  function applyAccent(color: string | null) {
+    const root = document.documentElement;
+    if (color) {
+      root.style.setProperty('--color-primary', color);
+      localStorage.setItem(ACCENT_KEY, color);
+    } else {
+      root.style.removeProperty('--color-primary');
+      localStorage.removeItem(ACCENT_KEY);
+    }
+    currentAccent.value = color;
+  }
 
   async function loadTheme() {
     try {
@@ -66,14 +108,25 @@ export const useThemeStore = defineStore('theme', () => {
     if (saved && themeTokens[saved]) {
       currentTheme.value = saved;
       applyTheme(saved);
+    } else {
+      applyTheme(currentTheme.value);
     }
   }
 
   function applyTheme(theme: ThemeType) {
     const root = document.documentElement;
+    root.dataset.theme = theme;
     const tokens = themeTokens[theme];
     for (const [key, value] of Object.entries(tokens)) {
       root.style.setProperty(key, value);
+    }
+    // 强调色覆盖主题默认 primary（持久化，切换主题不丢失）
+    const accent = localStorage.getItem(ACCENT_KEY);
+    if (accent) {
+      root.style.setProperty('--color-primary', accent);
+      currentAccent.value = accent;
+    } else {
+      currentAccent.value = null;
     }
   }
 
@@ -88,5 +141,5 @@ export const useThemeStore = defineStore('theme', () => {
     }
   }
 
-  return { currentTheme, loadTheme, setTheme };
+  return { currentTheme, currentAccent, loadTheme, setTheme, applyAccent };
 });

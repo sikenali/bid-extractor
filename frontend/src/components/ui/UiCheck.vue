@@ -47,8 +47,8 @@ withDefaults(defineProps<{
   justify-content: center;
   border-radius: 50%;
   flex-shrink: 0;
-  border: 1.5px solid #D4CFC2;
-  background-color: #fff;
+  border: 1.5px solid var(--color-border, #E5DFD3);
+  background-color: var(--color-bg-white, #fff);
   color: transparent;
   transition: background-color 0.18s, border-color 0.18s, color 0.18s;
 }

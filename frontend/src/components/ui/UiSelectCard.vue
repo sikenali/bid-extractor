@@ -93,7 +93,7 @@ function onClick() {
   outline: none;
 }
 .ui-select-card:hover:not(.is-disabled) {
-  border-color: #D4C4A8;
+  border-color: var(--color-border, #E5DFD3);
   box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
 }
 .ui-select-card:active:not(.is-disabled) { transform: translateY(1px); }

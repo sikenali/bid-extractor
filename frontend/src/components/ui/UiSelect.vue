@@ -138,15 +138,15 @@ onUnmounted(() => {
 }
 .is-md .ui-select-btn { height: 44px; }
 .is-sm .ui-select-btn { height: 36px; font-size: 13px; }
-.ui-select-btn:hover:not(:disabled) { border-color: #D4C4A8; }
+.ui-select-btn:hover:not(:disabled) { border-color: var(--color-border, #E5DFD3); }
 .is-open .ui-select-btn, .ui-select-btn:focus-visible {
   border-color: var(--color-primary, #C0392B);
-  background-color: #fff;
+  background-color: var(--color-bg-white, #fff);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary, #C0392B) 12%, transparent);
 }
 .ui-select-value { flex: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ui-select-value.is-empty { color: #C9C3B6; }
-.ui-select-arrow { font-size: 15px; color: #A7A296; transition: transform 0.2s; font-style: normal; }
+.ui-select-value.is-empty { color: var(--color-text-faint, #A7A296); }
+.ui-select-arrow { font-size: 15px; color: var(--color-text-faint, #A7A296); transition: transform 0.2s; font-style: normal; }
 .ui-select-arrow.is-open { transform: rotate(180deg); color: var(--color-primary, #C0392B); }
 .is-disabled .ui-select-btn { background-color: var(--color-bg-secondary, #F7F3EA); color: var(--color-text-muted, #8A8578); cursor: not-allowed; }
 

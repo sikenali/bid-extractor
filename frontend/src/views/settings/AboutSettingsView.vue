@@ -15,10 +15,10 @@ const router = useRouter();
             <span class="sep">/</span>
             <span>设置中心</span>
             <span class="sep">/</span>
-            <span class="current">关于回旋镖</span>
+            <span class="current">关于</span>
           </div>
           <div class="header-title">
-            <h1>关于回旋镖</h1>
+            <h1>关于</h1>
             <p>版本信息、开源仓库与版权声明</p>
           </div>
         </div>
@@ -33,7 +33,7 @@ const router = useRouter();
     <div class="about-card">
       <div class="about-badge">
         <svg width="34" height="35" viewBox="-17 -17.5 34 35" xmlns="http://www.w3.org/2000/svg">
-          <path d="M 10 42 C 17 23 30 11 44 9 C 43 24 30 37 12 44 Z" transform="translate(-27, -26.5)" fill="#BE3B2E"/>
+          <path d="M 10 42 C 17 23 30 11 44 9 C 43 24 30 37 12 44 Z" transform="translate(-27, -26.5)" fill="var(--color-primary, #BE3B2E)"/>
         </svg>
       </div>
 
@@ -65,8 +65,8 @@ const router = useRouter();
 
 /* 页面头部卡片 */
 .page-header-card {
-  background-color: #FFFFFF;
-  border: 0.7px solid #EFECE3;
+  background-color: var(--color-bg-white, #FFFFFF);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 16px;
   padding: 20px 24px;
 }
@@ -90,19 +90,19 @@ const router = useRouter();
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .breadcrumb span {
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
 }
 .breadcrumb span.sep {
-  color: #C9C3B6;
+  color: var(--color-text-faint, #A7A296);
 }
 .breadcrumb span.current {
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   font-weight: 500;
 }
 .header-title h1 {
   font-size: 30px;
   font-weight: 700;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   margin: 12px 0 0 0;
   letter-spacing: -0.5px;
   font-family: "SourceHanSans-Bold", var(--font-family-cn);
@@ -110,7 +110,7 @@ const router = useRouter();
 }
 .header-title p {
   font-size: 15px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   margin: 8px 0 0 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
@@ -120,18 +120,18 @@ const router = useRouter();
   gap: 8px;
   padding: 0 20px;
   height: 48px;
-  border: 0.7px solid #E8E4D8;
-  background-color: #FFFFFF;
+  border: 0.7px solid var(--color-border, #E5DFD3);
+  background-color: var(--color-bg-white, #FFFFFF);
   border-radius: 12px;
   font-size: 15px;
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .reset-button:hover {
-  background-color: #F7F4EA;
+  background-color: var(--color-bg-secondary, #F7F3EA);
 }
 .reset-button .icon {
   font-family: "remixicon", sans-serif;
@@ -141,8 +141,8 @@ const router = useRouter();
 
 /* 品牌信息卡片 */
 .about-card {
-  background-color: #FFFFFF;
-  border: 0.7px solid #EFECE3;
+  background-color: var(--color-bg-white, #FFFFFF);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 16px;
   height: 525px;
   display: flex;
@@ -164,14 +164,14 @@ const router = useRouter();
   margin-top: 32px;
   font-size: 24px;
   font-weight: 700;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Bold", var(--font-family-cn);
   line-height: 1.2;
 }
 .about-slogan {
   margin-top: 16px;
   font-size: 16px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
   line-height: 1.4;
 }
@@ -179,8 +179,8 @@ const router = useRouter();
   margin-top: 32px;
   width: 740px;
   height: 72px;
-  border: 0.7px solid #EFECE3;
-  background-color: #FFFFFF;
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
+  background-color: var(--color-bg-white, #FFFFFF);
   border-radius: 14px;
   padding: 0 24px;
   display: flex;
@@ -196,7 +196,7 @@ const router = useRouter();
 .repo-left {
   font-size: 16px;
   font-weight: 500;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 .repo-right {
@@ -208,21 +208,21 @@ const router = useRouter();
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 20px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
 }
 .repo-right .icon:last-child {
   font-size: 20px;
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
 }
 .repo-url {
   font-size: 15px;
-  color: #8A8578;
+  color: var(--color-text-muted, #8A8578);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .about-copy {
   margin-top: 32px;
   font-size: 14px;
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 </style>

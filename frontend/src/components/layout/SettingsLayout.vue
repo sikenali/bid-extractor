@@ -35,7 +35,7 @@ const router = useRouter();
 .settings-layout {
   display: flex;
   min-height: 100vh;
-  background-color: #F7F5EF;
+  background-color: var(--color-bg-secondary, #F7F3EA);
 }
 .settings-main {
   flex: 1;
@@ -44,11 +44,7 @@ const router = useRouter();
   flex-direction: column;
 }
 .settings-topbar {
-  height: 93px;
-  padding: 0 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: none; /* 暂隐藏，后续 UI 有变化再恢复 */
 }
 .topbar-crumbs {
   display: flex;
@@ -57,15 +53,15 @@ const router = useRouter();
 }
 .crumb {
   font-size: 15px;
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .crumb.current {
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
 }
 .topbar-crumbs .sep {
   font-size: 15px;
-  color: #C9C3B6;
+  color: var(--color-text-faint, #A7A296);
 }
 .topbar-actions {
   display: flex;
@@ -73,9 +69,9 @@ const router = useRouter();
   gap: 4px;
   height: 46px;
   padding: 0 4px;
-  border: 0.7px solid #EDEAF2;
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 14px;
-  background-color: #FFFFFF;
+  background-color: var(--color-bg-white, #FFFFFF);
 }
 .action-btn {
   width: 44px;
@@ -90,13 +86,13 @@ const router = useRouter();
   transition: background-color 0.2s;
 }
 .action-btn:hover {
-  background-color: #F7F3EA;
+  background-color: var(--color-bg-secondary, #F7F3EA);
 }
 .action-btn .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 20px;
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
 }
 .settings-content {
   flex: 1;

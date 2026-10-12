@@ -333,8 +333,8 @@ onMounted(loadKeys);
 
 /* 页面头部卡片 */
 .page-header-card {
-  background-color: #FFFFFF;
-  border: 0.7px solid #EFECE3;
+  background-color: var(--color-bg-white, #FFFFFF);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 16px;
   padding: 20px 24px;
 }
@@ -346,31 +346,31 @@ onMounted(loadKeys);
 }
 .header-info { flex: 1; display: flex; flex-direction: column; gap: 4px; }
 .breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 14px; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
-.breadcrumb span { color: #A7A296; }
-.breadcrumb span.sep { color: #C9C3B6; }
-.breadcrumb span.current { color: #3A3A3A; font-weight: 500; }
-.header-title h1 { font-size: 30px; font-weight: 700; color: #1F1D1A; margin: 12px 0 0 0; letter-spacing: -0.5px; font-family: "SourceHanSans-Bold", var(--font-family-cn); line-height: 1.2; }
-.header-title p { font-size: 15px; color: #6E6A60; margin: 8px 0 0 0; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
+.breadcrumb span { color: var(--color-text-faint, #A7A296); }
+.breadcrumb span.sep { color: var(--color-text-faint, #A7A296); }
+.breadcrumb span.current { color: var(--color-text-body, #3A3A3A); font-weight: 500; }
+.header-title h1 { font-size: 30px; font-weight: 700; color: var(--color-text-primary, #1F1D1A); margin: 12px 0 0 0; letter-spacing: -0.5px; font-family: "SourceHanSans-Bold", var(--font-family-cn); line-height: 1.2; }
+.header-title p { font-size: 15px; color: var(--color-text-secondary, #6E6A60); margin: 8px 0 0 0; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
 .reset-button {
   display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 48px;
-  border: 0.7px solid #E8E4D8; background-color: #FFFFFF; border-radius: 12px;
-  font-size: 15px; color: #3A3A3A; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+  border: 0.7px solid var(--color-border, #E5DFD3); background-color: var(--color-bg-white, #FFFFFF); border-radius: 12px;
+  font-size: 15px; color: var(--color-text-body, #3A3A3A); cursor: pointer; transition: all 0.2s; flex-shrink: 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-.reset-button:hover { background-color: #F7F4EA; }
+.reset-button:hover { background-color: var(--color-bg-secondary, #F7F3EA); }
 .reset-button .icon { font-family: "remixicon", sans-serif; font-style: normal; font-size: 18px; }
 
 /* 配置面板 */
 .section-card {
-  background-color: #FFFFFF;
-  border: 0.7px solid #EFECE3;
+  background-color: var(--color-bg-white, #FFFFFF);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 16px;
   padding: 24px 40px;
 }
 .card-title {
   font-size: 17px;
   font-weight: 500;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 .density-group {
@@ -383,8 +383,8 @@ onMounted(loadKeys);
 
 .config-form {
   margin-top: 24px;
-  background: #FCFBF8;
-  border: 0.7px solid #EFECE3;
+  background: var(--color-bg-card, #FCFBF8);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 16px;
   padding: 24px;
   display: flex;
@@ -401,7 +401,7 @@ onMounted(loadKeys);
   width: 90px;
   font-size: 13px;
   font-weight: 500;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   flex-shrink: 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
@@ -435,9 +435,9 @@ onMounted(loadKeys);
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 18px;
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
 }
-.form-key-toggle:hover .icon { color: #6E6A60; }
+.form-key-toggle:hover .icon { color: var(--color-text-secondary, #6E6A60); }
 
 .form-actions {
   margin-top: 20px;
@@ -446,18 +446,18 @@ onMounted(loadKeys);
 }
 .btn-save {
   height: 44px; padding: 0 28px; border: none; border-radius: 10px;
-  background: #C6A45C; color: #fff; font-size: 15px; font-weight: 500;
+  background: var(--color-primary, #C0392B); color: #fff; font-size: 15px; font-weight: 500;
   cursor: pointer; font-family: "SourceHanSans-Medium", var(--font-family-cn);
   transition: background 0.2s, transform 0.1s; white-space: nowrap;
 }
-.btn-save:hover { background: #B8944A; }
+.btn-save:hover { background: color-mix(in srgb, var(--color-primary, #C0392B) 88%, black); }
 .btn-save:active { transform: scale(0.97); }
 
 /* 已保存密钥 */
 .saved-keys {
   margin-top: 24px;
   padding-top: 24px;
-  border-top: 1px solid #F0EDE4;
+  border-top: 1px solid var(--color-border-soft, #EDE9E0);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -465,7 +465,7 @@ onMounted(loadKeys);
 .saved-keys-title {
   font-size: 13px;
   font-weight: 600;
-  color: #8A8578;
+  color: var(--color-text-muted, #8A8578);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 0 0 4px;
@@ -477,8 +477,8 @@ onMounted(loadKeys);
   justify-content: space-between;
   gap: 12px;
   padding: 12px 16px;
-  background: #FCFBF8;
-  border: 0.7px solid #EFECE3;
+  background: var(--color-bg-card, #FCFBF8);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 12px;
 }
 .saved-key-info {
@@ -488,33 +488,33 @@ onMounted(loadKeys);
   gap: 2px;
   min-width: 0;
 }
-.saved-key-provider { font-size: 14px; font-weight: 600; color: #1F1D1A; font-family: "SourceHanSans-Medium", var(--font-family-cn); }
-.saved-key-model { font-size: 12px; color: #8A8578; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
-.saved-key-endpoint { font-size: 11px; color: #A7A296; font-family: monospace; }
+.saved-key-provider { font-size: 14px; font-weight: 600; color: var(--color-text-primary, #1F1D1A); font-family: "SourceHanSans-Medium", var(--font-family-cn); }
+.saved-key-model { font-size: 12px; color: var(--color-text-muted, #8A8578); font-family: "SourceHanSans-Regular", var(--font-family-cn); }
+.saved-key-endpoint { font-size: 11px; color: var(--color-text-faint, #A7A296); font-family: monospace; }
 .saved-key-actions { display: flex; align-items: center; gap: 10px; }
-.saved-key-masked { font-size: 12px; color: #A7A296; font-family: monospace; padding: 0 8px; }
+.saved-key-masked { font-size: 12px; color: var(--color-text-faint, #A7A296); font-family: monospace; padding: 0 8px; }
 
 .saved-key-test,
 .saved-key-edit,
 .saved-key-delete {
   height: 30px;
   padding: 0 10px;
-  border: 0.7px solid #EFECE3;
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 8px;
-  background: #fff;
+  background: var(--color-bg-white, #fff);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
   font-size: 12px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   transition: background 0.15s;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-.saved-key-test:hover { background: #F7F3EA; }
-.saved-key-edit:hover { background: #F7F3EA; }
-.saved-key-delete:hover { background: rgba(192, 57, 43, 0.08); color: #C0392B; }
+.saved-key-test:hover { background: var(--color-bg-secondary, #F7F3EA); }
+.saved-key-edit:hover { background: var(--color-bg-secondary, #F7F3EA); }
+.saved-key-delete:hover { background: rgba(192, 57, 43, 0.08); color: var(--color-primary, #C0392B); }
 .saved-key-test:disabled { opacity: 0.4; cursor: not-allowed; }
 .saved-key-test .icon,
 .saved-key-edit .icon,

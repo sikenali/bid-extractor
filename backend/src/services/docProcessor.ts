@@ -299,15 +299,24 @@ export async function parseDocument(filePath: string): Promise<ParseResult> {
   }
 
   try {
-    const buffer = fs.readFileSync(filePath);
-    const fileTypeHint = { '.md': 'md', '.html': 'html', '.csv': 'csv', '.txt': 'txt' }[ext];
-    const ast = await OfficeParser.parseOffice(buffer, {
-      newlineDelimiter: '\n',
-      ...(fileTypeHint ? { fileType: fileTypeHint } : {}),
-    } as any);
-
-    const flatParas = flattenContent(ast.content);
-    const tableRows = collectTables(ast.content);
+    let flatParas: FlatParagraph[];
+    let tableRows: string[][][];
+    if (ext === '.txt') {
+      // OfficeParser 不支持 txt，直接按行切分纯文本
+      const text = fs.readFileSync(filePath, 'utf-8');
+      flatParas = text.split(/\r?\n/).map(t => t.trim()).filter(Boolean)
+        .map(t => ({ text: t, chapter: '', level: 0 }));
+      tableRows = [];
+    } else {
+      const buffer = fs.readFileSync(filePath);
+      const fileTypeHint = { '.md': 'md', '.html': 'html', '.csv': 'csv' }[ext];
+      const ast = await OfficeParser.parseOffice(buffer, {
+        newlineDelimiter: '\n',
+        ...(fileTypeHint ? { fileType: fileTypeHint } : {}),
+      } as any);
+      flatParas = flattenContent(ast.content);
+      tableRows = collectTables(ast.content);
+    }
     const { paraToPage, pageCount } = buildParaToPage(flatParas);
 
     const paragraphsMeta = buildParagraphsMeta(flatParas, paraToPage);

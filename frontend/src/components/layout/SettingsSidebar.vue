@@ -13,7 +13,7 @@ const menuItems = [
   { path: '/settings/model', label: '模型管理', icon: 'ri-cpu-line' },
   { path: '/settings/export', label: '导出管理', icon: 'ri-download-2-line' },
   { path: '/settings/profile', label: '个性设置', icon: 'ri-vip-crown-line' },
-  { path: '/settings/about', label: '关于回旋镖', icon: 'ri-information-line' },
+  { path: '/settings/about', label: '关于', icon: 'ri-information-line' },
 ];
 
 const activeTab = computed(() => route.path);
@@ -32,16 +32,14 @@ function backToWorkspace() {
     <div class="brand-area" @click="router.push('/settings/theme')">
       <div class="brand-mark">
         <svg width="24" height="24" viewBox="-9.5 -10 19 20" xmlns="http://www.w3.org/2000/svg">
-          <path d="M 6 24 C 10 13.5 18 6.5 25 5.5 C 24.5 14 17.5 22 7.5 25.5 Z" transform="translate(-15.5, -15.5)" fill="#2B2B2B"/>
-          <circle cx="2.5" cy="-2.7" r="2.5" fill="#BE3B2E"/>
+          <path d="M 6 24 C 10 13.5 18 6.5 25 5.5 C 24.5 14 17.5 22 7.5 25.5 Z" transform="translate(-15.5, -15.5)" fill="var(--color-text-primary, #2B2B2B)"/>
+          <circle cx="2.5" cy="-2.7" r="2.5" fill="var(--color-primary, #BE3B2E)"/>
         </svg>
       </div>
       <span class="brand-name">回旋镖 · 设置</span>
     </div>
 
     <div class="divider"></div>
-
-    <div class="group-title">偏好与资源</div>
 
     <nav class="nav-list">
       <div
@@ -58,9 +56,10 @@ function backToWorkspace() {
 
     <div class="nav-spacer"></div>
 
-    <div class="back-area" @click="backToWorkspace">
-      <span class="icon ri-arrow-left-s-line"></span>
-      <span>返回工作台</span>
+    <div class="back-wrap">
+      <button class="back-btn" @click="backToWorkspace" title="返回上传">
+        <span class="icon ri-arrow-left-s-line"></span>
+      </button>
     </div>
   </aside>
 </template>
@@ -69,18 +68,20 @@ function backToWorkspace() {
 .settings-sidebar {
   width: 310px;
   flex-shrink: 0;
-  min-height: 100vh;
-  background-color: #FFFFFF;
+  margin: 20px 0 20px 20px;
+  max-height: calc(100vh - 40px);
+  position: sticky;
+  top: 20px;
+  background-color: var(--color-bg-white, #FFFFFF);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
 .brand-area {
-  padding: 0 32px;
-  height: 92px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
+  display: none; /* 暂隐藏，后续 UI 有变化再恢复 */
 }
 .brand-mark {
   width: 32px;
@@ -93,20 +94,14 @@ function backToWorkspace() {
   font-size: 19px;
   font-weight: 700;
   font-family: "SourceHanSans-Bold", var(--font-family-cn);
-  color: #221C14;
+  color: var(--color-text-primary, #1F1D1A);
 }
 .divider {
   height: 1px;
-  background-color: #EDEAF2;
-}
-.group-title {
-  padding: 28px 32px 12px;
-  font-size: 12px;
-  color: #A7A296;
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  background-color: var(--color-primary-soft, #FBE9E7);
 }
 .nav-list {
-  padding: 0 16px;
+  padding: 16px 16px 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -122,13 +117,13 @@ function backToWorkspace() {
   transition: background-color 0.2s;
 }
 .nav-item:hover {
-  background-color: #F7F5EF;
+  background-color: var(--color-bg-secondary, #F7F3EA);
 }
 .nav-item .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 20px;
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   width: 22px;
   display: flex;
   align-items: center;
@@ -136,7 +131,7 @@ function backToWorkspace() {
 }
 .nav-item .label {
   font-size: 16px;
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .nav-item.active {
@@ -144,31 +139,36 @@ function backToWorkspace() {
 }
 .nav-item.active .icon,
 .nav-item.active .label {
-  color: #B08D3A;
+  color: var(--color-primary, #C0392B);
   font-weight: 500;
 }
 .nav-spacer {
   flex: 1;
 }
-.back-area {
-  padding: 16px 32px 32px;
+.back-wrap {
+  padding: 0 16px 20px;
   display: flex;
   align-items: center;
-  gap: 12px;
+}
+.back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 0.7px solid var(--color-border, #E5DFD3);
+  background-color: var(--color-bg-white, #FFFFFF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  transition: background-color 0.2s ease;
 }
-.back-area:hover {
-  opacity: 0.7;
+.back-btn:hover {
+  background-color: var(--color-bg-secondary, #F7F3EA);
 }
-.back-area .icon {
+.back-btn .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 20px;
-  color: #221C14;
-}
-.back-area span:last-child {
-  font-size: 15px;
-  color: #221C14;
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  color: var(--color-text-body, #3A3A3A);
 }
 </style>

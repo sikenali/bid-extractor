@@ -260,8 +260,8 @@ onMounted(() => {
 
 /* 页面头部 */
 .page-header-card {
-  background-color: #FFFFFF;
-  border: 0.7px solid #EFECE3;
+  background-color: var(--color-bg-white, #FFFFFF);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 16px;
   padding: 20px 24px;
 }
@@ -273,18 +273,18 @@ onMounted(() => {
 }
 .header-info { flex: 1; display: flex; flex-direction: column; gap: 4px; }
 .breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 14px; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
-.breadcrumb span { color: #A7A296; }
-.breadcrumb span.sep { color: #C9C3B6; }
-.breadcrumb span.current { color: #3A3A3A; font-weight: 500; }
-.header-title h1 { font-size: 30px; font-weight: 700; color: #1F1D1A; margin: 12px 0 0 0; letter-spacing: -0.5px; font-family: "SourceHanSans-Bold", var(--font-family-cn); line-height: 1.2; }
-.header-title p { font-size: 15px; color: #6E6A60; margin: 8px 0 0 0; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
+.breadcrumb span { color: var(--color-text-faint, #A7A296); }
+.breadcrumb span.sep { color: var(--color-text-faint, #A7A296); }
+.breadcrumb span.current { color: var(--color-text-body, #3A3A3A); font-weight: 500; }
+.header-title h1 { font-size: 30px; font-weight: 700; color: var(--color-text-primary, #1F1D1A); margin: 12px 0 0 0; letter-spacing: -0.5px; font-family: "SourceHanSans-Bold", var(--font-family-cn); line-height: 1.2; }
+.header-title p { font-size: 15px; color: var(--color-text-secondary, #6E6A60); margin: 8px 0 0 0; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
 .reset-button {
   display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 48px;
-  border: 0.7px solid #E8E4D8; background-color: #FFFFFF; border-radius: 12px;
-  font-size: 15px; color: #3A3A3A; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+  border: 0.7px solid var(--color-border, #E5DFD3); background-color: var(--color-bg-white, #FFFFFF); border-radius: 12px;
+  font-size: 15px; color: var(--color-text-body, #3A3A3A); cursor: pointer; transition: all 0.2s; flex-shrink: 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-.reset-button:hover { background-color: #F7F4EA; }
+.reset-button:hover { background-color: var(--color-bg-secondary, #F7F3EA); }
 .reset-button .icon { font-family: "remixicon", sans-serif; font-style: normal; font-size: 18px; }
 
 /* 工具栏 */
@@ -297,51 +297,51 @@ onMounted(() => {
 .toolbar-right { display: flex; align-items: center; gap: 12px; }
 .btn-add {
   display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 46px;
-  border: none; border-radius: 10px; background: #C6A45C; color: #fff;
+  border: none; border-radius: 10px; background: var(--color-primary, #C0392B); color: #fff;
   font-size: 16px; font-weight: 500; cursor: pointer;
   font-family: "SourceHanSans-Medium", var(--font-family-cn); transition: all 0.2s;
 }
-.btn-add:hover { background: #B8944A; }
+.btn-add:hover { background: color-mix(in srgb, var(--color-primary, #C0392B) 88%, black); }
 .btn-add .icon { font-family: "remixicon", sans-serif; font-style: normal; font-size: 20px; }
 .toolbar-search { width: 548px; }
 .view-toggle {
-  display: flex; border: 0.7px solid #E8E4D8; border-radius: 12px; padding: 4px;
-  background: #fff; gap: 4px;
+  display: flex; border: 0.7px solid var(--color-border, #E5DFD3); border-radius: 12px; padding: 4px;
+  background: var(--color-bg-white, #fff); gap: 4px;
 }
 .view-btn {
   width: 54px; height: 38px; border: none; border-radius: 9px; background: transparent;
   display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;
 }
 .view-btn .icon {
-  font-family: "remixicon", sans-serif; font-style: normal; font-size: 18px; color: #8A8578;
+  font-family: "remixicon", sans-serif; font-style: normal; font-size: 18px; color: var(--color-text-muted, #8A8578);
 }
 .view-btn.active { background: #F6EEDA; }
-.view-btn.active .icon { color: #B08D3A; }
+.view-btn.active .icon { color: var(--color-primary, #C0392B); }
 
 /* 列表视图 */
-.list-container { background-color: #FFFFFF; border: 0.7px solid #EFECE3; border-radius: 16px; overflow: hidden; }
-.table-card { background: #fff; }
+.list-container { background-color: var(--color-bg-white, #FFFFFF); border: 0.7px solid var(--color-border-soft, #EDE9E0); border-radius: 16px; overflow: hidden; }
+.table-card { background: var(--color-bg-white, #fff); }
 .list-table { width: 100%; border-collapse: collapse; }
-.list-table thead { background-color: #F7F4EA; }
+.list-table thead { background-color: var(--color-bg-secondary, #F7F3EA); }
 .list-table th {
-  text-align: left; font-size: 15px; font-weight: 400; color: #6E6A60;
+  text-align: left; font-size: 15px; font-weight: 400; color: var(--color-text-secondary, #6E6A60);
   padding: 0 40px; height: 52px; font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .list-table th:last-child { text-align: right; }
-.list-table td { padding: 0 40px; height: 76px; vertical-align: middle; border-bottom: 0.7px solid #F0EDE4; }
+.list-table td { padding: 0 40px; height: 76px; vertical-align: middle; border-bottom: 0.7px solid var(--color-border-soft, #EDE9E0); }
 .list-table td:last-child { text-align: right; }
 .col-name { width: 430px; flex-shrink: 0; }
 .col-desc { flex: 1; }
 .col-action { width: 260px; flex-shrink: 0; }
 .row-name {
-  display: block; font-size: 16px; font-weight: 500; color: #1F1D1A;
+  display: block; font-size: 16px; font-weight: 500; color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 .row-category {
-  display: block; font-size: 12px; color: #8A8578; margin-top: 2px;
+  display: block; font-size: 12px; color: var(--color-text-muted, #8A8578); margin-top: 2px;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-.row-desc { font-size: 15px; color: #6E6A60; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
+.row-desc { font-size: 15px; color: var(--color-text-secondary, #6E6A60); font-family: "SourceHanSans-Regular", var(--font-family-cn); }
 .row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 24px; }
 
 /* 操作按钮（与技能管理一致） */
@@ -365,17 +365,17 @@ onMounted(() => {
 }
 
 /* 开关已统一为 UiSwitch，样式见 components/ui */
-.empty-row td { text-align: center; color: #A7A296; font-size: 14px; padding: 40px; }
+.empty-row td { text-align: center; color: var(--color-text-faint, #A7A296); font-size: 14px; padding: 40px; }
 .table-footer {
   padding: 0 40px; height: 54px; display: flex; align-items: center;
-  font-size: 14px; color: #A7A296; font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  font-size: 14px; color: var(--color-text-faint, #A7A296); font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 
 /* 网格视图 */
 .grid-container { display: flex; flex-direction: column; gap: 20px; }
 .grid-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .grid-card {
-  border: 0.7px solid #EFECE3; border-radius: 14px; background: #fff;
+  border: 0.7px solid var(--color-border-soft, #EDE9E0); border-radius: 14px; background: var(--color-bg-white, #fff);
   overflow: hidden; display: flex; flex-direction: column;
   transition: box-shadow 0.2s; min-height: 220px;
 }
@@ -383,12 +383,12 @@ onMounted(() => {
 .grid-card-body { padding: 24px; display: flex; flex: 1; flex-direction: column; gap: 8px; }
 .grid-card-icon {
   display: inline-block; padding: 4px 12px; border-radius: 20px;
-  background: #F7F3EA; font-size: 12px; color: #8A8578;
+  background: var(--color-bg-secondary, #F7F3EA); font-size: 12px; color: var(--color-text-muted, #8A8578);
   font-family: "SourceHanSans-Regular", var(--font-family-cn); width: fit-content;
 }
-.grid-card-title { font-size: 17px; font-weight: 500; color: #1F1D1A; font-family: "SourceHanSans-Medium", var(--font-family-cn); margin: 0; }
-.grid-card-desc { font-size: 14px; color: #6E6A60; font-family: "SourceHanSans-Regular", var(--font-family-cn); flex: 1; }
-.grid-card-footer { padding: 16px 24px; border-top: 1px solid #F0EDE4; display: flex; justify-content: flex-end; }
+.grid-card-title { font-size: 17px; font-weight: 500; color: var(--color-text-primary, #1F1D1A); font-family: "SourceHanSans-Medium", var(--font-family-cn); margin: 0; }
+.grid-card-desc { font-size: 14px; color: var(--color-text-secondary, #6E6A60); font-family: "SourceHanSans-Regular", var(--font-family-cn); flex: 1; }
+.grid-card-footer { padding: 16px 24px; border-top: 1px solid var(--color-border-soft, #EDE9E0); display: flex; justify-content: flex-end; }
 .grid-card-actions { display: flex; align-items: center; gap: 12px; }
 .grid-card-actions .action-btn {
   font-size: 14px; font-family: "SourceHanSans-Regular", var(--font-family-cn);
@@ -405,7 +405,7 @@ onMounted(() => {
 
 /* 弹窗表单（壳已统一为 UiModal） */
 .form-group { display: flex; flex-direction: column; gap: 8px; }
-.form-label { font-size: 14px; color: #3A3A3A; font-weight: 500; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
-.form-label .required { color: #C0392B; }
+.form-label { font-size: 14px; color: var(--color-text-body, #3A3A3A); font-weight: 500; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
+.form-label .required { color: var(--color-primary, #C0392B); }
 .form-group .ui-input { width: 100%; }
 </style>

@@ -137,11 +137,11 @@ function clear() {
 .is-md .ui-input-el { height: 44px; padding: 0 16px; }
 .is-lg .ui-input-el { height: 52px; padding: 0 18px; font-size: 15px; }
 textarea.ui-input-el { height: auto; padding: 12px 16px; resize: vertical; line-height: 1.6; }
-.ui-input-el::placeholder { color: #C9C3B6; }
-.ui-input-el:hover:not(:disabled) { border-color: #D4C4A8; }
+.ui-input-el::placeholder { color: var(--color-text-faint, #A7A296); }
+.ui-input-el:hover:not(:disabled) { border-color: var(--color-border, #E5DFD3); }
 .ui-input-el:focus {
   border-color: var(--color-primary, #C0392B);
-  background-color: #fff;
+  background-color: var(--color-bg-white, #fff);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary, #C0392B) 12%, transparent);
 }
 .ui-input-el:disabled {
@@ -155,7 +155,7 @@ textarea.ui-input-el { height: auto; padding: 12px 16px; resize: vertical; line-
   position: absolute;
   left: 13px;
   font-size: 16px;
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
   pointer-events: none;
 }
 .is-sm .ui-input-prefix { left: 10px; font-size: 14px; }
@@ -182,7 +182,7 @@ textarea.ui-input-el { height: auto; padding: 12px 16px; resize: vertical; line-
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  color: #C9C3B6;
+  color: var(--color-text-faint, #A7A296);
 }
 .ui-input-clear:hover { color: var(--color-text-secondary, #6E6A60); }
 .ui-input-clear .icon { font-family: "remixicon", sans-serif; font-style: normal; font-size: 16px; }

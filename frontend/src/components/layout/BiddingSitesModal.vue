@@ -96,7 +96,7 @@ const biddingSites = [
 .settings-panel {
   width: 1120px;
   max-height: 90vh;
-  background: #ffffff;
+  background: var(--color-bg-white, #FFFFFF);
   border-radius: 16px;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.1);
   padding: 36px 40px;
@@ -121,13 +121,13 @@ const biddingSites = [
 .header-icon {
   width: 48px;
   height: 48px;
-  background: rgba(253, 242, 238, 1);
+  background: var(--color-primary-soft, #FBE9E7);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 26px;
-  color: rgba(196, 58, 49, 1);
+  color: var(--color-primary, #C0392B);
   flex-shrink: 0;
 }
 
@@ -140,14 +140,14 @@ const biddingSites = [
 .panel-title {
   font-size: 22px;
   font-weight: 700;
-  color: rgba(61, 50, 38, 1);
+  color: var(--color-text-primary, #1F1D1A);
   margin: 0;
   line-height: 28px;
 }
 
 .panel-subtitle {
   font-size: 13px;
-  color: rgba(139, 115, 85, 1);
+  color: var(--color-text-muted, #8A8578);
   margin: 0;
   line-height: 18px;
 }
@@ -155,13 +155,13 @@ const biddingSites = [
 .close-btn {
   width: 40px;
   height: 40px;
-  background: rgba(245, 240, 232, 1);
+  background: var(--color-bg-secondary, #F7F3EA);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  color: rgba(91, 74, 58, 1);
+  color: var(--color-text-secondary, #6E6A60);
   cursor: pointer;
   border: none;
   flex-shrink: 0;
@@ -182,8 +182,8 @@ const biddingSites = [
   width: 100%;
   min-width: 0;
   height: 140px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(255, 253, 248, 1) 100%);
-  border: 0.7px solid rgba(232, 213, 192, 1);
+  background: linear-gradient(180deg, var(--color-bg-white, #FFFFFF) 0%, var(--color-bg-card, #FCFBF8) 100%);
+  border: 0.7px solid var(--color-border, #E5DFD3);
   border-radius: 12px;
   padding: 12px 8px 8px;
   display: flex;
@@ -231,14 +231,14 @@ const biddingSites = [
 .site-logo {
   width: 36px;
   height: 36px;
-  background: rgba(245, 240, 232, 1);
+  background: var(--color-bg-secondary, #F7F3EA);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   font-size: 18px;
-  color: rgba(196, 58, 49, 1);
+  color: var(--color-primary, #C0392B);
 }
 
 .site-info {
@@ -254,7 +254,7 @@ const biddingSites = [
 .site-name {
   font-size: 11px;
   font-weight: 500;
-  color: rgba(61, 50, 38, 1);
+  color: var(--color-text-primary, #1F1D1A);
   margin: 0;
   text-align: center;
   line-height: 15px;
@@ -266,7 +266,7 @@ const biddingSites = [
 
 .site-desc {
   font-size: 9px;
-  color: rgba(139, 115, 85, 1);
+  color: var(--color-text-muted, #8A8578);
   margin: 0;
   text-align: center;
   line-height: 13px;
@@ -282,7 +282,7 @@ const biddingSites = [
   justify-content: center;
   padding-top: 6px;
   margin-top: 4px;
-  border-top: 1px solid rgba(245, 240, 232, 1);
+  border-top: 1px solid var(--color-bg-secondary, #F7F3EA);
 }
 
 .site-link {
@@ -293,8 +293,8 @@ const biddingSites = [
   border-radius: 8px;
   font-size: 12px;
   font-weight: 500;
-  color: rgba(196, 58, 49, 1);
-  background: rgba(253, 242, 238, 1);
+  color: var(--color-primary, #C0392B);
+  background: var(--color-primary-soft, #FBE9E7);
   text-decoration: none;
   transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
@@ -314,12 +314,12 @@ const biddingSites = [
   align-items: center;
   justify-content: center;
   padding-top: 16px;
-  border-top: 1px solid rgba(245, 240, 232, 1);
+  border-top: 1px solid var(--color-bg-secondary, #F7F3EA);
 }
 
 .footer-link {
   font-size: 13px;
-  color: rgba(196, 58, 49, 1);
+  color: var(--color-primary, #C0392B);
   text-decoration: none;
   padding: 6px 16px;
   border-radius: 8px;

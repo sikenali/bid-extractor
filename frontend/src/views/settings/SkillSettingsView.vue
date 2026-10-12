@@ -432,11 +432,12 @@ onMounted(loadSkills);
                   <button class="action-btn delete" @click="handleDelete(skill)">删除</button>
                 </div>
                 <UiSwitch :model-value="skill.enabled" size="sm" @click="toggleEnabled(skill)" />
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+      </div>
 
     <input
       id="skillFileInput"
@@ -463,8 +464,8 @@ onMounted(loadSkills);
 
 /* 页面头部卡片 */
 .page-header-card {
-  background-color: #FFFFFF;
-  border: 0.7px solid #EFECE3;
+  background-color: var(--color-bg-white, #FFFFFF);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 16px;
   padding: 20px 24px;
 }
@@ -488,19 +489,19 @@ onMounted(loadSkills);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .breadcrumb span {
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
 }
 .breadcrumb span.sep {
-  color: #C9C3B6;
+  color: var(--color-text-faint, #A7A296);
 }
 .breadcrumb span.current {
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   font-weight: 500;
 }
 .header-title h1 {
   font-size: 30px;
   font-weight: 700;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   margin: 12px 0 0 0;
   letter-spacing: -0.5px;
   font-family: "SourceHanSans-Bold", var(--font-family-cn);
@@ -508,7 +509,7 @@ onMounted(loadSkills);
 }
 .header-title p {
   font-size: 15px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   margin: 8px 0 0 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
@@ -532,7 +533,7 @@ onMounted(loadSkills);
   height: 46px;
   border: none;
   border-radius: 10px;
-  background: #C6A45C;
+  background: var(--color-primary, #C0392B);
   color: #fff;
   font-size: 16px;
   font-weight: 500;
@@ -541,7 +542,7 @@ onMounted(loadSkills);
   transition: all 0.2s;
 }
 .btn-import:hover {
-  background: #B8944A;
+  background: color-mix(in srgb, var(--color-primary, #C0392B) 88%, black);
 }
 .btn-sync {
   display: inline-flex;
@@ -549,10 +550,10 @@ onMounted(loadSkills);
   gap: 8px;
   padding: 0 20px;
   height: 46px;
-  border: 0.7px solid #E8E4D8;
+  border: 0.7px solid var(--color-border, #E5DFD3);
   border-radius: 10px;
-  background: #fff;
-  color: #3A3A3A;
+  background: var(--color-bg-white, #fff);
+  color: var(--color-text-body, #3A3A3A);
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
@@ -560,10 +561,10 @@ onMounted(loadSkills);
   transition: all 0.2s;
 }
 .btn-sync:hover {
-  background: #F7F4EA;
+  background: var(--color-bg-secondary, #F7F3EA);
 }
 .btn-sync .icon {
-  color: #C6A45C;
+  color: var(--color-primary, #C0392B);
 }
 .toolbar-right {
   display: flex;
@@ -573,10 +574,10 @@ onMounted(loadSkills);
 .toolbar-search { width: 548px; }
 .view-toggle {
   display: flex;
-  border: 0.7px solid #E8E4D8;
+  border: 0.7px solid var(--color-border, #E5DFD3);
   border-radius: 12px;
   padding: 4px;
-  background: #fff;
+  background: var(--color-bg-white, #fff);
   gap: 4px;
 }
 .view-btn {
@@ -595,13 +596,13 @@ onMounted(loadSkills);
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 18px;
-  color: #8A8578;
+  color: var(--color-text-muted, #8A8578);
 }
 .view-btn.active {
   background: #F6EEDA;
 }
 .view-btn.active .icon {
-  color: #B08D3A;
+  color: var(--color-primary, #C0392B);
 }
 
 .reset-button {
@@ -610,18 +611,18 @@ onMounted(loadSkills);
   gap: 8px;
   padding: 0 20px;
   height: 48px;
-  border: 0.7px solid #E8E4D8;
-  background-color: #FFFFFF;
+  border: 0.7px solid var(--color-border, #E5DFD3);
+  background-color: var(--color-bg-white, #FFFFFF);
   border-radius: 12px;
   font-size: 15px;
-  color: #3A3A3A;
+  color: var(--color-text-body, #3A3A3A);
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .reset-button:hover {
-  background-color: #F7F4EA;
+  background-color: var(--color-bg-secondary, #F7F3EA);
 }
 .reset-button .icon {
   font-family: "remixicon", sans-serif;
@@ -640,7 +641,7 @@ onMounted(loadSkills);
   align-items: center;
   gap: 8px;
   padding: 40px;
-  color: #8A8578;
+  color: var(--color-text-muted, #8A8578);
   font-size: 14px;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
@@ -659,8 +660,8 @@ onMounted(loadSkills);
   gap: 0;
 }
 .list-table {
-  background: #fff;
-  border: 0.7px solid #EFECE3;
+  background: var(--color-bg-white, #fff);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 16px;
   overflow: hidden;
 }
@@ -669,14 +670,14 @@ onMounted(loadSkills);
   align-items: center;
   height: 52px;
   padding: 0 40px;
-  background: #F7F4EA;
+  background: var(--color-bg-secondary, #F7F3EA);
   border-radius: 16px 16px 0 0;
 }
 .list-header .col-name,
 .list-header .col-desc,
 .list-header .col-actions {
   font-size: 15px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .list-header .col-name {
@@ -697,14 +698,14 @@ onMounted(loadSkills);
   align-items: center;
   height: 76px;
   padding: 0 40px;
-  border-bottom: 1px solid #EDEAF2;
+  border-bottom: 1px solid var(--color-border-soft, #EDE9E0);
   transition: background 0.15s;
 }
 .list-row:last-child {
   border-bottom: none;
 }
 .list-row:hover {
-  background: #FDFCFA;
+  background: var(--color-bg-card, #FCFBF8);
 }
 .col-name {
   width: 430px;
@@ -716,12 +717,12 @@ onMounted(loadSkills);
 .row-name {
   font-size: 16px;
   font-weight: 500;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 .row-group {
   font-size: 12px;
-  color: #8A8578;
+  color: var(--color-text-muted, #8A8578);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .col-desc {
@@ -732,7 +733,7 @@ onMounted(loadSkills);
 }
 .row-desc {
   font-size: 15px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
   white-space: nowrap;
   overflow: hidden;
@@ -776,14 +777,14 @@ onMounted(loadSkills);
   height: 54px;
   padding: 0 40px;
   font-size: 14px;
-  color: #A7A296;
+  color: var(--color-text-faint, #A7A296);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 
 /* 展开详情 */
 .skill-detail {
-  background: #fff;
-  border: 0.7px solid #EFECE3;
+  background: var(--color-bg-white, #fff);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-top: none;
   border-radius: 0 0 16px 16px;
   margin-top: -1px;
@@ -803,7 +804,7 @@ onMounted(loadSkills);
 .detail-name {
   font-size: 17px;
   font-weight: 600;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 .detail-close {
@@ -817,17 +818,17 @@ onMounted(loadSkills);
   transition: background 0.2s;
 }
 .detail-close:hover {
-  background: #F5EFE3;
+  background: var(--color-bg-secondary, #F7F3EA);
 }
 .detail-close .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 18px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
 }
 .rules-divider {
   height: 1px;
-  background: #E4DDD0;
+  background: var(--color-border-soft, #EDE9E0);
   margin-bottom: 12px;
 }
 .rule-table {
@@ -839,7 +840,7 @@ onMounted(loadSkills);
   font-size: 12px;
   font-weight: 600;
   text-align: left;
-  color: #8A8578;
+  color: var(--color-text-muted, #8A8578);
   background: rgba(245,239,227,0.5);
 }
 .rule-table td {
@@ -853,12 +854,12 @@ onMounted(loadSkills);
 .rule-table td:nth-child(2) { width: 10%; }
 .rule-table th:nth-child(3),
 .rule-table td:nth-child(3) { width: 65%; }
-.rule-field { font-weight: 500; color: #1F1D1A; }
+.rule-field { font-weight: 500; color: var(--color-text-primary, #1F1D1A); }
 .type-tag { font-size: 11px; padding: 2px 8px; border-radius: 9999px; }
 .type-tag.regex { background: #E8F0F8; color: #2D6A9F; }
-.type-tag.keyword { background: #F0E8D8; color: #8B7355; }
+.type-tag.keyword { background: #F0E8D8; color: var(--color-text-muted, #8A8578); }
 .rule-pattern { font-family: monospace; font-size: 11px; color: #2D6A9F; background: rgba(245,239,227,0.4); padding: 2px 6px; border-radius: 4px; word-break: break-all; }
-.empty-pattern { color: #8A8578; }
+.empty-pattern { color: var(--color-text-muted, #8A8578); }
 .prompt-content {
   max-height: 400px;
   overflow-y: auto;
@@ -868,7 +869,7 @@ onMounted(loadSkills);
   font-family: monospace;
   font-size: 12px;
   line-height: 1.6;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   white-space: pre-wrap;
   word-break: break-word;
   margin: 0;
@@ -890,9 +891,9 @@ onMounted(loadSkills);
   gap: 20px;
 }
 .grid-card {
-  border: 0.7px solid #EFECE3;
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 14px;
-  background: #fff;
+  background: var(--color-bg-white, #fff);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -924,13 +925,13 @@ onMounted(loadSkills);
 .card-title {
   font-size: 17px;
   font-weight: 500;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
   margin: 0;
 }
 .card-desc {
   font-size: 15px;
-  color: #6E6A60;
+  color: var(--color-text-secondary, #6E6A60);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
   margin: 0;
   flex: 1;
@@ -952,7 +953,7 @@ onMounted(loadSkills);
   align-items: center;
   gap: 8px;
   padding: 16px;
-  color: #8A8578;
+  color: var(--color-text-muted, #8A8578);
   font-size: 14px;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }

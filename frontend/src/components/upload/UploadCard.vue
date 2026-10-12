@@ -209,8 +209,8 @@ const btnLabel = computed(() => {
 .upload-card {
   width: 875px;
   min-height: 345px;
-  background-color: #FFFFFF;
-  border: 0.7px solid #E5DFD3;
+  background-color: var(--color-bg-white, #FFFFFF);
+  border: 0.7px solid var(--color-border, #E5DFD3);
   border-radius: 14px;
   display: flex;
   flex-direction: column;
@@ -224,8 +224,8 @@ const btnLabel = computed(() => {
   margin-bottom: 48px;
 }
 .upload-card.dragging {
-  border-color: #C0392B;
-  background-color: #FBE9E7;
+  border-color: var(--color-primary, #C0392B);
+  background-color: var(--color-primary-soft, #FBE9E7);
 }
 .upload-card.hasFile {
   cursor: default;
@@ -239,7 +239,7 @@ const btnLabel = computed(() => {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background-color: #F7F3EA;
+  background-color: var(--color-bg-secondary, #F7F3EA);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -248,13 +248,13 @@ const btnLabel = computed(() => {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 34px;
-  color: #8A8578;
+  color: var(--color-text-muted, #8A8578);
 }
 .upload-hint {
   margin: 0;
   font-size: 18px;
   font-weight: 500;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
   line-height: 1.2;
   text-align: center;
@@ -278,7 +278,7 @@ const btnLabel = computed(() => {
 }
 .fmt-w   { background-color: #2B579A; font-size: 11px; }
 .fmt-x   { background-color: #217346; font-size: 11px; }
-.fmt-p   { background-color: #C0392B; font-size: 11px; }
+.fmt-p   { background-color: var(--color-primary, #C0392B); font-size: 11px; }
 .fmt-pdf { background-color: #B03A2E; font-size: 9px; }
 .fmt-md  { background-color: #4A6FA5; font-size: 9px; }
 .fmt-tx  { background-color: #5A5750; font-size: 9px; }
@@ -334,14 +334,14 @@ const btnLabel = computed(() => {
 }
 .file-icon.fmt-docx, .file-icon.fmt-wps { background-color: #2B579A; color: #fff; }
 .file-icon.fmt-xlsx                   { background-color: #217346; color: #fff; }
-.file-icon.fmt-pdf                    { background-color: #C0392B; color: #fff; }
+.file-icon.fmt-pdf                    { background-color: var(--color-primary, #C0392B); color: #fff; }
 .file-icon.fmt-md                     { background-color: #4A6FA5; color: #fff; }
 .file-icon.fmt-txt                    { background-color: #5A5750; color: #fff; }
 .file-name {
   margin: 0;
   font-size: 16px;
   font-weight: 500;
-  color: #1F1D1A;
+  color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
   white-space: nowrap;
   overflow: hidden;
@@ -351,7 +351,7 @@ const btnLabel = computed(() => {
 .file-size {
   margin: 0;
   font-size: 14px;
-  color: #8A8578;
+  color: var(--color-text-muted, #8A8578);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 
