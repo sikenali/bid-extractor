@@ -1,27 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 
-interface FormatItem {
-  key: string;
-  name: string;
-  desc: string;
-  icon: string;
-  iconColor: string;
-  iconName: string;
-}
-
 interface ExportItem {
   key: string;
   name: string;
-  ext: string;
   desc: string;
-  iconBg: string;
+  iconText: string;
+  iconColor: string;
 }
 
 const formats: ExportItem[] = [
-  { key: 'docx', name: 'Word 文档 ·.docx', ext: '.docx', desc: '保留可编辑正文，商用文库首选', iconBg: '#2B579A' },
-  { key: 'pdf', name: 'PDF 文档 ·.pdf', ext: '.pdf', desc: '矢量高清，适用于打印与送审', iconBg: '#C0392B' },
-  { key: 'markdown', name: 'Markdown ·.md', ext: '.md', desc: '轻盈纯文本，便于二次编辑', iconBg: '#3A4A63' },
+  { key: 'docx', name: 'Word 文档 ·.docx', desc: '保留可编辑正文，商用文库首选', iconText: 'W', iconColor: '#2B579A' },
+  { key: 'pdf', name: 'PDF 文档 ·.pdf', desc: '矢量高清，适用于打印与送审', iconText: 'PDF', iconColor: '#C0392B' },
+  { key: 'markdown', name: 'Markdown ·.md', desc: '轻盈纯文本，便于二次编辑', iconText: 'MD', iconColor: '#3A4A63' },
 ];
 
 const wordSettings = ref({
@@ -56,10 +47,10 @@ onMounted(() => {
         <div class="header-info">
           <div class="breadcrumb">
             <span>首页</span>
-            <span>/</span>
+            <span class="sep">/</span>
             <span>设置中心</span>
-            <span>/</span>
-            <span class="active">导出管理</span>
+            <span class="sep">/</span>
+            <span class="current">导出管理</span>
           </div>
           <div class="header-title">
             <h1>导出管理</h1>
@@ -84,8 +75,8 @@ onMounted(() => {
           :class="{ active: selectedFormat === fmt.key }"
           @click="selectedFormat = fmt.key"
         >
-          <div class="format-icon" :style="{ backgroundColor: fmt.iconBg }">
-            <span class="icon-text">{{ getIconText(fmt.key) }}</span>
+          <div class="format-icon" :style="{ backgroundColor: fmt.iconColor }">
+            <span class="icon-text">{{ fmt.iconText }}</span>
           </div>
           <div class="format-info">
             <div class="format-name">{{ fmt.name }}</div>
@@ -213,48 +204,36 @@ onMounted(() => {
         </div>
       </div>
     </div>
+  </div>
+</template>
 
-    <style scoped>
-:root {
-  --color-bg-white: #fff;
-  --color-bg-secondary: #F7F4EA;
-  --color-bg-main: #F7F5EE;
-  --color-text-primary: #1F1D1A;
-  --color-text-secondary: #3A3A3A;
-  --color-text-muted: #6E6A60;
-  --color-border-soft: #EFEC E3;
-  --color-primary: #C6A45C;
-}
-
+<style scoped>
 .export-view {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 20px;
+  gap: 20px;
+  max-width: 1620px;
 }
 
 /* 页面头部卡片 */
 .page-header-card {
-  background-color: var(--color-bg-white);
-  border: 0.7px solid var(--color-border-soft);
+  background-color: #FFFFFF;
+  border: 0.7px solid #EFECE3;
   border-radius: 16px;
   padding: 20px 24px;
 }
-
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 24px;
 }
-
 .header-info {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-
 .breadcrumb {
   display: flex;
   align-items: center;
@@ -262,30 +241,31 @@ onMounted(() => {
   font-size: 14px;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-
 .breadcrumb span {
   color: #A7A296;
 }
-
-.breadcrumb span.active {
+.breadcrumb span.sep {
+  color: #C9C3B6;
+}
+.breadcrumb span.current {
   color: #3A3A3A;
   font-weight: 500;
 }
-
 .header-title h1 {
   font-size: 30px;
   font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 4px 0 8px 0;
+  color: #1F1D1A;
+  margin: 12px 0 0 0;
   letter-spacing: -0.5px;
+  font-family: "SourceHanSans-Bold", var(--font-family-cn);
+  line-height: 1.2;
 }
-
 .header-title p {
   font-size: 15px;
-  color: var(--color-text-muted);
-  margin: 0;
+  color: #6E6A60;
+  margin: 8px 0 0 0;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-
 .reset-button {
   display: inline-flex;
   align-items: center;
@@ -293,19 +273,18 @@ onMounted(() => {
   padding: 0 20px;
   height: 48px;
   border: 0.7px solid #E8E4D8;
-  background-color: var(--color-bg-white);
+  background-color: #FFFFFF;
   border-radius: 12px;
   font-size: 15px;
-  color: var(--color-text-primary);
+  color: #3A3A3A;
   cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-
 .reset-button:hover {
   background-color: #F7F4EA;
 }
-
 .reset-button .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
@@ -314,44 +293,42 @@ onMounted(() => {
 
 /* 通用卡片 */
 .section-card {
-  background-color: var(--color-bg-white);
-  border: 0.7px solid var(--color-border-soft);
+  background-color: #FFFFFF;
+  border: 0.7px solid #EFECE3;
   border-radius: 16px;
-  padding: 24px 28px;
+  padding: 24px 40px;
 }
-
 .card-title {
   font-size: 17px;
   font-weight: 500;
-  color: var(--color-text-primary);
-  margin: 0;
+  color: #1F1D1A;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 
 /* 默认导出格式 */
 .format-group {
   display: flex;
   gap: 24px;
-  margin-top: 24px;
+  margin-top: 20px;
+  height: 154px;
+  align-items: stretch;
 }
-
 .format-card {
   flex: 1;
-  border: 0.7px solid var(--color-border-soft);
-  background-color: var(--color-bg-white);
+  border: 0.7px solid #EFECE3;
+  background-color: #FFFFFF;
   border-radius: 14px;
   padding: 20px;
   cursor: pointer;
   display: flex;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  align-items: flex-start;
   transition: all 0.2s;
 }
-
 .format-card.active {
-  border-color: var(--color-primary);
+  border-color: #E0C98A;
   background-color: #FBF5E6;
 }
-
 .format-icon {
   width: 42px;
   height: 42px;
@@ -361,76 +338,77 @@ onMounted(() => {
   justify-content: center;
   flex-shrink: 0;
 }
-
 .icon-text {
-  font-size: 17px;
   font-weight: 700;
   color: #fff;
   font-family: "SourceHanSans-Bold", var(--font-family-cn);
+  font-size: 17px;
+  line-height: 1;
 }
-
+.format-card:nth-child(2) .icon-text,
+.format-card:nth-child(3) .icon-text {
+  font-size: 14px;
+}
 .format-info {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  margin-top: 16px;
 }
-
 .format-name {
   font-size: 17px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: #1F1D1A;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
-
 .format-desc {
   font-size: 13px;
   color: #8A8578;
   margin-top: 8px;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 
 /* 设置项 */
 .setting-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 20px 0;
+  justify-content: flex-start;
+  height: 76px;
   gap: 20px;
 }
-
 .setting-info {
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 8px;
 }
-
 .setting-name {
   font-size: 16px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: #1F1D1A;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
-
 .setting-desc {
   font-size: 15px;
   color: #8A8578;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-
 .toggle-switch {
   width: 46px;
   height: 26px;
-  border: 0.7px solid #E3E4E6;
+  flex-shrink: 0;
   border-radius: 9999px;
   padding: 3px;
   cursor: pointer;
   background-color: #E3E0D6;
-  transition: all 0.2s;
-  border-color: #E3E0D6;
+  transition: background-color 0.2s;
+  display: flex;
+  justify-content: flex-start;
 }
-
 .toggle-switch.active {
   background-color: #C6A45C;
-  border-color: #C6A45C;
+  justify-content: flex-end;
 }
-
 .toggle-circle {
   width: 21px;
   height: 20px;
@@ -438,40 +416,4 @@ onMounted(() => {
   background-color: #fff;
   transition: transform 0.2s;
 }
-
-.toggle-switch.active .toggle-circle {
-  transform: translateX(20px);
-}
-</style>
-</template>
-
-<script>
-function getIconText(key) {
-  if (key === 'docx') return 'W';
-  if (key === 'pdf') return 'PDF';
-  if (key === 'markdown') return 'MD';
-  return '';
-}
-</script>
-
-
-
-<style scoped>
-.settings-content { flex: 1; padding: 32px; }
-.page-title { font-size: 24px; font-weight: bold; color: var(--color-text-primary); margin: 0 0 4px 0; }
-.page-desc { font-size: 14px; color: var(--color-text-muted); margin: 0 0 32px 0; }
-.format-cards { display: flex; gap: 24px; }
-.format-card { flex: 1; max-width: 578px; border-radius: 16px; padding: 32px; background-color: white; border: 2px solid transparent; cursor: pointer; transition: all 0.2s; }
-.format-card.selected { border-color: var(--color-primary); box-shadow: 0 4px 20px rgba(196, 61, 61, 0.1); }
-.format-card:hover:not(.selected) { border-color: var(--color-border); }
-.card-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
-.format-icon { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; }
-.format-icon .icon { font-family: "remixicon", sans-serif; font-style: normal; }
-.format-title h4 { font-size: 20px; font-weight: bold; color: var(--color-text-primary); margin: 0; }
-.format-title p { font-size: 13px; color: var(--color-text-muted); margin: 4px 0 0 0; }
-.selected-indicator { margin-left: auto; width: 28px; height: 28px; background-color: var(--color-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
-.selected-indicator .icon { font-family: "remixicon", sans-serif; font-style: normal; }
-.features-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
-.features-list li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text-secondary); }
-.features-list .check { color: #2D8A4E; font-size: 16px; font-family: "remixicon", sans-serif; font-style: normal; }
 </style>

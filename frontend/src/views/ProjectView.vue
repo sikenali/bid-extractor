@@ -6,7 +6,6 @@ import { ElMessage } from 'element-plus';
 import TopNav from '@/components/layout/TopNav.vue';
 import PageFooter from '@/components/layout/PageFooter.vue';
 import PreviewModal from '@/components/preview/PreviewModal.vue';
-import FieldValue from '@/components/FieldValue.vue';
 import { getParseStatus } from '@/api/upload';
 import { getExportSettings } from '@/api/settings';
 import apiClient from '@/api/client';
@@ -37,8 +36,8 @@ const fixedFields: Record<string, string[]> = {
   info: ['项目名称', '项目编号', '采购方式', '预算金额', '投标截止时间', '开标时间', '投标地点', '交付时间', '交付地点', '投标保证金', '采购人', '采购代理', '资金来源', '采购需求', '踏勘时间', '分包情况', '合同包号', '面向中小微'],
   business: ['付款方式', '质保期', '履约保证金', '交货期', '投标有效期', '合同签订', '营业执照', '财务要求', '纳税要求', '社会保障', '信用记录', '声明函', '无违法记录', '联合体', '分包转包', '中小企业', '项目管理人员', '知识产权', '保密要求', '争议解决', '违约责任', '付款进度', '发票要求', '验收条款', '售后服务', '售后响应'],
   tech: ['技术规格', '性能要求', '验收标准', '技术指标', '服务内容', '技术参数', '服务要求', '培训要求', '功能要求', '配置清单', '安装调试', '技术方案', '安全要求', '安全保密要求', '质量要求', '软硬件要求', '接口要求', '技术资料', '运维要求', '交付成果', '测试报告', '测试环境', '测量指标', '部署要求', '项目范围', '方案要求', '实施要求', '产品要求', '设备要求', '系统要求', '软件要求', '硬件要求'],
-  seal: ['密封要求', '封标要求', '封装方式', '正本要求', '正本数量', '副本要求', '副本数量', '电子文件', '递交方式', '密封袋标识', '密封章', '密封处', '盖章要求', '封条', '外层信封', '内层信封', '纸质文件', '现场递交', '邮寄要求'],
-  score: ['评标办法', '评分标准', '评分细则', '综合评分', '评分因素', '商务评分', '技术评分', '价格评分', '技术得分', '商务得分', '价格得分', '评审标准', '分值分配'],
+  seal: ['密封要求', '封标要求', '封装方式', '正本要求', '正本数量', '副本要求', '副本数量', '电子文件', '递交方式', '密封袋标识', '密封章', '密封处'],
+  score: ['评标办法', '评分标准', '评分细则', '综合评分', '评分因素', '商务评分', '技术评分', '价格评分', '技术得分', '商务得分', '价格得分', '评审标准', '分值分配', '商务权重', '技术权重', '价格权重', '评分权重', '满分值', '合格分', '评审因素', '评分占比', '得分占比', '评分值', '评分项'],
   star: []
 };
 
@@ -371,10 +370,6 @@ function handlePreview() {
   previewVisible.value = true;
 }
 
-function rowHasProvenance(row: ExtractedField): boolean {
-  return row.pageNumber != null || !!row.chapter;
-}
-
 function handleLocate(payload: { field: string; page: number | null }) {
   if (payload.page == null) {
     ElMessage.info(`字段「${payload.field}」暂无页码信息`);
@@ -450,8 +445,7 @@ function triggerDownload(blob: Blob, filename: string) {
             :class="{ active: activeSection === item.key }"
             @click="selectSection(item.key)"
           >
-            <span class="sidebar-item-label">{{ item.label }}</span>
-            <span class="sidebar-item-count">· {{ sectionCounts[item.key] || 0 }}</span>
+            <span class="sidebar-item-label">{{ item.label }}<span class="sidebar-item-count">&nbsp;·&nbsp;{{ sectionCounts[item.key] || 0 }}</span></span>
           </div>
         </div>
       </aside>
@@ -504,19 +498,10 @@ function triggerDownload(blob: Blob, filename: string) {
                   <td class="col-name">
                     <span>{{ row.field }}</span>
                   </td>
-                  <td class="col-value">
-                    <FieldValue
-                      v-if="rowHasProvenance(row)"
-                      :field="row.field"
-                      :value="row.rawValue"
-                      :page="row.pageNumber"
-                      :chapter="row.chapter"
-                      :source-text="row.sourceText"
-                      @locate="handleLocate"
-                    />
-                    <template v-else>{{ row.value || '—' }}</template>
+                  <td class="col-value">{{ row.value || '—' }}</td>
+                  <td class="col-page">
+                    <span class="page-link" @click="handleLocate({ field: row.field, page: row.pageNumber })">{{ row.page }}</span>
                   </td>
-                  <td class="col-page"><span class="page-link">{{ row.page }}</span></td>
                   <td class="col-action">
                     <div class="action-btns">
                       <button class="icon-btn" title="复制" @click="handleCopy(row.field)">
@@ -594,7 +579,7 @@ function triggerDownload(blob: Blob, filename: string) {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: var(--color-bg-main);
+  background-color: #FAF7F2;
 }
 .extract-body {
   flex: 1;
@@ -603,58 +588,58 @@ function triggerDownload(blob: Blob, filename: string) {
 }
 .sidebar {
   width: 300px;
-  background-color: var(--color-bg-white);
-  padding: var(--spacing-6) var(--spacing-5);
-  border-right: 0.7px solid var(--color-border-soft);
+  background-color: #FFFFFF;
+  padding: 24px 20px;
+  border-right: 0.7px solid #EDE9E0;
 }
 .sidebar-title {
-  padding: 0 var(--spacing-3);
-  font-size: var(--text-lg);
-  color: var(--color-text-muted);
-  margin-bottom: var(--spacing-4);
+  padding: 0 12px;
+  font-size: 15px;
+  color: #8A8578;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  margin-bottom: 16px;
 }
 .sidebar-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-1);
+  gap: 4px;
 }
 .sidebar-item {
-  height: var(--btn-height-md);
-  padding: 0 var(--spacing-4);
-  border-radius: var(--radius-md);
+  height: 52px;
+  padding: 0 16px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: background-color 0.2s;
 }
 .sidebar-item:hover {
-  background-color: var(--color-bg-secondary);
+  background-color: #F7F5EF;
 }
 .sidebar-item.active {
-  background-color: var(--color-primary-soft);
+  background-color: #FBE9E7;
 }
 .sidebar-item-label {
-  font-size: var(--text-md);
-  color: var(--color-text-primary);
+  font-size: 16px;
+  color: #3A3A3A;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .sidebar-item-count {
-  font-size: var(--text-md);
-  color: var(--color-text-muted);
-  margin-left: var(--spacing-1);
+  color: inherit;
 }
-.sidebar-item.active .sidebar-item-label,
-.sidebar-item.active .sidebar-item-count {
-  color: var(--color-primary);
+.sidebar-item.active .sidebar-item-label {
+  color: #C0392B;
   font-weight: 500;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 
 .content {
   flex: 1;
   min-width: 0;
-  padding: var(--spacing-7) var(--spacing-8) var(--spacing-10);
+  padding: 28px 32px;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-6);
+  gap: 24px;
 }
 .content-header {
   display: flex;
@@ -663,44 +648,46 @@ function triggerDownload(blob: Blob, filename: string) {
 }
 .content-title {
   margin: 0;
-  font-size: var(--text-3xl);
-  font-weight: var(--font-bold);
-  font-family: var(--font-family-cn);
-  color: var(--color-text-primary);
+  font-size: 22px;
+  font-weight: 700;
+  font-family: "SourceHanSans-Bold", var(--font-family-cn);
+  color: #1F1D1A;
+  line-height: 1.2;
 }
 .action-group {
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
+  gap: 12px;
 }
 .btn-outline {
-  height: var(--btn-height-md);
-  padding: 0 var(--spacing-5);
+  height: 42px;
+  padding: 0 20px;
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
-  border: 0.7px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background-color: var(--color-bg-card);
-  font-size: var(--text-md);
-  color: var(--color-text-primary);
+  gap: 8px;
+  border: 0.7px solid #E5DFD3;
+  border-radius: 10px;
+  background-color: #FCFBF8;
+  font-size: 15px;
+  color: #3A3A3A;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: background-color 0.2s;
 }
 .btn-outline:hover {
-  background-color: var(--color-bg-secondary);
+  background-color: #F7F3EA;
 }
 .btn-outline .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 17px;
-  color: var(--color-text-primary);
+  color: #3A3A3A;
 }
 
 .table-card {
-  border: 0.7px solid var(--color-border-soft);
-  border-radius: var(--radius-lg);
-  background-color: var(--color-bg-white);
+  border: 0.7px solid #EDE9E0;
+  border-radius: 12px;
+  background-color: #FFFFFF;
   overflow: hidden;
 }
 .extract-table {
@@ -708,36 +695,39 @@ function triggerDownload(blob: Blob, filename: string) {
   border-collapse: collapse;
 }
 .extract-table thead tr {
-  background-color: var(--color-bg-secondary);
+  background-color: #F7F3EA;
 }
 .extract-table th {
-  height: var(--row-height-sm);
-  padding: 0 var(--spacing-6);
-  font-size: var(--text-md);
-  font-weight: var(--font-medium);
-  color: var(--color-text-secondary);
+  height: 54px;
+  padding: 0 24px;
+  font-size: 15px;
+  font-weight: 400;
+  color: #6E6A60;
   text-align: left;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-.col-name { width: 32%; }
-.col-value { width: 38%; }
-.col-page { width: 14%; }
-.col-action { width: 16%; text-align: right; }
 .extract-table td {
-  height: var(--row-height-md);
-  padding: 0 var(--spacing-6);
-  font-size: var(--text-md);
+  height: 82px;
+  padding: 0 24px;
+  font-size: 16px;
   vertical-align: middle;
-  border-top: 0.7px solid var(--color-border-soft);
+  border-top: 0.7px solid #EDE9E0;
+}
+.extract-table tbody tr:nth-child(2n) {
+  background-color: #FDFCF9;
 }
 .data-row .col-name {
-  font-weight: var(--font-semibold);
-  color: var(--color-text-primary);
+  font-weight: 500;
+  color: #1F1D1A;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 .data-row .col-value {
-  color: var(--color-text-primary);
+  color: #3A3A3A;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .page-link {
-  color: var(--color-text-secondary);
+  color: #6E6A60;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
   cursor: pointer;
 }
 .page-link:hover { text-decoration: underline; }
@@ -745,7 +735,7 @@ function triggerDownload(blob: Blob, filename: string) {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--spacing-5);
+  gap: 20px;
 }
 .icon-btn {
   width: 28px;
@@ -761,50 +751,54 @@ function triggerDownload(blob: Blob, filename: string) {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 18px;
-  color: var(--color-text-secondary);
+  color: #6E6A60;
 }
-.icon-btn:hover .icon { color: var(--color-primary); }
+.icon-btn:hover .icon { color: #C0392B; }
 .empty-row td {
   height: auto;
-  padding: var(--spacing-12) 0;
+  padding: 48px 0;
   text-align: center;
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  color: #8A8578;
+  font-size: 13px;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-.star-symbol { font-size: var(--text-lg); font-weight: var(--font-bold); }
+.star-symbol { font-size: 18px; font-weight: 700; }
 
 .score-card {
-  border: 0.7px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background-color: var(--color-bg-secondary);
-  padding: var(--spacing-6) var(--spacing-7);
+  border: 0.7px solid #EFE0BE;
+  border-radius: 12px;
+  background-color: #FDF6E3;
+  padding: 24px 28px;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
+  gap: 16px;
 }
 .score-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-5);
+  gap: 20px;
 }
 .score-label {
-  font-size: var(--text-md);
-  color: var(--color-text-secondary);
+  font-size: 16px;
+  color: #6E6A60;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .score-pill {
   height: 38px;
-  padding: 0 var(--spacing-4);
-  border: 0.7px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background-color: var(--color-bg-white);
+  padding: 0 16px;
+  border: 0.7px solid #E5DCC2;
+  border-radius: 8px;
+  background-color: #FFFFFF;
   display: flex;
   align-items: center;
-  font-size: var(--text-md);
-  color: var(--color-text-primary);
+  font-size: 15px;
+  color: #3A3A3A;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .score-note {
-  font-size: var(--text-md);
-  color: var(--color-text-secondary);
+  font-size: 15px;
+  color: #6E6A60;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 
 .pagination-row {
@@ -813,20 +807,21 @@ function triggerDownload(blob: Blob, filename: string) {
   justify-content: space-between;
 }
 .page-info {
-  font-size: var(--text-md);
-  color: var(--color-text-muted);
+  font-size: 15px;
+  color: #8A8578;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .pagination {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: 8px;
 }
 .page-btn {
   width: 34px;
   height: 34px;
-  border: 0.7px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-bg-card);
+  border: 0.7px solid #E5DFD3;
+  border-radius: 8px;
+  background-color: #FCFBF8;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -837,38 +832,40 @@ function triggerDownload(blob: Blob, filename: string) {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 18px;
-  color: var(--color-text-secondary);
+  color: #6E6A60;
 }
 .page-num {
   width: 34px;
   height: 34px;
-  border: 0.7px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-bg-card);
-  font-size: var(--text-md);
-  color: var(--color-text-primary);
+  border: 0.7px solid #E5DFD3;
+  border-radius: 8px;
+  background-color: #FCFBF8;
+  font-size: 15px;
+  color: #3A3A3A;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .page-num.active {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
+  background-color: #C0392B;
+  border-color: #C0392B;
   color: #fff;
-  font-weight: var(--font-semibold);
+  font-weight: 500;
 }
 
 .edit-field-label {
-  font-size: var(--text-md);
-  font-weight: var(--font-semibold);
-  color: var(--color-text-primary);
-  margin-bottom: var(--spacing-3);
-  padding: var(--spacing-2) var(--spacing-3);
-  background-color: var(--color-bg-card);
-  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  color: #1F1D1A;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background-color: #FCFBF8;
+  border-radius: 6px;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
-.dialog-btn { height: var(--btn-height-sm); padding: 0 var(--spacing-5); border-radius: var(--radius-sm); font-size: var(--text-md); font-weight: var(--font-medium); cursor: pointer; border: none; }
-.dialog-btn.cancel { background-color: var(--color-bg-card); color: var(--color-text-secondary); margin-right: var(--spacing-2); }
-.dialog-btn.confirm { background-color: var(--color-primary); color: white; }
+.dialog-btn { height: 36px; padding: 0 20px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
+.dialog-btn.cancel { background-color: #FCFBF8; color: #6E6A60; margin-right: 8px; }
+.dialog-btn.confirm { background-color: #C0392B; color: white; }
 </style>

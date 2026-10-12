@@ -16,11 +16,19 @@ let progressTimer: ReturnType<typeof setTimeout> | null = null;
 
 const steps = [
   { key: 0, label: '解析文件' },
+  { key: 1, label: '转换释义' },
+  { key: 2, label: '提取字段' },
 ];
 
 function currentStep() {
-  if (progressPercent.value < 30) return 0;
-  return 0;
+  if (!uploading.value && progressPercent.value === 0) return 1;
+  if (progressPercent.value === 100) return 3;
+  if (uploading.value) {
+    if (progressPercent.value < 40) return 1;
+    if (progressPercent.value < 75) return 2;
+    return 2;
+  }
+  return 1;
 }
 
 function validateFile(file: File): boolean {
@@ -75,8 +83,8 @@ function startUpload(file: File) {
   let cancelled = false;
   const simProgress = () => {
     if (cancelled || progressPercent.value >= 95) return;
-    const target = progressPercent.value < 30 ? 30
-      : progressPercent.value < 60 ? 60
+    const target = progressPercent.value < 40 ? 40
+      : progressPercent.value < 75 ? 75
       : 90;
     const step = Math.max(1, (target - progressPercent.value) / 8);
     progressPercent.value = Math.min(target, progressPercent.value + step);
@@ -166,22 +174,22 @@ onUnmounted(() => {
               todo: currentStep() < step.key,
             }"
           >
-            <span class="step-num" :class="{ 'step-num-active': currentStep() === step.key }">
-              {{ step.key + 1 }}
-            </span>
+            <span class="step-num">{{ step.key + 1 }}</span>
             <span class="step-label">{{ step.label }}</span>
           </div>
           <span v-if="i < steps.length - 1" class="step-line"></span>
         </template>
       </div>
 
-      <button
-        class="extract-btn"
-        :disabled="uploading"
-        @click="!uploading && triggerFileInput()"
-      >
-        一键提取
-      </button>
+      <div class="btn-area">
+        <button
+          class="extract-btn"
+          :disabled="uploading"
+          @click="!uploading && triggerFileInput()"
+        >
+          一键提取
+        </button>
+      </div>
     </div>
 
     <PageFooter />
@@ -193,7 +201,7 @@ onUnmounted(() => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: var(--color-bg-main);
+  background-color: #FAF7F2;
 }
 .upload-body {
   flex: 1;
@@ -201,27 +209,24 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-7);
-  padding: var(--spacing-6) var(--spacing-8);
+  padding: 0 32px;
 }
 .upload-card {
-  width: 620px;
+  width: 875px;
   min-height: 345px;
-  padding: var(--spacing-12) var(--spacing-8);
-  background-color: var(--color-bg-white);
-  border: 0.7px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  background-color: #FFFFFF;
+  border: 0.7px solid #E5DFD3;
+  border-radius: 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-6);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: border-color 0.2s, background-color 0.2s;
 }
 .upload-card.dragging {
-  border-color: var(--color-primary);
-  background-color: var(--color-primary-soft);
+  border-color: #C0392B;
+  background-color: #FBE9E7;
 }
 .upload-card.uploading {
   cursor: default;
@@ -230,7 +235,7 @@ onUnmounted(() => {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background-color: var(--color-bg-secondary);
+  background-color: #F7F3EA;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -239,51 +244,55 @@ onUnmounted(() => {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 34px;
-  color: var(--color-text-muted);
+  color: #8A8578;
 }
 .upload-hint {
   margin: 0;
-  font-size: var(--text-xl);
-  font-weight: var(--font-medium);
-  color: var(--color-text-primary);
-  line-height: var(--leading-normal);
+  padding-top: 28px;
+  font-size: 18px;
+  font-weight: 500;
+  color: #1F1D1A;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
+  line-height: 1.2;
 }
 .format-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
+  gap: 12px;
+  padding-top: 24px;
 }
 .fmt {
   width: 26px;
   height: 26px;
-  border-radius: var(--radius-sm);
+  border-radius: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-xs);
-  font-weight: var(--font-bold);
+  font-weight: 700;
   color: #fff;
+  font-family: "SourceHanSans-Bold", var(--font-family-cn);
   line-height: 1;
 }
-.fmt-w { background-color: #2B579A; }
-.fmt-x { background-color: #217346; }
-.fmt-p { background-color: #C0392B; }
-.fmt-pd { background-color: #B03A2E; }
-.fmt-md { background-color: #4A6FA5; }
-.fmt-tx { background-color: #5A5750; }
+.fmt-w { background-color: #2B579A; font-size: 11px; }
+.fmt-x { background-color: #217346; font-size: 11px; }
+.fmt-p { background-color: #C0392B; font-size: 11px; }
+.fmt-pd { background-color: #B03A2E; font-size: 9px; }
+.fmt-md { background-color: #4A6FA5; font-size: 9px; }
+.fmt-tx { background-color: #5A5750; font-size: 9px; }
 
 .progress-track {
   width: 320px;
   height: 8px;
-  background-color: var(--color-bg-secondary);
-  border-radius: var(--radius-full);
+  background-color: #F7F3EA;
+  border-radius: 9999px;
   overflow: hidden;
+  margin-top: 16px;
 }
 .progress-bar {
   height: 100%;
-  background-color: var(--color-primary);
-  border-radius: var(--radius-full);
-  transition: width var(--transition-base);
+  background-color: #C0392B;
+  border-radius: 9999px;
+  transition: width 0.2s;
   position: relative;
 }
 .shimmer {
@@ -301,75 +310,83 @@ onUnmounted(() => {
 }
 .progress-text {
   margin: 0;
-  font-size: var(--text-md);
-  color: var(--color-text-secondary);
+  padding-top: 8px;
+  font-size: 14px;
+  color: #6E6A60;
 }
 
 .step-strip {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: 0;
+  padding-top: 56px;
 }
 .step-pill {
-  height: var(--btn-height-sm);
-  padding: 0 var(--spacing-6);
-  border-radius: var(--radius-full);
+  height: 50px;
+  padding: 0 20px;
+  border-radius: 9999px;
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
-  background-color: var(--color-bg-white);
-  border: 0.7px solid var(--color-border-soft);
+  gap: 12px;
+  background-color: #FFFFFF;
+  border: 0.7px solid #EDE9E0;
 }
 .step-pill.active {
-  border-color: var(--color-primary);
+  border-color: #C0392B;
 }
 .step-pill.done {
-  background-color: var(--color-success-soft);
+  background-color: #E4F0EA;
   border-color: transparent;
 }
 .step-num {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background-color: var(--color-bg-secondary);
+  background-color: #EFEBE1;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  color: #8A8578;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 .step-pill.done .step-num {
-  background-color: var(--color-success);
+  background-color: #4E9B7A;
   color: #fff;
 }
 .step-pill.active .step-num {
-  background-color: var(--color-primary);
+  background-color: #C0392B;
   color: #fff;
 }
 .step-label {
-  font-size: var(--text-lg);
-  color: var(--color-text-secondary);
+  font-size: 17px;
+  color: #8A8578;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-.step-pill.done .step-label { color: var(--color-success); }
-.step-pill.active .step-label { color: var(--color-primary); }
+.step-pill.done .step-label { color: #3E8A6B; }
+.step-pill.active .step-label { color: #C0392B; }
 .step-line {
-  width: 36px;
+  width: 57px;
   height: 1px;
-  background-color: var(--color-border);
+  background-color: #DDD7C9;
 }
 
+.btn-area {
+  padding-top: 48px;
+}
 .extract-btn {
   width: 260px;
-  height: var(--btn-height-lg);
+  height: 58px;
   border: none;
-  border-radius: var(--radius-lg);
-  background-color: var(--color-primary);
+  border-radius: 10px;
+  background-color: #C0392B;
   color: #fff;
-  font-size: var(--text-lg);
-  font-weight: var(--font-medium);
+  font-size: 18px;
+  font-weight: 500;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
   cursor: pointer;
-  transition: opacity var(--transition-base);
+  transition: opacity 0.2s;
 }
 .extract-btn:hover { opacity: 0.9; }
 .extract-btn:disabled { opacity: 0.6; cursor: not-allowed; }

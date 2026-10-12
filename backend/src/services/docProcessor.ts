@@ -300,7 +300,11 @@ export async function parseDocument(filePath: string): Promise<ParseResult> {
 
   try {
     const buffer = fs.readFileSync(filePath);
-    const ast = await OfficeParser.parseOffice(buffer, { newlineDelimiter: '\n' });
+    const fileTypeHint = { '.md': 'md', '.html': 'html', '.csv': 'csv', '.txt': 'txt' }[ext];
+    const ast = await OfficeParser.parseOffice(buffer, {
+      newlineDelimiter: '\n',
+      ...(fileTypeHint ? { fileType: fileTypeHint } : {}),
+    } as any);
 
     const flatParas = flattenContent(ast.content);
     const tableRows = collectTables(ast.content);

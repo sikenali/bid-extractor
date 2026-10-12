@@ -65,10 +65,10 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
         <div class="header-info">
           <div class="breadcrumb">
             <span>首页</span>
-            <span>/</span>
+            <span class="sep">/</span>
             <span>设置中心</span>
-            <span>/</span>
-            <span class="active">规则管理</span>
+            <span class="sep">/</span>
+            <span class="current">规则管理</span>
           </div>
           <div class="header-title">
             <h1>规则管理</h1>
@@ -87,7 +87,7 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
       <div class="toolbar-left">
         <button class="add-rule-button" @click="handleAddRule('regex')">
           <span class="icon ri-add-line"></span>
-          <span>新增规则</span σ
+          <span>新增规则</span>
         </button>
       </div>
       <div class="toolbar-right">
@@ -135,45 +135,31 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
 </template>
 
 <style scoped>
-:root {
-  --color-bg-white: #fff;
-  --color-bg-secondary: #F7F4EA;
-  --color-bg-main: #F7F5EE;
-  --color-text-primary: #1F1D1A;
-  --color-text-secondary: #3A3A3A;
-  --color-text-muted: #6E6A60;
-  --color-border-soft: #EFEC E3;
-  --color-primary: #C6A45C;
-}
-
 .rules-view {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 20px;
+  gap: 20px;
+  max-width: 1620px;
 }
 
 .page-header-card {
-  background-color: var(--color-bg-white);
-  border: 0.7px solid var(--color-border-soft);
+  background-color: #FFFFFF;
+  border: 0.7px solid #EFECE3;
   border-radius: 16px;
   padding: 20px 24px;
 }
-
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 24px;
 }
-
 .header-info {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-
 .breadcrumb {
   display: flex;
   align-items: center;
@@ -181,30 +167,31 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
   font-size: 14px;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-
 .breadcrumb span {
   color: #A7A296;
 }
-
-.breadcrumb span.active {
+.breadcrumb span.sep {
+  color: #C9C3B6;
+}
+.breadcrumb span.current {
   color: #3A3A3A;
   font-weight: 500;
 }
-
 .header-title h1 {
   font-size: 30px;
   font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 4px 0 8px 0;
+  color: #1F1D1A;
+  margin: 12px 0 0 0;
   letter-spacing: -0.5px;
+  font-family: "SourceHanSans-Bold", var(--font-family-cn);
+  line-height: 1.2;
 }
-
 .header-title p {
   font-size: 15px;
-  color: var(--color-text-muted);
-  margin: 0;
+  color: #6E6A60;
+  margin: 8px 0 0 0;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-
 .reset-button {
   display: inline-flex;
   align-items: center;
@@ -212,19 +199,18 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
   padding: 0 20px;
   height: 48px;
   border: 0.7px solid #E8E4D8;
-  background-color: var(--color-bg-white);
+  background-color: #FFFFFF;
   border-radius: 12px;
   font-size: 15px;
-  color: var(--color-text-primary);
+  color: #3A3A3A;
   cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-
 .reset-button:hover {
   background-color: #F7F4EA;
 }
-
 .reset-button .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
@@ -236,70 +222,64 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
   justify-content: space-between;
   align-items: center;
 }
-
 .toolbar-left .add-rule-button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 0 20px;
   height: 46px;
-  background-color: var(--color-primary);
+  background-color: #C6A45C;
   color: #fff;
   border: none;
   border-radius: 10px;
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
   transition: all 0.2s;
 }
-
 .add-rule-button:hover {
   filter: brightness(1.05);
 }
-
 .add-rule-button .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 20px;
 }
-
 .toolbar-right .search-box {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   padding: 0 16px;
   height: 46px;
+  width: 548px;
   border: 0.7px solid #E8E4D8;
-  background-color: var(--color-bg-white);
+  background-color: #FFFFFF;
   border-radius: 10px;
   font-size: 15px;
-  color: var(--color-text-muted);
+  color: #A7A296;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-
 .search-box .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 18px;
+  color: #A7A296;
 }
 
 .table-card {
-  background-color: var(--color-bg-white);
-  border: 0.7px solid var(--color-border-soft);
+  background-color: #FFFFFF;
+  border: 0.7px solid #EFECE3;
   border-radius: 16px;
   overflow: hidden;
 }
-
 .rule-table {
   width: 100%;
   border-collapse: collapse;
 }
-
 .rule-table thead {
   background-color: #F7F4EA;
-  border-radius: 16px 16px 0 0;
 }
-
 .rule-table thead tr th {
   text-align: left;
   font-size: 15px;
@@ -307,72 +287,55 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
   color: #6E6A60;
   padding: 0 40px;
   height: 52px;
-  border-radius: 16px 16px 0 0;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-
-.rule-table thead tr th:first-child {
-  padding-left: 40px;
-}
-
 .rule-table thead tr th:last-child {
   text-align: right;
-  padding-right: 40px;
 }
-
 .rule-table tbody tr td {
   padding: 0 40px;
   height: 76px;
   vertical-align: middle;
-  border-bottom: 1px solid transparent;
+  border-bottom: 0.7px solid #F0EDE4;
 }
-
-.rule-table tbody tr td:first-child {
-  padding-left: 40px;
-}
-
 .rule-table tbody tr td:last-child {
   text-align: right;
-  padding-right: 40px;
 }
-
 .rule-name {
   font-size: 16px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: #1F1D1A;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
-
 .rule-desc {
   font-size: 15px;
-  color: var(--color-text-muted);
+  color: #6E6A60;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-
 .rule-actions {
   display: flex;
   align-items: center;
-  gap: 36px;
   justify-content: flex-end;
+  gap: 36px;
 }
-
 .action-link {
   font-size: 15px;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
   cursor: pointer;
 }
-
 .action-link.edit {
   color: #4A72A8;
 }
-
 .action-link.delete {
   color: #C9503C;
 }
-
 .table-footer {
   padding: 0 40px;
   height: 54px;
   display: flex;
   align-items: center;
   font-size: 14px;
-  color: var(--color-text-muted);
+  color: #A7A296;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 </style>

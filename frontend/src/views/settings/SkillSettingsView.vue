@@ -120,10 +120,10 @@ onMounted(loadSkills);
 </script>
 
 <template>
-  <div class="settings-view">
-    <div class="settings-content">
+  <div class="skill-view">
+    <div class="skill-content">
       <div class="page-header">
-        <h2 class="page-title">添加技能</h2>
+        <h2 class="page-title">技能管理</h2>
         <p class="page-desc">通过 skill.md 导入和管理提取技能包</p>
       </div>
 
@@ -210,27 +210,30 @@ onMounted(loadSkills);
 </template>
 
 <style scoped>
-.settings-view {
-  min-height: 100vh;
-  background-color: var(--color-bg-main);
+.skill-view {
+  display: flex;
+  flex-direction: column;
 }
-.settings-content {
+.skill-content {
   flex: 1;
-  padding: 32px;
+  padding: 20px;
 }
 
 .page-header {
   margin-bottom: 24px;
 }
 .page-title {
-  font-size: 24px;
-  font-weight: bold;
-  color: var(--color-text-primary);
-  margin: 0 0 4px 0;
+  font-size: 30px;
+  font-weight: 700;
+  color: #1F1D1A;
+  font-family: "SourceHanSans-Bold", var(--font-family-cn);
+  margin: 0 0 8px 0;
+  line-height: 1.2;
 }
 .page-desc {
-  font-size: 14px;
-  color: var(--color-text-muted);
+  font-size: 15px;
+  color: #6E6A60;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
   margin: 0;
 }
 

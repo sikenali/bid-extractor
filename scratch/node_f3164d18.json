@@ -1,0 +1,2569 @@
+{
+  "id": "f3164d18-fbcc-4a4d-96bc-8a76511fa6ac",
+  "name": "主题管理 2",
+  "type": "frame",
+  "width": 1920,
+  "height": "fit_content",
+  "x": 15321,
+  "y": 4202.5,
+  "clip": true,
+  "fills": "rgba(247,245,239,1)",
+  "layout": "vertical",
+  "alignItems": "start",
+  "justifyContent": "start",
+  "children": [
+    {
+      "id": "f1cdfe40-2ca4-4758-9750-d90b30975549",
+      "name": "页面容器",
+      "type": "frame",
+      "width": "fill_container",
+      "height": 1297,
+      "layout": "horizontal",
+      "alignItems": "start",
+      "justifyContent": "start",
+      "children": [
+        {
+          "id": "20ccf95f-734c-4bea-8d75-8d473e46972a",
+          "name": "侧边栏",
+          "type": "frame",
+          "width": 310,
+          "height": "fill_container",
+          "fills": "rgba(255,255,255,1)",
+          "layout": "vertical",
+          "alignItems": "start",
+          "justifyContent": "start",
+          "children": [
+            {
+              "id": "e67ebdb4-c6f0-4a3e-87c2-33a0dc3e121b",
+              "name": "品牌区",
+              "type": "frame",
+              "width": "fill_container",
+              "height": 92,
+              "padding": [
+                0,
+                32,
+                0,
+                32
+              ],
+              "layout": "horizontal",
+              "alignItems": "center",
+              "justifyContent": "start",
+              "gap": 12,
+              "children": [
+                {
+                  "id": "6188cab8-4efa-4fb9-adb6-e1bc8dc054e6",
+                  "name": "品牌图标容器",
+                  "type": "frame",
+                  "width": 32,
+                  "height": 32,
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "id": "4037133f-7497-4f37-99c5-a74d86581d96",
+                      "name": "品牌图标",
+                      "type": "frame",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "clip": true,
+                      "children": [
+                        {
+                          "id": "7797dbd2-306f-48fb-a5a3-49898a22aa64",
+                          "name": "矢量",
+                          "type": "svg",
+                          "width": 19,
+                          "height": 20,
+                          "x": 6,
+                          "y": 5.5,
+                          "content": "<svg  width=\"19\" height=\"20\" viewBox=\"-9.5 -10 19 20\" xmlns=\"http://www.w3.org/2000/svg\">\n<g transform=\"matrix(1 0 0 1 0 0)\"  >\n<path style=\"stroke: none; stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(43,43,43); fill-rule: nonzero; opacity: 1;\" vector-effect=\"non-scaling-stroke\"  transform=\" translate(-15.5, -15.5)\" d=\"M 6 24 C 10 13.5 18 6.5 25 5.5 C 24.5 14 17.5 22 7.5 25.5 Z\" stroke-linecap=\"round\" />\n</g>\n</svg>",
+                          "fills": "#2B2B2B"
+                        },
+                        {
+                          "id": "ca20a35b-1ff4-4eb0-bfee-aa0675544675",
+                          "name": "矢量",
+                          "type": "svg",
+                          "width": 5,
+                          "height": 5,
+                          "x": 20,
+                          "y": 5.3,
+                          "content": "<svg  width=\"5\" height=\"5\" viewBox=\"-2.5 -2.5 5 5\" xmlns=\"http://www.w3.org/2000/svg\">\n<g transform=\"matrix(1 0 0 1 0 0)\"  >\n<circle style=\"stroke: none; stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(190,59,46); fill-rule: nonzero; opacity: 1;\" vector-effect=\"non-scaling-stroke\"  cx=\"0\" cy=\"0\" r=\"2.5\" />\n</g>\n</svg>",
+                          "fills": "#BE3B2E"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "099cda38-236d-4983-ae52-b7fc1ac8ac21",
+                  "name": "图层",
+                  "type": "rectangle",
+                  "width": 124,
+                  "height": "fit_content",
+                  "fontSize": 19,
+                  "fontFamily": "SourceHanSans-Bold",
+                  "lineHeight": 1.2,
+                  "textAlign": "left",
+                  "fontFill": "rgba(34,32,28,1)",
+                  "content": "回旋镖 · 设置",
+                  "textAlignVertical": "middle"
+                }
+              ]
+            },
+            {
+              "id": "bbd79d4d-3184-426d-b9e5-e7b0e9abafb4",
+              "name": "分隔线",
+              "type": "rectangle",
+              "width": "fill_container",
+              "height": 1,
+              "fills": "rgba(237,234,226,1)"
+            },
+            {
+              "id": "a9c0ffb6-8895-4ce0-9ee2-1003996304d7",
+              "name": "分组标题",
+              "type": "frame",
+              "width": "fill_container",
+              "height": "fit_content",
+              "padding": [
+                28,
+                32,
+                12,
+                32
+              ],
+              "layout": "vertical",
+              "alignItems": "start",
+              "justifyContent": "start",
+              "children": [
+                {
+                  "id": "2eecb715-6eea-4ae1-8708-d68edffcfff3",
+                  "name": "图层",
+                  "type": "rectangle",
+                  "width": "fill_container",
+                  "height": 18,
+                  "fontSize": 12,
+                  "fontFamily": "SourceHanSans-Regular",
+                  "lineHeight": 1.2,
+                  "textAlign": "left",
+                  "fontFill": "rgba(167,162,150,1)",
+                  "content": "偏好与资源",
+                  "textAlignVertical": "middle"
+                }
+              ]
+            },
+            {
+              "id": "b1d2855c-5167-4c75-bdd0-c90c3b041fd8",
+              "name": "导航列表",
+              "type": "frame",
+              "width": "fill_container",
+              "height": "fit_content",
+              "padding": [
+                0,
+                16,
+                0,
+                16
+              ],
+              "layout": "vertical",
+              "alignItems": "start",
+              "justifyContent": "start",
+              "gap": 4,
+              "children": [
+                {
+                  "id": "3b842ce9-e438-4946-a474-57506d125588",
+                  "name": "导航项-主题管理",
+                  "type": "frame",
+                  "width": "fill_container",
+                  "height": 52,
+                  "fills": "rgba(246,238,218,1)",
+                  "cornerRadius": 12,
+                  "padding": [
+                    0,
+                    28,
+                    0,
+                    28
+                  ],
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "justifyContent": "start",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "id": "3b9cc486-2ff0-4061-955a-33f48290b38d",
+                      "name": "图层",
+                      "type": "paragraph",
+                      "width": 22,
+                      "height": "fit_content",
+                      "fontSize": 20,
+                      "fontFamily": "remixicon",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "content": "",
+                      "textAlignVertical": "middle",
+                      "fills": "rgba(176,141,58,1)"
+                    },
+                    {
+                      "id": "c02f03e9-0167-40e2-ad1a-cb323b2099f9",
+                      "name": "图层",
+                      "type": "rectangle",
+                      "width": 65,
+                      "height": "fit_content",
+                      "fontSize": 16,
+                      "fontFamily": "SourceHanSans-Medium",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "fontFill": "rgba(176,141,58,1)",
+                      "content": "主题管理",
+                      "textAlignVertical": "middle"
+                    }
+                  ]
+                },
+                {
+                  "id": "4e533cd1-d1cd-457d-ad7c-e863b09496d4",
+                  "name": "导航项-模板管理",
+                  "type": "frame",
+                  "width": "fill_container",
+                  "height": 52,
+                  "cornerRadius": 12,
+                  "padding": [
+                    0,
+                    28,
+                    0,
+                    28
+                  ],
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "justifyContent": "start",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "id": "c8c2d8e0-b090-4258-a135-469134a0fe09",
+                      "name": "图层",
+                      "type": "paragraph",
+                      "width": 22,
+                      "height": "fit_content",
+                      "fontSize": 20,
+                      "fontFamily": "remixicon",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "content": "",
+                      "textAlignVertical": "middle",
+                      "fills": "rgba(58,58,58,1)"
+                    },
+                    {
+                      "id": "b43cd0cf-782d-48f7-b472-d22bf5f50977",
+                      "name": "图层",
+                      "type": "rectangle",
+                      "width": 65,
+                      "height": "fit_content",
+                      "fontSize": 16,
+                      "fontFamily": "SourceHanSans-Regular",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "fontFill": "rgba(58,58,58,1)",
+                      "content": "模板管理",
+                      "textAlignVertical": "middle"
+                    }
+                  ]
+                },
+                {
+                  "id": "89e61a9e-deb0-48b5-bc30-fe14e4e327f0",
+                  "name": "导航项-技能管理",
+                  "type": "frame",
+                  "width": "fill_container",
+                  "height": 52,
+                  "cornerRadius": 12,
+                  "padding": [
+                    0,
+                    28,
+                    0,
+                    28
+                  ],
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "justifyContent": "start",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "id": "5846014d-2370-4d78-b00f-d9110d3d6fed",
+                      "name": "图层",
+                      "type": "paragraph",
+                      "width": 22,
+                      "height": "fit_content",
+                      "fontSize": 20,
+                      "fontFamily": "remixicon",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "content": "",
+                      "textAlignVertical": "middle",
+                      "fills": "rgba(58,58,58,1)"
+                    },
+                    {
+                      "id": "b278cf25-a474-4288-bedd-a0808d6e4445",
+                      "name": "图层",
+                      "type": "rectangle",
+                      "width": 65,
+                      "height": "fit_content",
+                      "fontSize": 16,
+                      "fontFamily": "SourceHanSans-Regular",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "fontFill": "rgba(58,58,58,1)",
+                      "content": "技能管理",
+                      "textAlignVertical": "middle"
+                    }
+                  ]
+                },
+                {
+                  "id": "a05b4b58-4ad4-4068-8232-5be30d599728",
+                  "name": "导航项-规则管理",
+                  "type": "frame",
+                  "width": "fill_container",
+                  "height": 52,
+                  "cornerRadius": 12,
+                  "padding": [
+                    0,
+                    28,
+                    0,
+                    28
+                  ],
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "justifyContent": "start",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "id": "2d3acf16-e549-4ef8-9fbe-d6375a9bba3a",
+                      "name": "图层",
+                      "type": "paragraph",
+                      "width": 22,
+                      "height": "fit_content",
+                      "fontSize": 20,
+                      "fontFamily": "remixicon",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "content": "",
+                      "textAlignVertical": "middle",
+                      "fills": "rgba(58,58,58,1)"
+                    },
+                    {
+                      "id": "77248b95-e33a-4bb6-b8a1-fa80f3430041",
+                      "name": "图层",
+                      "type": "rectangle",
+                      "width": 65,
+                      "height": "fit_content",
+                      "fontSize": 16,
+                      "fontFamily": "SourceHanSans-Regular",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "fontFill": "rgba(58,58,58,1)",
+                      "content": "规则管理",
+                      "textAlignVertical": "middle"
+                    }
+                  ]
+                },
+                {
+                  "id": "8ed7adc8-d704-44a2-943d-12160306b159",
+                  "name": "导航项-模型管理",
+                  "type": "frame",
+                  "width": "fill_container",
+                  "height": 52,
+                  "cornerRadius": 12,
+                  "padding": [
+                    0,
+                    28,
+                    0,
+                    28
+                  ],
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "justifyContent": "start",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "id": "d5e01fc0-bf9d-4630-a911-d018d8f0d6ef",
+                      "name": "图层",
+                      "type": "paragraph",
+                      "width": 22,
+                      "height": "fit_content",
+                      "fontSize": 20,
+                      "fontFamily": "remixicon",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "content": "",
+                      "textAlignVertical": "middle",
+                      "fills": "rgba(58,58,58,1)"
+                    },
+                    {
+                      "id": "5380a523-688d-4d7f-8812-04adc24f20dd",
+                      "name": "图层",
+                      "type": "rectangle",
+                      "width": 65,
+                      "height": "fit_content",
+                      "fontSize": 16,
+                      "fontFamily": "SourceHanSans-Regular",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "fontFill": "rgba(58,58,58,1)",
+                      "content": "模型管理",
+                      "textAlignVertical": "middle"
+                    }
+                  ]
+                },
+                {
+                  "id": "94686fc4-9f5b-4bc1-b00e-eb3534506ba6",
+                  "name": "导航项-导出管理",
+                  "type": "frame",
+                  "width": "fill_container",
+                  "height": 52,
+                  "cornerRadius": 12,
+                  "padding": [
+                    0,
+                    28,
+                    0,
+                    28
+                  ],
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "justifyContent": "start",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "id": "21839eeb-5b96-428e-97c7-115c63ade61c",
+                      "name": "图层",
+                      "type": "paragraph",
+                      "width": 22,
+                      "height": "fit_content",
+                      "fontSize": 20,
+                      "fontFamily": "remixicon",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "content": "",
+                      "textAlignVertical": "middle",
+                      "fills": "rgba(58,58,58,1)"
+                    },
+                    {
+                      "id": "2223ec21-ba2b-4597-b700-c48f4c573dc0",
+                      "name": "图层",
+                      "type": "rectangle",
+                      "width": 65,
+                      "height": "fit_content",
+                      "fontSize": 16,
+                      "fontFamily": "SourceHanSans-Regular",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "fontFill": "rgba(58,58,58,1)",
+                      "content": "导出管理",
+                      "textAlignVertical": "middle"
+                    }
+                  ]
+                },
+                {
+                  "id": "94205be9-1d50-4d41-9507-adc7590dd691",
+                  "name": "导航项-个性设置",
+                  "type": "frame",
+                  "width": "fill_container",
+                  "height": 52,
+                  "cornerRadius": 12,
+                  "padding": [
+                    0,
+                    28,
+                    0,
+                    28
+                  ],
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "justifyContent": "start",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "id": "f4add783-2354-4e6e-a8c8-48a36c53b03e",
+                      "name": "图层",
+                      "type": "paragraph",
+                      "width": 22,
+                      "height": "fit_content",
+                      "fontSize": 20,
+                      "fontFamily": "remixicon",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "content": "",
+                      "textAlignVertical": "middle",
+                      "fills": "rgba(58,58,58,1)"
+                    },
+                    {
+                      "id": "51ac3a80-4edc-4b16-8d01-b00a5d979852",
+                      "name": "图层",
+                      "type": "rectangle",
+                      "width": 65,
+                      "height": "fit_content",
+                      "fontSize": 16,
+                      "fontFamily": "SourceHanSans-Regular",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "fontFill": "rgba(58,58,58,1)",
+                      "content": "个性设置",
+                      "textAlignVertical": "middle"
+                    }
+                  ]
+                },
+                {
+                  "id": "e45e3d8e-a056-48ad-8273-3c80850cf910",
+                  "name": "导航项-关于回旋镖",
+                  "type": "frame",
+                  "width": "fill_container",
+                  "height": 52,
+                  "cornerRadius": 12,
+                  "padding": [
+                    0,
+                    28,
+                    0,
+                    28
+                  ],
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "justifyContent": "start",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "id": "bdbd949a-dcb2-404b-a288-3387003623cd",
+                      "name": "图层",
+                      "type": "paragraph",
+                      "width": 22,
+                      "height": "fit_content",
+                      "fontSize": 20,
+                      "fontFamily": "remixicon",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "content": "",
+                      "textAlignVertical": "middle",
+                      "fills": "rgba(58,58,58,1)"
+                    },
+                    {
+                      "id": "0ea859e7-0216-4f36-b586-5de5d798ffdf",
+                      "name": "图层",
+                      "type": "rectangle",
+                      "width": 81,
+                      "height": "fit_content",
+                      "fontSize": 16,
+                      "fontFamily": "SourceHanSans-Regular",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "fontFill": "rgba(58,58,58,1)",
+                      "content": "关于回旋镖",
+                      "textAlignVertical": "middle"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "c7a894bc-23e7-4c86-a212-b602ed75973a",
+              "name": "弹性占位",
+              "type": "rectangle",
+              "width": "fill_container",
+              "height": 624
+            },
+            {
+              "id": "ff10abf2-87f4-463f-b0b7-e1ff96c529e0",
+              "name": "返回工作台区域",
+              "type": "frame",
+              "width": "fill_container",
+              "height": "fit_content",
+              "padding": [
+                16,
+                32,
+                32,
+                32
+              ],
+              "layout": "vertical",
+              "alignItems": "start",
+              "justifyContent": "start",
+              "children": [
+                {
+                  "id": "d2cfb315-d99b-499e-95ff-f71f0928b674",
+                  "name": "返回工作台",
+                  "type": "frame",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "justifyContent": "start",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "id": "cee49612-7a35-4dd7-9f15-416f823dd201",
+                      "name": "图层",
+                      "type": "paragraph",
+                      "width": 22,
+                      "height": "fit_content",
+                      "fontSize": 20,
+                      "fontFamily": "remixicon",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "content": "",
+                      "textAlignVertical": "middle",
+                      "fills": "rgba(34,32,28,1)"
+                    },
+                    {
+                      "id": "9d1ef248-8c76-4e24-b724-9b1f292d5a2f",
+                      "name": "图层",
+                      "type": "rectangle",
+                      "width": 76,
+                      "height": "fit_content",
+                      "fontSize": 15,
+                      "fontFamily": "SourceHanSans-Regular",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "fontFill": "rgba(34,32,28,1)",
+                      "content": "返回工作台",
+                      "textAlignVertical": "middle"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "da3e2397-162a-4a5c-9ba7-dbfa67a41bd7",
+          "name": "主区域",
+          "type": "frame",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "alignItems": "start",
+          "justifyContent": "start",
+          "children": [
+            {
+              "id": "c9483d43-2116-4dec-a988-7fa62efb5268",
+              "name": "顶部栏",
+              "type": "frame",
+              "width": "fill_container",
+              "height": 93,
+              "padding": [
+                0,
+                32,
+                0,
+                32
+              ],
+              "layout": "horizontal",
+              "alignItems": "center",
+              "justifyContent": "space_between",
+              "children": [
+                {
+                  "id": "f6a55ed7-6d01-47fc-907f-70898a2a78fb",
+                  "name": "顶部面包屑",
+                  "type": "frame",
+                  "width": "fit_content",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "justifyContent": "start",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "id": "f5389f4e-4cae-4145-bf37-76a60c5e647d",
+                      "name": "图层",
+                      "type": "rectangle",
+                      "width": 31,
+                      "height": "fit_content",
+                      "fontSize": 15,
+                      "fontFamily": "SourceHanSans-Regular",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "fontFill": "rgba(167,162,150,1)",
+                      "content": "首页",
+                      "textAlignVertical": "middle"
+                    },
+                    {
+                      "id": "be90a007-f3ae-4b7c-8558-f20b6fb431b3",
+                      "name": "图层",
+                      "type": "rectangle",
+                      "width": 7,
+                      "height": "fit_content",
+                      "fontSize": 15,
+                      "fontFamily": "SourceHanSans-Regular",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "fontFill": "rgba(201,195,182,1)",
+                      "content": "/",
+                      "textAlignVertical": "middle"
+                    },
+                    {
+                      "id": "c345907d-8843-4b98-9b30-e182286a5aa4",
+                      "name": "图层",
+                      "type": "rectangle",
+                      "width": 61,
+                      "height": "fit_content",
+                      "fontSize": 15,
+                      "fontFamily": "SourceHanSans-Regular",
+                      "lineHeight": 1.2,
+                      "textAlign": "left",
+                      "fontFill": "rgba(110,106,96,1)",
+                      "content": "设置中心",
+                      "textAlignVertical": "middle"
+                    }
+                  ]
+                },
+                {
+                  "id": "4f0217f5-0d78-4533-880d-9d1f08ee73cd",
+                  "name": "顶部操作组",
+                  "type": "frame",
+                  "width": "fit_content",
+                  "height": 46,
+                  "stroke": {
+                    "align": "center",
+                    "thickness": 0.7,
+                    "lineCap": "butt",
+                    "lineJoin": "miter",
+                    "fills": "rgba(237,234,226,1)"
+                  },
+                  "fills": "rgba(255,255,255,1)",
+                  "cornerRadius": 14,
+                  "padding": [
+                    0,
+                    4,
+                    0,
+                    4
+                  ],
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "justifyContent": "start",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "id": "447bf5d7-9753-43fb-804b-4099ef9db48b",
+                      "name": "返回按钮",
+                      "type": "frame",
+                      "width": 44,
+                      "height": 38,
+                      "cornerRadius": 10,
+                      "layout": "horizontal",
+                      "alignItems": "center",
+                      "justifyContent": "center",
+                      "children": [
+                        {
+                          "id": "4b6059cd-d2f7-4483-b601-27c1080b1f32",
+                          "name": "图层",
+                          "type": "paragraph",
+                          "width": 22,
+                          "height": "fit_content",
+                          "fontSize": 20,
+                          "fontFamily": "remixicon",
+                          "lineHeight": 1.2,
+                          "textAlign": "left",
+                          "content": "",
+                          "textAlignVertical": "middle",
+                          "fills": "rgba(58,58,58,1)"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "47079c12-249e-4fa3-afa8-3684dfdb3dd8",
+                      "name": "主题切换",
+                      "type": "frame",
+                      "width": 44,
+                      "height": 38,
+                      "cornerRadius": 10,
+                      "layout": "horizontal",
+                      "alignItems": "center",
+                      "justifyContent": "center",
+                      "children": [
+                        {
+                          "id": "3185d5ce-52ef-4e1c-81bf-f4f269f32c13",
+                          "name": "图层",
+                          "type": "paragraph",
+                          "width": 20,
+                          "height": "fit_content",
+                          "fontSize": 18,
+                          "fontFamily": "remixicon",
+                          "lineHeight": 1.2,
+                          "textAlign": "left",
+                          "content": "",
+                          "textAlignVertical": "middle",
+                          "fills": "rgba(58,58,58,1)"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "bd13b660-beed-4cfb-957e-57cb6114c086",
+              "name": "内容区",
+              "type": "frame",
+              "width": "fill_container",
+              "height": "fit_content",
+              "padding": [
+                20,
+                20,
+                40,
+                20
+              ],
+              "layout": "vertical",
+              "alignItems": "start",
+              "justifyContent": "start",
+              "children": [
+                {
+                  "id": "006e7846-222f-4c09-beef-80010bbf8cc3",
+                  "name": "页面头部卡片",
+                  "type": "frame",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "stroke": {
+                    "align": "center",
+                    "thickness": 0.7,
+                    "lineCap": "butt",
+                    "lineJoin": "miter",
+                    "fills": "rgba(239,236,227,1)"
+                  },
+                  "fills": "rgba(255,255,255,1)",
+                  "cornerRadius": 16,
+                  "padding": [
+                    20,
+                    24,
+                    20,
+                    24
+                  ],
+                  "layout": "vertical",
+                  "alignItems": "start",
+                  "justifyContent": "start",
+                  "children": [
+                    {
+                      "id": "29aa7933-7255-46e8-8404-5cce80b6faf5",
+                      "name": "头部布局",
+                      "type": "frame",
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "layout": "horizontal",
+                      "alignItems": "start",
+                      "justifyContent": "space_between",
+                      "children": [
+                        {
+                          "id": "72181d58-4e6f-416a-b50a-2367b6ce8431",
+                          "name": "头部信息",
+                          "type": "frame",
+                          "width": 390,
+                          "height": "fit_content",
+                          "layout": "vertical",
+                          "alignItems": "start",
+                          "justifyContent": "start",
+                          "children": [
+                            {
+                              "id": "dc3cc358-4f96-47e1-b63b-e6ba6070b62b",
+                              "name": "头部面包屑",
+                              "type": "frame",
+                              "width": "fill_container",
+                              "height": "fit_content",
+                              "layout": "horizontal",
+                              "alignItems": "center",
+                              "justifyContent": "start",
+                              "gap": 8,
+                              "children": [
+                                {
+                                  "id": "83b35b28-f9ec-482f-9faa-10decf1f699f",
+                                  "name": "图层",
+                                  "type": "rectangle",
+                                  "width": 29,
+                                  "height": "fit_content",
+                                  "fontSize": 14,
+                                  "fontFamily": "SourceHanSans-Regular",
+                                  "lineHeight": 1.2,
+                                  "textAlign": "left",
+                                  "fontFill": "rgba(167,162,150,1)",
+                                  "content": "首页",
+                                  "textAlignVertical": "middle"
+                                },
+                                {
+                                  "id": "7f490582-b646-43c9-986d-7d4c3cc450d0",
+                                  "name": "图层",
+                                  "type": "rectangle",
+                                  "width": 7,
+                                  "height": "fit_content",
+                                  "fontSize": 14,
+                                  "fontFamily": "SourceHanSans-Regular",
+                                  "lineHeight": 1.2,
+                                  "textAlign": "left",
+                                  "fontFill": "rgba(201,195,182,1)",
+                                  "content": "/",
+                                  "textAlignVertical": "middle"
+                                },
+                                {
+                                  "id": "b365fe8e-9856-48d1-a268-de747ad542ef",
+                                  "name": "图层",
+                                  "type": "rectangle",
+                                  "width": 57,
+                                  "height": "fit_content",
+                                  "fontSize": 14,
+                                  "fontFamily": "SourceHanSans-Regular",
+                                  "lineHeight": 1.2,
+                                  "textAlign": "left",
+                                  "fontFill": "rgba(167,162,150,1)",
+                                  "content": "设置中心",
+                                  "textAlignVertical": "middle"
+                                },
+                                {
+                                  "id": "a8be813a-7f1c-4b3b-af5f-49b6be32d5a0",
+                                  "name": "图层",
+                                  "type": "rectangle",
+                                  "width": 7,
+                                  "height": "fit_content",
+                                  "fontSize": 14,
+                                  "fontFamily": "SourceHanSans-Regular",
+                                  "lineHeight": 1.2,
+                                  "textAlign": "left",
+                                  "fontFill": "rgba(201,195,182,1)",
+                                  "content": "/",
+                                  "textAlignVertical": "middle"
+                                },
+                                {
+                                  "id": "ebc3f50a-f10f-4b9c-8004-deab35d7468a",
+                                  "name": "图层",
+                                  "type": "rectangle",
+                                  "width": 57,
+                                  "height": "fit_content",
+                                  "fontSize": 14,
+                                  "fontFamily": "SourceHanSans-Regular",
+                                  "lineHeight": 1.2,
+                                  "textAlign": "left",
+                                  "fontFill": "rgba(58,58,58,1)",
+                                  "content": "主题管理",
+                                  "textAlignVertical": "middle"
+                                }
+                              ]
+                            },
+                            {
+                              "id": "50cdf5f0-c79b-4f27-8097-9871ac9a9d47",
+                              "name": "container",
+                              "type": "frame",
+                              "width": "fill_container",
+                              "height": "fit_content",
+                              "padding": [
+                                12,
+                                0,
+                                0,
+                                0
+                              ],
+                              "layout": "vertical",
+                              "alignItems": "start",
+                              "justifyContent": "start",
+                              "children": [
+                                {
+                                  "id": "85d20b98-e6cf-483e-bdc2-08fe319ec5a0",
+                                  "name": "页面标题",
+                                  "type": "frame",
+                                  "width": "fill_container",
+                                  "height": "fit_content",
+                                  "layout": "vertical",
+                                  "alignItems": "start",
+                                  "justifyContent": "start",
+                                  "children": [
+                                    {
+                                      "id": "62de6b28-82a0-44aa-8a29-1382e0574c80",
+                                      "name": "图层",
+                                      "type": "rectangle",
+                                      "width": "fill_container",
+                                      "height": 40,
+                                      "fontSize": 30,
+                                      "fontFamily": "SourceHanSans-Bold",
+                                      "lineHeight": 1.2,
+                                      "textAlign": "left",
+                                      "fontFill": "rgba(31,29,26,1)",
+                                      "content": "主题管理",
+                                      "textAlignVertical": "middle"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "508930c4-16ac-4ea0-9cd1-1c0ff41d8e29",
+                              "name": "container",
+                              "type": "frame",
+                              "width": "fill_container",
+                              "height": "fit_content",
+                              "padding": [
+                                8,
+                                0,
+                                0,
+                                0
+                              ],
+                              "layout": "vertical",
+                              "alignItems": "start",
+                              "justifyContent": "start",
+                              "children": [
+                                {
+                                  "id": "18a2c71a-6100-4b25-98c9-834f8d11d9a3",
+                                  "name": "页面描述",
+                                  "type": "frame",
+                                  "width": "fill_container",
+                                  "height": "fit_content",
+                                  "layout": "vertical",
+                                  "alignItems": "start",
+                                  "justifyContent": "start",
+                                  "children": [
+                                    {
+                                      "id": "7003fb4e-75c7-44b8-a934-ba9190e6ef3d",
+                                      "name": "图层",
+                                      "type": "rectangle",
+                                      "width": "fill_container",
+                                      "height": 22,
+                                      "fontSize": 15,
+                                      "fontFamily": "SourceHanSans-Regular",
+                                      "lineHeight": 1.2,
+                                      "textAlign": "left",
+                                      "fontFill": "rgba(110,106,96,1)",
+                                      "content": "统一切换外观底色、强调色与导航布局模式，修改即时生效",
+                                      "textAlignVertical": "middle"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "836b44b9-69e4-4677-bd37-a82fe5d8c3de",
+                          "name": "恢复默认按钮",
+                          "type": "frame",
+                          "width": "fit_content",
+                          "height": 48,
+                          "stroke": {
+                            "align": "center",
+                            "thickness": 0.7,
+                            "lineCap": "butt",
+                            "lineJoin": "miter",
+                            "fills": "rgba(232,228,216,1)"
+                          },
+                          "fills": "rgba(255,255,255,1)",
+                          "cornerRadius": 12,
+                          "padding": [
+                            0,
+                            20,
+                            0,
+                            20
+                          ],
+                          "layout": "horizontal",
+                          "alignItems": "center",
+                          "justifyContent": "start",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "id": "5610e221-e3e0-4c08-b90d-53936e506f0b",
+                              "name": "图层",
+                              "type": "paragraph",
+                              "width": 20,
+                              "height": "fit_content",
+                              "fontSize": 18,
+                              "fontFamily": "remixicon",
+                              "lineHeight": 1.2,
+                              "textAlign": "left",
+                              "content": "",
+                              "textAlignVertical": "middle",
+                              "fills": "rgba(58,58,58,1)"
+                            },
+                            {
+                              "id": "53195a1a-6a0d-4feb-bfec-b55ad5c78700",
+                              "name": "图层",
+                              "type": "rectangle",
+                              "width": 61,
+                              "height": "fit_content",
+                              "fontSize": 15,
+                              "fontFamily": "SourceHanSans-Regular",
+                              "lineHeight": 1.2,
+                              "textAlign": "left",
+                              "fontFill": "rgba(58,58,58,1)",
+                              "content": "恢复默认",
+                              "textAlignVertical": "middle"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "9fe4b3da-bc68-4cbb-a80e-bb40b57ea724",
+                  "name": "container",
+                  "type": "frame",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "padding": [
+                    20,
+                    0,
+                    0,
+                    0
+                  ],
+                  "layout": "vertical",
+                  "alignItems": "start",
+                  "justifyContent": "start",
+                  "children": [
+                    {
+                      "id": "272ce905-16a0-4a47-9080-125bbbaed172",
+                      "name": "外观主题卡片",
+                      "type": "frame",
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "stroke": {
+                        "align": "center",
+                        "thickness": 0.7,
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "fills": "rgba(239,236,227,1)"
+                      },
+                      "fills": "rgba(255,255,255,1)",
+                      "cornerRadius": 16,
+                      "padding": [
+                        24,
+                        28,
+                        24,
+                        28
+                      ],
+                      "layout": "vertical",
+                      "alignItems": "start",
+                      "justifyContent": "start",
+                      "children": [
+                        {
+                          "id": "dc090ced-720c-49a0-84c1-7efa7b2d300f",
+                          "name": "卡片标题",
+                          "type": "frame",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "layout": "vertical",
+                          "alignItems": "start",
+                          "justifyContent": "start",
+                          "children": [
+                            {
+                              "id": "925945d2-42df-485c-86e9-b88dd0c849a6",
+                              "name": "图层",
+                              "type": "rectangle",
+                              "width": "fill_container",
+                              "height": 26,
+                              "fontSize": 17,
+                              "fontFamily": "SourceHanSans-Medium",
+                              "lineHeight": 1.2,
+                              "textAlign": "left",
+                              "fontFill": "rgba(31,29,26,1)",
+                              "content": "外观主题",
+                              "textAlignVertical": "middle"
+                            }
+                          ]
+                        },
+                        {
+                          "id": "71a9715a-6ab8-41ef-87ac-9ea2860ba64f",
+                          "name": "container",
+                          "type": "frame",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "padding": [
+                            20,
+                            0,
+                            0,
+                            0
+                          ],
+                          "layout": "vertical",
+                          "alignItems": "start",
+                          "justifyContent": "start",
+                          "children": [
+                            {
+                              "id": "1ef1f568-471d-40b5-947b-dab0db6c6e7a",
+                              "name": "主题预览组",
+                              "type": "frame",
+                              "width": "fill_container",
+                              "height": 256,
+                              "layout": "horizontal",
+                              "alignItems": "start",
+                              "justifyContent": "start",
+                              "gap": 24,
+                              "children": [
+                                {
+                                  "id": "bad8c7bf-bbe3-4c08-a042-e4c4bccca9fa",
+                                  "name": "主题-浅色羊皮纸",
+                                  "type": "frame",
+                                  "width": 749,
+                                  "height": "fill_container",
+                                  "stroke": {
+                                    "align": "center",
+                                    "thickness": 0.7,
+                                    "lineCap": "butt",
+                                    "lineJoin": "miter",
+                                    "fills": "rgba(228,205,142,1)"
+                                  },
+                                  "fills": "rgba(251,245,227,1)",
+                                  "cornerRadius": 14,
+                                  "padding": 24,
+                                  "layout": "vertical",
+                                  "alignItems": "start",
+                                  "justifyContent": "start",
+                                  "children": [
+                                    {
+                                      "id": "a6de1a8f-aa49-4520-a05e-b3ef6884d3aa",
+                                      "name": "浅色缩略图",
+                                      "type": "frame",
+                                      "width": "fill_container",
+                                      "height": 128,
+                                      "fills": "rgba(247,238,212,1)",
+                                      "cornerRadius": 8,
+                                      "padding": 16,
+                                      "layout": "vertical",
+                                      "alignItems": "start",
+                                      "justifyContent": "start",
+                                      "children": [
+                                        {
+                                          "id": "bf53e852-26f0-44f1-ad15-761a0fa53029",
+                                          "name": "顶栏示意",
+                                          "type": "rectangle",
+                                          "width": "fill_container",
+                                          "height": 28,
+                                          "fills": "rgba(255,255,255,1)",
+                                          "cornerRadius": 5
+                                        },
+                                        {
+                                          "id": "90b168f2-02df-48a8-ba17-251c6f9d9436",
+                                          "name": "container",
+                                          "type": "frame",
+                                          "width": "fill_container",
+                                          "height": "fit_content",
+                                          "padding": [
+                                            16,
+                                            0,
+                                            0,
+                                            0
+                                          ],
+                                          "layout": "vertical",
+                                          "alignItems": "start",
+                                          "justifyContent": "start",
+                                          "children": [
+                                            {
+                                              "id": "918b9cba-7074-4383-9ac3-23ffdd89789a",
+                                              "name": "内容示意",
+                                              "type": "rectangle",
+                                              "width": "fill_container",
+                                              "height": 54,
+                                              "fills": "rgba(225,220,209,1)",
+                                              "cornerRadius": 6
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "64d75540-a0ab-44e6-b76b-39d6314742ac",
+                                      "name": "container",
+                                      "type": "frame",
+                                      "width": "fill_container",
+                                      "height": "fit_content",
+                                      "padding": [
+                                        24,
+                                        0,
+                                        0,
+                                        0
+                                      ],
+                                      "layout": "vertical",
+                                      "alignItems": "start",
+                                      "justifyContent": "start",
+                                      "children": [
+                                        {
+                                          "id": "f8e43bc5-f37f-4a04-9ca5-22c09f24e1b9",
+                                          "name": "主题名称",
+                                          "type": "frame",
+                                          "width": "fill_container",
+                                          "height": "fit_content",
+                                          "layout": "vertical",
+                                          "alignItems": "start",
+                                          "justifyContent": "start",
+                                          "children": [
+                                            {
+                                              "id": "1b73f5ce-8cc7-445c-8666-bded6a65d968",
+                                              "name": "图层",
+                                              "type": "rectangle",
+                                              "width": "fill_container",
+                                              "height": 24,
+                                              "fontSize": 16,
+                                              "fontFamily": "SourceHanSans-Medium",
+                                              "lineHeight": 1.2,
+                                              "textAlign": "left",
+                                              "fontFill": "rgba(31,29,26,1)",
+                                              "content": "浅色主题 · 羊皮纸",
+                                              "textAlignVertical": "middle"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "d2d75b2a-4000-482a-948e-9e64205d8ab3",
+                                      "name": "container",
+                                      "type": "frame",
+                                      "width": "fill_container",
+                                      "height": "fit_content",
+                                      "padding": [
+                                        8,
+                                        0,
+                                        0,
+                                        0
+                                      ],
+                                      "layout": "vertical",
+                                      "alignItems": "start",
+                                      "justifyContent": "start",
+                                      "children": [
+                                        {
+                                          "id": "47421a37-0707-4631-acc9-e5c67564d436",
+                                          "name": "主题说明",
+                                          "type": "frame",
+                                          "width": "fill_container",
+                                          "height": "fit_content",
+                                          "layout": "vertical",
+                                          "alignItems": "start",
+                                          "justifyContent": "start",
+                                          "children": [
+                                            {
+                                              "id": "d28c0434-6aaa-495f-9dd6-743bf520ed5f",
+                                              "name": "图层",
+                                              "type": "rectangle",
+                                              "width": "fill_container",
+                                              "height": 22,
+                                              "fontSize": 14,
+                                              "fontFamily": "SourceHanSans-Regular",
+                                              "lineHeight": 1.2,
+                                              "textAlign": "left",
+                                              "fontFill": "rgba(138,133,120,1)",
+                                              "content": "当前默认，长时间阅读标书不易疲劳",
+                                              "textAlignVertical": "middle"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "6e95a051-e53f-407e-8be6-d3c00647b3f2",
+                                  "name": "主题-深色墨夜",
+                                  "type": "frame",
+                                  "width": 749,
+                                  "height": "fill_container",
+                                  "stroke": {
+                                    "align": "center",
+                                    "thickness": 0.7,
+                                    "lineCap": "butt",
+                                    "lineJoin": "miter",
+                                    "fills": "rgba(239,236,227,1)"
+                                  },
+                                  "fills": "rgba(255,255,255,1)",
+                                  "cornerRadius": 14,
+                                  "padding": 24,
+                                  "layout": "vertical",
+                                  "alignItems": "start",
+                                  "justifyContent": "start",
+                                  "children": [
+                                    {
+                                      "id": "92cfc5f3-62f1-4ef0-855f-e20baa892301",
+                                      "name": "深色缩略图",
+                                      "type": "frame",
+                                      "width": "fill_container",
+                                      "height": 128,
+                                      "fills": "rgba(51,58,69,1)",
+                                      "cornerRadius": 8,
+                                      "padding": 16,
+                                      "layout": "vertical",
+                                      "alignItems": "start",
+                                      "justifyContent": "start",
+                                      "children": [
+                                        {
+                                          "id": "6e0cfc97-b36b-45fc-9e4e-8389932824cd",
+                                          "name": "顶栏示意",
+                                          "type": "rectangle",
+                                          "width": "fill_container",
+                                          "height": 28,
+                                          "fills": "rgba(64,73,85,1)",
+                                          "cornerRadius": 5
+                                        },
+                                        {
+                                          "id": "121c006c-e059-437b-ad0f-823ef960cc62",
+                                          "name": "container",
+                                          "type": "frame",
+                                          "width": "fill_container",
+                                          "height": "fit_content",
+                                          "padding": [
+                                            16,
+                                            0,
+                                            0,
+                                            0
+                                          ],
+                                          "layout": "vertical",
+                                          "alignItems": "start",
+                                          "justifyContent": "start",
+                                          "children": [
+                                            {
+                                              "id": "0101b705-da1a-434d-ad69-8e4536cabbc9",
+                                              "name": "内容示意",
+                                              "type": "rectangle",
+                                              "width": "fill_container",
+                                              "height": 54,
+                                              "fills": "rgba(142,147,154,1)",
+                                              "cornerRadius": 6
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "be6ed13c-36eb-4ddf-ac24-175611aa9dd8",
+                                      "name": "container",
+                                      "type": "frame",
+                                      "width": "fill_container",
+                                      "height": "fit_content",
+                                      "padding": [
+                                        24,
+                                        0,
+                                        0,
+                                        0
+                                      ],
+                                      "layout": "vertical",
+                                      "alignItems": "start",
+                                      "justifyContent": "start",
+                                      "children": [
+                                        {
+                                          "id": "229eb25f-f196-4aab-a930-34fc8e51331b",
+                                          "name": "主题名称",
+                                          "type": "frame",
+                                          "width": "fill_container",
+                                          "height": "fit_content",
+                                          "layout": "vertical",
+                                          "alignItems": "start",
+                                          "justifyContent": "start",
+                                          "children": [
+                                            {
+                                              "id": "d49220fc-64d2-43c4-96e2-724e0fb8d7f5",
+                                              "name": "图层",
+                                              "type": "rectangle",
+                                              "width": "fill_container",
+                                              "height": 24,
+                                              "fontSize": 16,
+                                              "fontFamily": "SourceHanSans-Medium",
+                                              "lineHeight": 1.2,
+                                              "textAlign": "left",
+                                              "fontFill": "rgba(31,29,26,1)",
+                                              "content": "深色主题 · 墨夜",
+                                              "textAlignVertical": "middle"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "fb5ea500-fb46-4275-a361-d9fabed36695",
+                                      "name": "container",
+                                      "type": "frame",
+                                      "width": "fill_container",
+                                      "height": "fit_content",
+                                      "padding": [
+                                        8,
+                                        0,
+                                        0,
+                                        0
+                                      ],
+                                      "layout": "vertical",
+                                      "alignItems": "start",
+                                      "justifyContent": "start",
+                                      "children": [
+                                        {
+                                          "id": "5b73c217-7b4c-469b-889c-a2da6dd6bb82",
+                                          "name": "主题说明",
+                                          "type": "frame",
+                                          "width": "fill_container",
+                                          "height": "fit_content",
+                                          "layout": "vertical",
+                                          "alignItems": "start",
+                                          "justifyContent": "start",
+                                          "children": [
+                                            {
+                                              "id": "290f84dc-281e-46ee-8c99-21a8052909b1",
+                                              "name": "图层",
+                                              "type": "rectangle",
+                                              "width": "fill_container",
+                                              "height": 22,
+                                              "fontSize": 14,
+                                              "fontFamily": "SourceHanSans-Regular",
+                                              "lineHeight": 1.2,
+                                              "textAlign": "left",
+                                              "fontFill": "rgba(138,133,120,1)",
+                                              "content": "夜间或暗光环境投标作业更护眼",
+                                              "textAlignVertical": "middle"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "71256aa9-8bde-4e95-8125-cc4e486a50aa",
+                  "name": "container",
+                  "type": "frame",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "padding": [
+                    19.999969482421875,
+                    0,
+                    0,
+                    0
+                  ],
+                  "layout": "vertical",
+                  "alignItems": "start",
+                  "justifyContent": "start",
+                  "children": [
+                    {
+                      "id": "4c8fff8e-785d-4f69-9965-adf52d85be37",
+                      "name": "强调色卡片",
+                      "type": "frame",
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "stroke": {
+                        "align": "center",
+                        "thickness": 0.7,
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "fills": "rgba(239,236,227,1)"
+                      },
+                      "fills": "rgba(255,255,255,1)",
+                      "cornerRadius": 16,
+                      "padding": [
+                        24,
+                        28,
+                        24,
+                        28
+                      ],
+                      "layout": "vertical",
+                      "alignItems": "start",
+                      "justifyContent": "start",
+                      "children": [
+                        {
+                          "id": "30056c70-1788-41e1-8c5e-cc12d34fd1f6",
+                          "name": "卡片标题",
+                          "type": "frame",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "layout": "vertical",
+                          "alignItems": "start",
+                          "justifyContent": "start",
+                          "children": [
+                            {
+                              "id": "016ecaa8-1bc5-4a35-a469-2c05e4b0bc83",
+                              "name": "图层",
+                              "type": "rectangle",
+                              "width": "fill_container",
+                              "height": 26,
+                              "fontSize": 17,
+                              "fontFamily": "SourceHanSans-Medium",
+                              "lineHeight": 1.2,
+                              "textAlign": "left",
+                              "fontFill": "rgba(31,29,26,1)",
+                              "content": "强调色",
+                              "textAlignVertical": "middle"
+                            }
+                          ]
+                        },
+                        {
+                          "id": "b1aae151-1374-49f2-b8c7-cc0551199d27",
+                          "name": "container",
+                          "type": "frame",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "padding": [
+                            24,
+                            0,
+                            0,
+                            0
+                          ],
+                          "layout": "vertical",
+                          "alignItems": "start",
+                          "justifyContent": "start",
+                          "children": [
+                            {
+                              "id": "c087649a-98b2-4969-aa5d-3f28839ef98c",
+                              "name": "色板组",
+                              "type": "frame",
+                              "width": "fill_container",
+                              "height": "fit_content",
+                              "layout": "horizontal",
+                              "alignItems": "start",
+                              "justifyContent": "start",
+                              "gap": 40,
+                              "children": [
+                                {
+                                  "id": "40c014e5-fc15-4803-9714-0a6a50869814",
+                                  "name": "颜色-朱红",
+                                  "type": "frame",
+                                  "width": "fit_content",
+                                  "height": "fit_content",
+                                  "layout": "vertical",
+                                  "alignItems": "center",
+                                  "justifyContent": "start",
+                                  "gap": 16,
+                                  "children": [
+                                    {
+                                      "id": "3890490d-9956-4d7e-832b-8c6252dd2e6b",
+                                      "name": "色块",
+                                      "type": "frame",
+                                      "width": 80,
+                                      "height": 80,
+                                      "fills": "rgba(190,59,46,1)",
+                                      "cornerRadius": 9999,
+                                      "layout": "horizontal",
+                                      "alignItems": "center",
+                                      "justifyContent": "center",
+                                      "children": [
+                                        {
+                                          "id": "8ae82d82-6ae9-4f5a-ad72-ce96b22df13a",
+                                          "name": "图层",
+                                          "type": "paragraph",
+                                          "width": 33,
+                                          "height": "fit_content",
+                                          "fontSize": 30,
+                                          "fontFamily": "remixicon",
+                                          "lineHeight": 1.2,
+                                          "textAlign": "left",
+                                          "content": "",
+                                          "textAlignVertical": "middle",
+                                          "fills": "rgba(255,255,255,1)"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "a29f27e2-9711-40c0-b85f-fd4679911751",
+                                      "name": "图层",
+                                      "type": "rectangle",
+                                      "width": "fit_content",
+                                      "height": 22,
+                                      "fontSize": 15,
+                                      "fontFamily": "SourceHanSans-Medium",
+                                      "lineHeight": 1.2,
+                                      "textAlign": "left",
+                                      "fontFill": "rgba(31,29,26,1)",
+                                      "content": "朱红 · 默认",
+                                      "textAlignVertical": "middle"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "1aa124a0-aff0-4f1a-a033-2a867ff2b166",
+                                  "name": "颜色-鎏金",
+                                  "type": "frame",
+                                  "width": "fit_content",
+                                  "height": "fit_content",
+                                  "layout": "vertical",
+                                  "alignItems": "center",
+                                  "justifyContent": "start",
+                                  "gap": 16,
+                                  "children": [
+                                    {
+                                      "id": "75e644ab-1deb-4d89-b02a-9d47d623c2ef",
+                                      "name": "色块",
+                                      "type": "rectangle",
+                                      "width": 81,
+                                      "height": 80,
+                                      "fills": "rgba(211,169,63,1)",
+                                      "cornerRadius": 9999
+                                    },
+                                    {
+                                      "id": "e66fbb71-7b3f-47fd-a677-a916b2f7ffc2",
+                                      "name": "图层",
+                                      "type": "rectangle",
+                                      "width": "fit_content",
+                                      "height": 22,
+                                      "fontSize": 15,
+                                      "fontFamily": "SourceHanSans-Regular",
+                                      "lineHeight": 1.2,
+                                      "textAlign": "left",
+                                      "fontFill": "rgba(58,58,58,1)",
+                                      "content": "鎏金",
+                                      "textAlignVertical": "middle"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "c391ebb3-3747-487a-a63b-f05bae79ce3f",
+                                  "name": "颜色-玉绿",
+                                  "type": "frame",
+                                  "width": "fit_content",
+                                  "height": "fit_content",
+                                  "layout": "vertical",
+                                  "alignItems": "center",
+                                  "justifyContent": "start",
+                                  "gap": 16,
+                                  "children": [
+                                    {
+                                      "id": "add60684-ed81-4a23-9680-67a3f46f6600",
+                                      "name": "色块",
+                                      "type": "rectangle",
+                                      "width": 81,
+                                      "height": 80,
+                                      "fills": "rgba(62,140,110,1)",
+                                      "cornerRadius": 9999
+                                    },
+                                    {
+                                      "id": "c5cea326-9349-482a-8ea1-b1fa7d9becf1",
+                                      "name": "图层",
+                                      "type": "rectangle",
+                                      "width": "fit_content",
+                                      "height": 22,
+                                      "fontSize": 15,
+                                      "fontFamily": "SourceHanSans-Regular",
+                                      "lineHeight": 1.2,
+                                      "textAlign": "left",
+                                      "fontFill": "rgba(58,58,58,1)",
+                                      "content": "玉绿",
+                                      "textAlignVertical": "middle"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "89766402-7bce-4664-bf4e-d3c8cbec8031",
+                                  "name": "颜色-云蓝",
+                                  "type": "frame",
+                                  "width": "fit_content",
+                                  "height": "fit_content",
+                                  "layout": "vertical",
+                                  "alignItems": "center",
+                                  "justifyContent": "start",
+                                  "gap": 16,
+                                  "children": [
+                                    {
+                                      "id": "4192aa7d-bc66-4584-a9ae-d6e9ea5c6902",
+                                      "name": "色块",
+                                      "type": "rectangle",
+                                      "width": 81,
+                                      "height": 80,
+                                      "fills": "rgba(74,114,168,1)",
+                                      "cornerRadius": 9999
+                                    },
+                                    {
+                                      "id": "13ae7b56-f0d0-4f8a-a66c-ab7d076bf647",
+                                      "name": "图层",
+                                      "type": "rectangle",
+                                      "width": "fit_content",
+                                      "height": 22,
+                                      "fontSize": 15,
+                                      "fontFamily": "SourceHanSans-Regular",
+                                      "lineHeight": 1.2,
+                                      "textAlign": "left",
+                                      "fontFill": "rgba(58,58,58,1)",
+                                      "content": "云蓝",
+                                      "textAlignVertical": "middle"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "a4b86ba5-2ffd-4f48-9253-ae926c871ef7",
+                                  "name": "颜色-黛墨",
+                                  "type": "frame",
+                                  "width": "fit_content",
+                                  "height": "fit_content",
+                                  "layout": "vertical",
+                                  "alignItems": "center",
+                                  "justifyContent": "start",
+                                  "gap": 16,
+                                  "children": [
+                                    {
+                                      "id": "9dd8fba7-4e08-4c83-9fa3-44b97c900406",
+                                      "name": "色块",
+                                      "type": "rectangle",
+                                      "width": 81,
+                                      "height": 80,
+                                      "fills": "rgba(47,54,64,1)",
+                                      "cornerRadius": 9999
+                                    },
+                                    {
+                                      "id": "e5c01a44-369e-4680-a806-9197f36d3cc8",
+                                      "name": "图层",
+                                      "type": "rectangle",
+                                      "width": "fit_content",
+                                      "height": 22,
+                                      "fontSize": 15,
+                                      "fontFamily": "SourceHanSans-Regular",
+                                      "lineHeight": 1.2,
+                                      "textAlign": "left",
+                                      "fontFill": "rgba(58,58,58,1)",
+                                      "content": "黛墨",
+                                      "textAlignVertical": "middle"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "0b3203f0-10d0-4708-aac8-5ab8e6093a8a",
+                  "name": "container",
+                  "type": "frame",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "padding": [
+                    20.000030517578125,
+                    0,
+                    0,
+                    0
+                  ],
+                  "layout": "vertical",
+                  "alignItems": "start",
+                  "justifyContent": "start",
+                  "children": [
+                    {
+                      "id": "ce17e6a6-c0b5-4697-8763-1c5c66fc1b75",
+                      "name": "布局切换卡片",
+                      "type": "frame",
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "stroke": {
+                        "align": "center",
+                        "thickness": 0.7,
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "fills": "rgba(239,236,227,1)"
+                      },
+                      "fills": "rgba(255,255,255,1)",
+                      "cornerRadius": 16,
+                      "padding": [
+                        24,
+                        28,
+                        24,
+                        28
+                      ],
+                      "layout": "vertical",
+                      "alignItems": "start",
+                      "justifyContent": "start",
+                      "children": [
+                        {
+                          "id": "ad6aa0ac-ff07-4c1a-b903-0c35a670d5ee",
+                          "name": "卡片标题",
+                          "type": "frame",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "layout": "vertical",
+                          "alignItems": "start",
+                          "justifyContent": "start",
+                          "children": [
+                            {
+                              "id": "0ce9c7e4-c013-42af-a676-6602e6286514",
+                              "name": "图层",
+                              "type": "rectangle",
+                              "width": "fill_container",
+                              "height": 26,
+                              "fontSize": 17,
+                              "fontFamily": "SourceHanSans-Medium",
+                              "lineHeight": 1.2,
+                              "textAlign": "left",
+                              "fontFill": "rgba(31,29,26,1)",
+                              "content": "布局切换",
+                              "textAlignVertical": "middle"
+                            }
+                          ]
+                        },
+                        {
+                          "id": "41fe525e-a039-49bb-9a47-fe499cd5bd42",
+                          "name": "container",
+                          "type": "frame",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "padding": [
+                            20,
+                            0,
+                            0,
+                            0
+                          ],
+                          "layout": "vertical",
+                          "alignItems": "start",
+                          "justifyContent": "start",
+                          "children": [
+                            {
+                              "id": "9303507e-e3bc-463a-97a9-e89a38ddde06",
+                              "name": "布局预览组",
+                              "type": "frame",
+                              "width": "fill_container",
+                              "height": 278,
+                              "layout": "horizontal",
+                              "alignItems": "start",
+                              "justifyContent": "start",
+                              "gap": 24,
+                              "children": [
+                                {
+                                  "id": "cae80e51-eeed-4cd7-8d5b-5c04981e6beb",
+                                  "name": "布局-顶栏模式",
+                                  "type": "frame",
+                                  "width": 749,
+                                  "height": "fill_container",
+                                  "stroke": {
+                                    "align": "center",
+                                    "thickness": 0.7,
+                                    "lineCap": "butt",
+                                    "lineJoin": "miter",
+                                    "fills": "rgba(228,205,142,1)"
+                                  },
+                                  "fills": "rgba(251,245,227,1)",
+                                  "cornerRadius": 14,
+                                  "padding": 24,
+                                  "layout": "vertical",
+                                  "alignItems": "start",
+                                  "justifyContent": "start",
+                                  "children": [
+                                    {
+                                      "id": "5605c60f-3134-4c7f-9f9a-e63998302498",
+                                      "name": "顶栏缩略图",
+                                      "type": "frame",
+                                      "width": "fill_container",
+                                      "height": 150,
+                                      "fills": "rgba(245,241,230,1)",
+                                      "cornerRadius": 8,
+                                      "padding": 16,
+                                      "layout": "vertical",
+                                      "alignItems": "start",
+                                      "justifyContent": "start",
+                                      "children": [
+                                        {
+                                          "id": "17d02a21-8317-45ff-b145-574ac1ea368c",
+                                          "name": "顶栏示意",
+                                          "type": "frame",
+                                          "width": "fill_container",
+                                          "height": 32,
+                                          "fills": "rgba(255,255,255,1)",
+                                          "cornerRadius": 6,
+                                          "padding": [
+                                            0,
+                                            12,
+                                            0,
+                                            12
+                                          ],
+                                          "layout": "horizontal",
+                                          "alignItems": "center",
+                                          "justifyContent": "space_between",
+                                          "children": [
+                                            {
+                                              "id": "1dda1179-0700-406d-9a8e-d758021cf11a",
+                                              "name": "品牌示意",
+                                              "type": "frame",
+                                              "width": "fit_content",
+                                              "height": "fit_content",
+                                              "layout": "horizontal",
+                                              "alignItems": "center",
+                                              "justifyContent": "start",
+                                              "gap": 8,
+                                              "children": [
+                                                {
+                                                  "id": "0ad4dca1-07ce-42cd-b79b-fc3b9a77aec2",
+                                                  "name": "圆点",
+                                                  "type": "rectangle",
+                                                  "width": 11,
+                                                  "height": 10,
+                                                  "fills": "rgba(190,59,46,1)",
+                                                  "cornerRadius": 9999
+                                                },
+                                                {
+                                                  "id": "96d62bd2-eaf5-4852-bc1e-f2aea6a3a65f",
+                                                  "name": "文字条",
+                                                  "type": "rectangle",
+                                                  "width": 25,
+                                                  "height": 6,
+                                                  "fills": "rgba(47,54,64,1)",
+                                                  "cornerRadius": 9999
+                                                },
+                                                {
+                                                  "id": "0db2f481-cbcf-4075-aa3a-ba604bbdb20d",
+                                                  "name": "文字条",
+                                                  "type": "rectangle",
+                                                  "width": 17,
+                                                  "height": 6,
+                                                  "fills": "rgba(167,162,150,1)",
+                                                  "cornerRadius": 9999
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "id": "436814ad-1cb0-438f-b35c-0e1688c4410b",
+                                              "name": "模块示意",
+                                              "type": "frame",
+                                              "width": "fit_content",
+                                              "height": "fit_content",
+                                              "layout": "horizontal",
+                                              "alignItems": "center",
+                                              "justifyContent": "start",
+                                              "gap": 8,
+                                              "children": [
+                                                {
+                                                  "id": "c079d396-90e0-4bd4-b218-c3e73cd9446b",
+                                                  "name": "模块条",
+                                                  "type": "rectangle",
+                                                  "width": 31,
+                                                  "height": 10,
+                                                  "fills": "rgba(190,59,46,1)",
+                                                  "cornerRadius": 9999
+                                                },
+                                                {
+                                                  "id": "1a44d200-09a3-4805-b9eb-089ddc6096bc",
+                                                  "name": "模块条",
+                                                  "type": "rectangle",
+                                                  "width": 31,
+                                                  "height": 10,
+                                                  "fills": "rgba(211,169,63,1)",
+                                                  "cornerRadius": 9999
+                                                },
+                                                {
+                                                  "id": "67584afb-797c-4562-ab73-3aec3a0c0126",
+                                                  "name": "模块条",
+                                                  "type": "rectangle",
+                                                  "width": 31,
+                                                  "height": 10,
+                                                  "fills": "rgba(62,140,110,1)",
+                                                  "cornerRadius": 9999
+                                                },
+                                                {
+                                                  "id": "74e541db-0a2c-446e-8024-1200c1ca50fe",
+                                                  "name": "模块条",
+                                                  "type": "rectangle",
+                                                  "width": 31,
+                                                  "height": 10,
+                                                  "fills": "rgba(74,114,168,1)",
+                                                  "cornerRadius": 9999
+                                                },
+                                                {
+                                                  "id": "144d6abf-3d69-41be-8eb4-fad76e957751",
+                                                  "name": "模块条",
+                                                  "type": "rectangle",
+                                                  "width": 31,
+                                                  "height": 10,
+                                                  "fills": "rgba(190,59,46,1)",
+                                                  "cornerRadius": 9999
+                                                },
+                                                {
+                                                  "id": "97d8336a-28a6-46d8-b810-ea9315d7f443",
+                                                  "name": "模块条",
+                                                  "type": "rectangle",
+                                                  "width": 31,
+                                                  "height": 10,
+                                                  "fills": "rgba(211,169,63,1)",
+                                                  "cornerRadius": 9999
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "id": "d0f3a247-822c-4404-bbd9-2121c4885fed",
+                                              "name": "操作示意",
+                                              "type": "frame",
+                                              "width": "fit_content",
+                                              "height": "fit_content",
+                                              "layout": "horizontal",
+                                              "alignItems": "center",
+                                              "justifyContent": "start",
+                                              "gap": 4,
+                                              "children": [
+                                                {
+                                                  "id": "d58aba2a-5829-4076-a329-96d3aa4e8610",
+                                                  "name": "按钮点",
+                                                  "type": "rectangle",
+                                                  "width": 9,
+                                                  "height": 8,
+                                                  "fills": "rgba(214,209,196,1)",
+                                                  "cornerRadius": 9999
+                                                },
+                                                {
+                                                  "id": "be5239a8-68cc-487e-bb2c-8ba6150d49fb",
+                                                  "name": "按钮点",
+                                                  "type": "rectangle",
+                                                  "width": 9,
+                                                  "height": 8,
+                                                  "fills": "rgba(214,209,196,1)",
+                                                  "cornerRadius": 9999
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "79cf60e1-ca06-401b-b2f8-7bd3916b2044",
+                                          "name": "container",
+                                          "type": "frame",
+                                          "width": "fill_container",
+                                          "height": "fill_container",
+                                          "padding": [
+                                            16.00006103515625,
+                                            0,
+                                            0,
+                                            0
+                                          ],
+                                          "layout": "vertical",
+                                          "alignItems": "start",
+                                          "justifyContent": "start",
+                                          "children": [
+                                            {
+                                              "id": "a0a99443-d806-486b-9066-4c4bc6fe9a55",
+                                              "name": "内容示意",
+                                              "type": "frame",
+                                              "width": "fill_container",
+                                              "height": "fill_container",
+                                              "layout": "horizontal",
+                                              "alignItems": "start",
+                                              "justifyContent": "start",
+                                              "gap": 12,
+                                              "children": [
+                                                {
+                                                  "id": "c00127c0-0a2e-42d2-a96e-5cd2fa877725",
+                                                  "name": "侧块",
+                                                  "type": "rectangle",
+                                                  "width": 85,
+                                                  "height": "fill_container",
+                                                  "fills": "rgba(226,221,210,1)",
+                                                  "cornerRadius": 6
+                                                },
+                                                {
+                                                  "id": "3b9aef25-2b02-45f2-9eec-9fac6c7a91d1",
+                                                  "name": "主块",
+                                                  "type": "rectangle",
+                                                  "width": "fill_container",
+                                                  "height": "fill_container",
+                                                  "fills": "rgba(230,226,216,1)",
+                                                  "cornerRadius": 6
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "55c0ff49-11dd-4a23-9f3a-6ca68e3afb17",
+                                      "name": "container",
+                                      "type": "frame",
+                                      "width": "fill_container",
+                                      "height": "fit_content",
+                                      "padding": [
+                                        24.00006103515625,
+                                        0,
+                                        0,
+                                        0
+                                      ],
+                                      "layout": "vertical",
+                                      "alignItems": "start",
+                                      "justifyContent": "start",
+                                      "children": [
+                                        {
+                                          "id": "d66bea35-3cdb-4528-ae0d-b30a1c36d35a",
+                                          "name": "布局名称",
+                                          "type": "frame",
+                                          "width": "fill_container",
+                                          "height": "fit_content",
+                                          "layout": "vertical",
+                                          "alignItems": "start",
+                                          "justifyContent": "start",
+                                          "children": [
+                                            {
+                                              "id": "2c282c9f-38ba-418e-b20a-853c8471bc23",
+                                              "name": "图层",
+                                              "type": "rectangle",
+                                              "width": "fill_container",
+                                              "height": 24,
+                                              "fontSize": 16,
+                                              "fontFamily": "SourceHanSans-Medium",
+                                              "lineHeight": 1.2,
+                                              "textAlign": "left",
+                                              "fontFill": "rgba(31,29,26,1)",
+                                              "content": "顶栏模式 · 居中导航",
+                                              "textAlignVertical": "middle"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "7dcc025f-a4fb-466e-a2b4-fd0043a73d27",
+                                      "name": "container",
+                                      "type": "frame",
+                                      "width": "fill_container",
+                                      "height": "fit_content",
+                                      "padding": [
+                                        8,
+                                        0,
+                                        0,
+                                        0
+                                      ],
+                                      "layout": "vertical",
+                                      "alignItems": "start",
+                                      "justifyContent": "start",
+                                      "children": [
+                                        {
+                                          "id": "d80393b7-a058-4eff-96d6-83bd99b6b252",
+                                          "name": "布局说明",
+                                          "type": "frame",
+                                          "width": "fill_container",
+                                          "height": "fit_content",
+                                          "layout": "vertical",
+                                          "alignItems": "start",
+                                          "justifyContent": "start",
+                                          "children": [
+                                            {
+                                              "id": "14bef4f3-1a72-4af5-9730-280abc06ad63",
+                                              "name": "图层",
+                                              "type": "rectangle",
+                                              "width": "fill_container",
+                                              "height": 22,
+                                              "fontSize": 14,
+                                              "fontFamily": "SourceHanSans-Regular",
+                                              "lineHeight": 1.2,
+                                              "textAlign": "left",
+                                              "fontFill": "rgba(138,133,120,1)",
+                                              "content": "六大模块在顶栏居中排布，右上角统一为返回与设置",
+                                              "textAlignVertical": "middle"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "fbad9b1f-3da3-4ce6-8ad8-28dd1aa9a9b9",
+                                  "name": "布局-侧边栏模式",
+                                  "type": "frame",
+                                  "width": 749,
+                                  "height": "fill_container",
+                                  "stroke": {
+                                    "align": "center",
+                                    "thickness": 0.7,
+                                    "lineCap": "butt",
+                                    "lineJoin": "miter",
+                                    "fills": "rgba(239,236,227,1)"
+                                  },
+                                  "fills": "rgba(255,255,255,1)",
+                                  "cornerRadius": 14,
+                                  "padding": 24,
+                                  "layout": "vertical",
+                                  "alignItems": "start",
+                                  "justifyContent": "start",
+                                  "children": [
+                                    {
+                                      "id": "d2f94ec4-fdaa-48fe-a555-de26a444c3bd",
+                                      "name": "侧栏缩略图",
+                                      "type": "frame",
+                                      "width": "fill_container",
+                                      "height": 150,
+                                      "fills": "rgba(245,241,230,1)",
+                                      "cornerRadius": 8,
+                                      "padding": 16,
+                                      "layout": "horizontal",
+                                      "alignItems": "start",
+                                      "justifyContent": "start",
+                                      "children": [
+                                        {
+                                          "id": "24da1dd8-9386-4adc-ba49-e4f456af0f26",
+                                          "name": "侧栏示意",
+                                          "type": "frame",
+                                          "width": 56,
+                                          "height": "fill_container",
+                                          "padding": [
+                                            0,
+                                            12,
+                                            0,
+                                            0
+                                          ],
+                                          "layout": "vertical",
+                                          "alignItems": "start",
+                                          "justifyContent": "start",
+                                          "gap": 12,
+                                          "children": [
+                                            {
+                                              "id": "7cc75194-56a9-48a1-97d8-21149db5ad5b",
+                                              "name": "模块条",
+                                              "type": "rectangle",
+                                              "width": "fill_container",
+                                              "height": 9,
+                                              "fills": "rgba(211,169,63,1)",
+                                              "cornerRadius": 9999
+                                            },
+                                            {
+                                              "id": "20c48d8e-d2df-4c0a-bb57-4650f9625316",
+                                              "name": "模块条",
+                                              "type": "rectangle",
+                                              "width": "fill_container",
+                                              "height": 9,
+                                              "fills": "rgba(190,59,46,1)",
+                                              "cornerRadius": 9999
+                                            },
+                                            {
+                                              "id": "e654cd6b-6912-4ef4-b4bb-3b7b1f07b1f1",
+                                              "name": "模块条",
+                                              "type": "rectangle",
+                                              "width": "fill_container",
+                                              "height": 9,
+                                              "fills": "rgba(62,140,110,1)",
+                                              "cornerRadius": 9999
+                                            },
+                                            {
+                                              "id": "1c60cd3b-231e-4c6d-9258-c96ba590d744",
+                                              "name": "模块条",
+                                              "type": "rectangle",
+                                              "width": "fill_container",
+                                              "height": 9,
+                                              "fills": "rgba(74,114,168,1)",
+                                              "cornerRadius": 9999
+                                            },
+                                            {
+                                              "id": "37a02012-b13b-48f3-b81f-77a98bff6315",
+                                              "name": "模块条",
+                                              "type": "rectangle",
+                                              "width": "fill_container",
+                                              "height": 9,
+                                              "fills": "rgba(47,54,64,1)",
+                                              "cornerRadius": 9999
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "5fc42c1d-f82b-488d-8e21-781c91d6047c",
+                                          "name": "右侧区域",
+                                          "type": "frame",
+                                          "width": "fill_container",
+                                          "height": "fill_container",
+                                          "layout": "vertical",
+                                          "alignItems": "start",
+                                          "justifyContent": "start",
+                                          "children": [
+                                            {
+                                              "id": "2d25c045-03ed-4bf0-b522-8bf0a4782178",
+                                              "name": "顶栏示意",
+                                              "type": "frame",
+                                              "width": "fill_container",
+                                              "height": 30,
+                                              "fills": "rgba(255,255,255,1)",
+                                              "cornerRadius": 6,
+                                              "padding": [
+                                                0,
+                                                12,
+                                                0,
+                                                12
+                                              ],
+                                              "layout": "horizontal",
+                                              "alignItems": "center",
+                                              "justifyContent": "space_between",
+                                              "children": [
+                                                {
+                                                  "id": "00c2abe3-16b1-47f6-96e1-a367f38a6b44",
+                                                  "name": "品牌示意",
+                                                  "type": "frame",
+                                                  "width": "fit_content",
+                                                  "height": "fit_content",
+                                                  "layout": "horizontal",
+                                                  "alignItems": "center",
+                                                  "justifyContent": "start",
+                                                  "gap": 8,
+                                                  "children": [
+                                                    {
+                                                      "id": "d688dd97-2d3a-476a-ab67-9bdc7a793ea8",
+                                                      "name": "圆点",
+                                                      "type": "rectangle",
+                                                      "width": 11,
+                                                      "height": 10,
+                                                      "fills": "rgba(190,59,46,1)",
+                                                      "cornerRadius": 9999
+                                                    },
+                                                    {
+                                                      "id": "2f7b2819-5770-485d-aa19-49098db71dad",
+                                                      "name": "文字条",
+                                                      "type": "rectangle",
+                                                      "width": 25,
+                                                      "height": 6,
+                                                      "fills": "rgba(47,54,64,1)",
+                                                      "cornerRadius": 9999
+                                                    },
+                                                    {
+                                                      "id": "8bc14ab5-772e-4e9b-8707-3fe16a166eb4",
+                                                      "name": "文字条",
+                                                      "type": "rectangle",
+                                                      "width": 17,
+                                                      "height": 6,
+                                                      "fills": "rgba(167,162,150,1)",
+                                                      "cornerRadius": 9999
+                                                    }
+                                                  ]
+                                                },
+                                                {
+                                                  "id": "55ec1f0c-e231-48f3-a0dd-0c3d06dc54b5",
+                                                  "name": "操作示意",
+                                                  "type": "frame",
+                                                  "width": "fit_content",
+                                                  "height": "fit_content",
+                                                  "layout": "horizontal",
+                                                  "alignItems": "center",
+                                                  "justifyContent": "start",
+                                                  "gap": 4,
+                                                  "children": [
+                                                    {
+                                                      "id": "0188fb2d-d68b-4fab-98fa-34f85af70a37",
+                                                      "name": "按钮点",
+                                                      "type": "rectangle",
+                                                      "width": 9,
+                                                      "height": 8,
+                                                      "fills": "rgba(214,209,196,1)",
+                                                      "cornerRadius": 9999
+                                                    },
+                                                    {
+                                                      "id": "96045140-ffbe-411e-aa1e-75eb60608a0b",
+                                                      "name": "按钮点",
+                                                      "type": "rectangle",
+                                                      "width": 9,
+                                                      "height": 8,
+                                                      "fills": "rgba(214,209,196,1)",
+                                                      "cornerRadius": 9999
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "id": "458f27ee-c377-4b78-958a-5f3a8fe02b9c",
+                                              "name": "container",
+                                              "type": "frame",
+                                              "width": "fill_container",
+                                              "height": "fill_container",
+                                              "padding": [
+                                                16.00006103515625,
+                                                0,
+                                                0,
+                                                0
+                                              ],
+                                              "layout": "vertical",
+                                              "alignItems": "start",
+                                              "justifyContent": "start",
+                                              "children": [
+                                                {
+                                                  "id": "c7003cae-c61e-4422-a3d0-57265da7c1e6",
+                                                  "name": "内容示意",
+                                                  "type": "rectangle",
+                                                  "width": "fill_container",
+                                                  "height": "fill_container",
+                                                  "fills": "rgba(230,226,216,1)",
+                                                  "cornerRadius": 6
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "5003fd43-4aed-48da-961e-56f6a6c5c900",
+                                      "name": "container",
+                                      "type": "frame",
+                                      "width": "fill_container",
+                                      "height": "fit_content",
+                                      "padding": [
+                                        24.00006103515625,
+                                        0,
+                                        0,
+                                        0
+                                      ],
+                                      "layout": "vertical",
+                                      "alignItems": "start",
+                                      "justifyContent": "start",
+                                      "children": [
+                                        {
+                                          "id": "29a519ec-834d-4b63-931b-21029efddb51",
+                                          "name": "布局名称",
+                                          "type": "frame",
+                                          "width": "fill_container",
+                                          "height": "fit_content",
+                                          "layout": "vertical",
+                                          "alignItems": "start",
+                                          "justifyContent": "start",
+                                          "children": [
+                                            {
+                                              "id": "c956cbd6-17a1-4a71-8f57-aa0f35d41b72",
+                                              "name": "图层",
+                                              "type": "rectangle",
+                                              "width": "fill_container",
+                                              "height": 24,
+                                              "fontSize": 16,
+                                              "fontFamily": "SourceHanSans-Medium",
+                                              "lineHeight": 1.2,
+                                              "textAlign": "left",
+                                              "fontFill": "rgba(31,29,26,1)",
+                                              "content": "侧边栏模式 · 左侧导航",
+                                              "textAlignVertical": "middle"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "79b74fbb-cd82-4a52-ac3c-82d9ff25e5f6",
+                                      "name": "container",
+                                      "type": "frame",
+                                      "width": "fill_container",
+                                      "height": "fit_content",
+                                      "padding": [
+                                        8,
+                                        0,
+                                        0,
+                                        0
+                                      ],
+                                      "layout": "vertical",
+                                      "alignItems": "start",
+                                      "justifyContent": "start",
+                                      "children": [
+                                        {
+                                          "id": "80287f74-b051-407f-888f-e85e53afedef",
+                                          "name": "布局说明",
+                                          "type": "frame",
+                                          "width": "fill_container",
+                                          "height": "fit_content",
+                                          "layout": "vertical",
+                                          "alignItems": "start",
+                                          "justifyContent": "start",
+                                          "children": [
+                                            {
+                                              "id": "c57ac623-4912-4d73-be17-acd43c30e970",
+                                              "name": "图层",
+                                              "type": "rectangle",
+                                              "width": "fill_container",
+                                              "height": 22,
+                                              "fontSize": 14,
+                                              "fontFamily": "SourceHanSans-Regular",
+                                              "lineHeight": 1.2,
+                                              "textAlign": "left",
+                                              "fontFill": "rgba(138,133,120,1)",
+                                              "content": "六大模块在左侧竖列居中，顶栏不显示图标文字",
+                                              "textAlignVertical": "middle"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

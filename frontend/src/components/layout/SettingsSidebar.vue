@@ -12,7 +12,7 @@ const menuItems = [
   { path: '/settings/rules', label: '规则管理', icon: 'ri-list-settings-line' },
   { path: '/settings/model', label: '模型管理', icon: 'ri-cpu-line' },
   { path: '/settings/export', label: '导出管理', icon: 'ri-download-2-line' },
-  { path: '/settings/profile', label: '个性设置', icon: 'ri-settings-3-line' },
+  { path: '/settings/profile', label: '个性设置', icon: 'ri-vip-crown-line' },
   { path: '/settings/about', label: '关于回旋镖', icon: 'ri-information-line' },
 ];
 
@@ -68,9 +68,9 @@ function backToWorkspace() {
 <style scoped>
 .settings-sidebar {
   width: 310px;
-  min-height: calc(100vh - 64px);
-  background-color: var(--color-bg-white);
-  border-right: 1px solid var(--color-border-soft);
+  flex-shrink: 0;
+  min-height: 100vh;
+  background-color: #FFFFFF;
   display: flex;
   flex-direction: column;
 }
@@ -97,12 +97,13 @@ function backToWorkspace() {
 }
 .divider {
   height: 1px;
-  background-color: var(--color-border-soft);
+  background-color: #EDEAF2;
 }
 .group-title {
   padding: 28px 32px 12px;
   font-size: 12px;
-  color: var(--color-text-muted);
+  color: #A7A296;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .nav-list {
   padding: 0 16px;
@@ -118,20 +119,25 @@ function backToWorkspace() {
   align-items: center;
   gap: 16px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s;
 }
 .nav-item:hover {
-  background-color: var(--color-bg-secondary);
+  background-color: #F7F5EF;
 }
 .nav-item .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 20px;
   color: #3A3A3A;
+  width: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .nav-item .label {
   font-size: 16px;
   color: #3A3A3A;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .nav-item.active {
   background-color: #F6EEDA;
@@ -151,6 +157,9 @@ function backToWorkspace() {
   gap: 12px;
   cursor: pointer;
 }
+.back-area:hover {
+  opacity: 0.7;
+}
 .back-area .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
@@ -160,8 +169,6 @@ function backToWorkspace() {
 .back-area span:last-child {
   font-size: 15px;
   color: #221C14;
-}
-.back-area:hover {
-  opacity: 0.7;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 </style>

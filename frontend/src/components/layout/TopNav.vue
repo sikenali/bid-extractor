@@ -1,23 +1,12 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
-import { useThemeStore } from '@/stores/theme';
 
 const props = defineProps<{
   title?: string;
-  showSettings?: boolean;
-}>();
-
-const emit = defineEmits<{
-  settingsClick: [];
+  brand?: string;
 }>();
 
 const router = useRouter();
-const themeStore = useThemeStore();
-
-function toggleTheme() {
-  const order = themeStore.currentTheme === 'dark' ? 'parchment' : 'dark';
-  themeStore.setTheme(order as any);
-}
 </script>
 
 <template>
@@ -26,26 +15,17 @@ function toggleTheme() {
       <div class="tool-mark">
         <span class="tool-dot"></span>
       </div>
-      <span class="brand-cn">回旋镖</span>
+      <span class="brand-cn">{{ brand || '文取猩' }}</span>
       <span class="divider"></span>
       <span class="page-title">{{ title || '' }}</span>
     </div>
     <div class="nav-right">
-      <button class="nav-btn" title="返回" @click="router.back()" v-if="showSettings">
+      <button class="nav-btn" title="返回" @click="router.back()">
         <span class="ri-arrow-left-s-line icon"></span>
       </button>
-      <button class="nav-btn" title="设置" @click="emit('settingsClick')" v-if="showSettings">
+      <button class="nav-btn" title="设置" @click="router.push('/settings/theme')">
         <span class="ri-settings-3-line icon"></span>
       </button>
-      <template v-else>
-        <button class="nav-btn" title="返回" @click="router.back()">
-          <span class="ri-arrow-left-s-line icon"></span>
-        </button>
-        <button class="nav-btn" title="切换主题" @click="toggleTheme">
-          <span class="ri-sun-line icon" v-if="themeStore.currentTheme === 'dark'"></span>
-          <span class="ri-moon-line icon" v-else></span>
-        </button>
-      </template>
     </div>
   </header>
 </template>
@@ -57,8 +37,8 @@ function toggleTheme() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: var(--color-bg-white);
-  border-bottom: 1px solid var(--color-border-soft);
+  background-color: #FFFFFF;
+  border-bottom: 0.7px solid #EDE9E0;
 }
 .nav-left {
   display: flex;
@@ -69,7 +49,7 @@ function toggleTheme() {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background-color: var(--color-primary-soft);
+  background-color: #FBE9E7;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -78,22 +58,24 @@ function toggleTheme() {
   width: 9px;
   height: 8px;
   border-radius: 50%;
-  background-color: var(--color-primary);
+  background-color: #C0392B;
 }
 .brand-cn {
   font-size: 20px;
   font-weight: 700;
-  color: var(--color-text-primary);
+  color: #1F1D1A;
+  font-family: "SourceHanSans-Bold", var(--font-family-cn);
   line-height: 1.2;
 }
 .divider {
   width: 2px;
   height: 20px;
-  background-color: var(--color-border);
+  background-color: #E5DFD3;
 }
 .page-title {
   font-size: 16px;
-  color: var(--color-text-secondary);
+  color: #6E6A60;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
   line-height: 1.2;
 }
 .nav-right {
@@ -105,16 +87,16 @@ function toggleTheme() {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  border: 1px solid var(--color-border);
-  background-color: var(--color-bg-white);
+  border: 0.7px solid #E5DFD3;
+  background-color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 .nav-btn:hover {
-  background-color: var(--color-bg-secondary);
+  background-color: #F7F3EA;
 }
 .nav-btn .icon {
   font-family: "remixicon", sans-serif;
