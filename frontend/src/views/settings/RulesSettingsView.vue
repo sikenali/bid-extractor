@@ -11,6 +11,7 @@ interface RuleItem {
   name: string;
   description: string;
   groupName: string;
+  aliasFor?: string;
 }
 
 const GROUP_META = [
@@ -26,8 +27,8 @@ const groupLabel = (key: string) => GROUP_META.find(g => g.key === key)?.label |
 const rules = ref<RuleItem[]>([]);
 const loading = ref(false);
 
-function toItem(r: { id: string; fieldName: string; pattern: string; groupName?: string }): RuleItem {
-  return { id: r.id, name: r.fieldName, description: r.pattern, groupName: r.groupName || 'info' };
+function toItem(r: { id: string; fieldName: string; pattern: string; groupName?: string; aliasFor?: string }): RuleItem {
+  return { id: r.id, name: r.fieldName, description: r.pattern, groupName: r.groupName || 'info', aliasFor: r.aliasFor || '' };
 }
 
 async function loadRules() {
@@ -45,7 +46,7 @@ onMounted(loadRules);
 
 const showRuleDialog = ref(false);
 const dialogMode = ref<'regex' | 'keyword'>('regex');
-const editingRule = ref<{ id: string; fieldName: string; pattern: string; groupName: string } | null>(null);
+const editingRule = ref<{ id: string; fieldName: string; pattern: string; groupName: string; aliasFor: string } | null>(null);
 const searchTerm = ref('');
 const activeGroup = ref('');
 
@@ -69,7 +70,7 @@ function handleAddRule(mode: 'regex' | 'keyword') {
 
 function handleEditRule(rule: RuleItem) {
   dialogMode.value = 'regex';
-  editingRule.value = { id: rule.id, fieldName: rule.name, pattern: rule.description, groupName: rule.groupName };
+  editingRule.value = { id: rule.id, fieldName: rule.name, pattern: rule.description, groupName: rule.groupName, aliasFor: rule.aliasFor || '' };
   showRuleDialog.value = true;
 }
 
@@ -92,7 +93,7 @@ async function handleDeleteRule(id: string) {
   } catch { /* cancelled */ }
 }
 
-async function handleRuleSubmit(data: { fieldName: string; pattern: string; category: string; groupName: string }) {
+async function handleRuleSubmit(data: { fieldName: string; pattern: string; category: string; groupName: string; aliasFor: string }) {
   try {
     if (editingRule.value) {
       const updated = await updateRule(editingRule.value.id, {
@@ -100,12 +101,14 @@ async function handleRuleSubmit(data: { fieldName: string; pattern: string; cate
         pattern: data.pattern,
         category: data.category,
         groupName: data.groupName,
+        aliasFor: data.aliasFor,
       });
       const row = rules.value.find(r => r.id === editingRule.value?.id);
       if (row) {
         row.name = updated.fieldName;
         row.description = updated.pattern;
         row.groupName = (updated as any).groupName || data.groupName;
+        row.aliasFor = (updated as any).aliasFor || '';
       }
       ElMessage.success('规则已更新');
     } else {
@@ -115,6 +118,7 @@ async function handleRuleSubmit(data: { fieldName: string; pattern: string; cate
         category: data.category,
         enabled: true,
         groupName: data.groupName,
+        aliasFor: data.aliasFor,
       });
       rules.value.unshift(toItem(created as any));
       ElMessage.success('规则已添加');
@@ -195,7 +199,10 @@ async function handleRuleSubmit(data: { fieldName: string; pattern: string; cate
         </thead>
         <tbody>
           <tr v-for="rule in filteredRules" :key="rule.id">
-            <td class="rule-name">{{ rule.name }}</td>
+            <td class="rule-name">
+              {{ rule.name }}
+              <span v-if="rule.aliasFor" class="alias-tag">→ {{ rule.aliasFor }}</span>
+            </td>
             <td class="rule-desc">{{ rule.description || '—' }}</td>
             <td class="rule-group"><span class="group-tag">{{ groupLabel(rule.groupName) }}</span></td>
             <td class="rule-actions">
@@ -430,6 +437,18 @@ async function handleRuleSubmit(data: { fieldName: string; pattern: string; cate
   background-color: var(--color-primary-soft, #FBE9E7);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
   white-space: nowrap;
+}
+.alias-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-success-strong, #3E8A6B);
+  background-color: var(--color-success-soft, #E8F5EF);
+  white-space: nowrap;
+  vertical-align: 1px;
 }
 .empty-row .empty-cell {
   text-align: center;

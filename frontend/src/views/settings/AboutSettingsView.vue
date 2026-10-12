@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router';
 import { BRAND_NAME, BRAND_TITLE } from '@/constants/brand';
 
-const router = useRouter();
 const currentYear = new Date().getFullYear();
 // 应用版本号：当前为常量，后续打包时从软件版本提取显示
 const appVersion = 'V1.0.0';
@@ -26,10 +24,6 @@ const appVersion = 'V1.0.0';
             <p>版本信息、开源仓库与版权声明</p>
           </div>
         </div>
-        <button class="reset-button" @click="router.push('/settings/theme')">
-          <span class="icon ri-restart-line"></span>
-          恢复默认
-        </button>
       </div>
     </div>
 
@@ -45,14 +39,14 @@ const appVersion = 'V1.0.0';
 
       <div class="about-version">版本: {{ appVersion }}</div>
 
-      <div class="about-repo" @click="router.push('/settings/theme')">
+      <a class="about-repo" href="https://github.com/sikenali/bid-extactor" target="_blank" rel="noopener noreferrer">
         <span class="repo-left">GitHub 开源仓库</span>
         <span class="repo-right">
           <span class="icon ri-github-line"></span>
           <span class="repo-url">github.com/sikenali/bid-extactor</span>
           <span class="icon ri-arrow-right-up-line"></span>
         </span>
-      </div>
+      </a>
 
       <div class="about-copy">© {{ currentYear }} {{ BRAND_NAME }} · sikenali</div>
     </div>
@@ -117,30 +111,6 @@ const appVersion = 'V1.0.0';
   color: var(--color-text-secondary, #6E6A60);
   margin: 8px 0 0 0;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
-}
-.reset-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 20px;
-  height: 48px;
-  border: 0.7px solid var(--color-border, #E5DFD3);
-  background-color: var(--color-bg-white, #FFFFFF);
-  border-radius: 12px;
-  font-size: 15px;
-  color: var(--color-text-body, #3A3A3A);
-  cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
-}
-.reset-button:hover {
-  background-color: var(--color-bg-secondary, #F7F3EA);
-}
-.reset-button .icon {
-  font-family: "remixicon", sans-serif;
-  font-style: normal;
-  font-size: 18px;
 }
 
 /* 品牌信息卡片 */
@@ -207,6 +177,8 @@ const appVersion = 'V1.0.0';
   cursor: pointer;
   transition: background-color 0.2s;
   box-sizing: border-box;
+  text-decoration: none;
+  color: inherit;
 }
 .about-repo:hover {
   background-color: var(--color-bg-secondary, #F7F3EA);

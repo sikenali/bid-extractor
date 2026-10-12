@@ -14,18 +14,18 @@ const RULE_GROUPS = [
 const props = defineProps<{
   visible: boolean;
   mode: 'regex' | 'keyword';
-  editRule?: { id: string; fieldName: string; pattern: string; groupName?: string } | null;
+  editRule?: { id: string; fieldName: string; pattern: string; groupName?: string; aliasFor?: string } | null;
 }>();
 
 const emit = defineEmits<{
   close: []
-  submit: [data: { fieldName: string; pattern: string; category: string; groupName: string }]
+  submit: [data: { fieldName: string; pattern: string; category: string; groupName: string; aliasFor: string }]
 }>();
-
 const dialogVisible = ref(false);
 const fieldName = ref('');
 const pattern = ref('');
 const groupName = ref('info');
+const aliasFor = ref('');
 
 const dialogTitle = computed(() => {
   const action = props.editRule ? '编辑' : '添加';
@@ -39,10 +39,12 @@ watch(() => props.visible, (val) => {
       fieldName.value = props.editRule.fieldName;
       pattern.value = props.editRule.pattern;
       groupName.value = props.editRule.groupName || 'info';
+      aliasFor.value = props.editRule.aliasFor || '';
     } else {
       fieldName.value = '';
       pattern.value = '';
       groupName.value = 'info';
+      aliasFor.value = '';
     }
   }
 });
@@ -58,6 +60,7 @@ function handleSubmit() {
     pattern: pattern.value.trim(),
     category: props.mode,
     groupName: groupName.value,
+    aliasFor: aliasFor.value.trim() === fieldName.value.trim() ? '' : aliasFor.value.trim(),
   });
   dialogVisible.value = false;
 }
@@ -86,6 +89,15 @@ function handleSubmit() {
         @enter="handleSubmit"
       />
     </div>
+    <div class="form-group">
+      <label class="form-label">合并到字段<span class="form-hint">（别名归因，空=独立字段，如：项目名称）</span></label>
+      <UiInput
+        v-model="aliasFor"
+        placeholder="例如：项目名称，留空则独立成行"
+        clearable
+        @enter="handleSubmit"
+      />
+    </div>
     <div v-if="props.mode === 'regex'" class="form-group">
       <label class="form-label">正则表达式</label>
       <UiInput
@@ -109,6 +121,11 @@ function handleSubmit() {
   font-weight: 500;
   color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Regular", var(--font-family-cn), sans-serif;
+}
+.form-hint {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--color-text-muted, #8A8578);
 }
 .form-group .ui-input { width: 100%; }
 </style>

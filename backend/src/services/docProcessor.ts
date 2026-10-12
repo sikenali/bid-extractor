@@ -215,22 +215,35 @@ function detectTableGroup(rows: string[][]): string {
   return scoreHits >= techHits ? 'score' : 'tech';
 }
 
-/** 标星组关键字命中同样计入标星条款（符号 ★），与符号检测互补 */
+/**
+ * 标星组规则全量扫描：每条命中段落都计入标星条款。
+ * 单字规则（★ ▲ * ● 等）只匹配行首，多字按包含匹配。
+ */
 function extractStarKeywordItems(
   rules: FieldRule[],
-  extracts: Record<string, FieldExtract>,
+  units: SearchUnit[],
 ): MarkedItem[] {
   const items: MarkedItem[] = [];
-  for (const rule of rules) {
-    if (rule.group !== 'star') continue;
-    const ex = extracts[rule.fieldName];
-    if (!ex || ex.value == null || ex.value === '') continue;
-    const text = String(ex.sourceText || ex.value);
-    items.push({
-      symbol: '★',
-      text: [...text].length > 120 ? [...text].slice(0, 120).join('') + '...' : text.trim(),
-      page: ex.page ?? 1,
-    });
+  const starRules = rules.filter(r => r.group === 'star');
+  if (starRules.length === 0) return items;
+  for (const unit of units) {
+    if (unit.tableId != null) continue;
+    const trimmed = unit.text.trim();
+    if (!trimmed) continue;
+    for (const rule of starRules) {
+      const name = rule.fieldName;
+      if (!name) continue;
+      const hit = [...name].length === 1
+        ? trimmed.indexOf(name) === 0
+        : unit.text.includes(name);
+      if (hit) {
+        const text = [...unit.text].length > 120
+          ? [...unit.text].slice(0, 120).join('') + '...'
+          : unit.text.trim();
+        items.push({ symbol: [...name].length === 1 ? name : '★', text, page: unit.page });
+        break;
+      }
+    }
   }
   return items;
 }
@@ -258,11 +271,12 @@ interface FieldRule {
   group: string;
   pattern: string;
   category: string;
+  aliasFor: string;
 }
 
 function loadFieldRules(): FieldRule[] {
-  const rows = db.prepare('SELECT field_name, group_name, pattern, category FROM extraction_rules WHERE enabled = 1').all() as Array<{ field_name: string; group_name: string; pattern: string; category: string }>;
-  return rows.map(r => ({ fieldName: r.field_name, group: r.group_name || 'info', pattern: r.pattern || '', category: r.category || 'keyword' }));
+  const rows = db.prepare('SELECT field_name, group_name, pattern, category, alias_for FROM extraction_rules WHERE enabled = 1').all() as Array<{ field_name: string; group_name: string; pattern: string; category: string; alias_for: string }>;
+  return rows.map(r => ({ fieldName: r.field_name, group: r.group_name || 'info', pattern: r.pattern || '', category: r.category || 'keyword', aliasFor: (r.alias_for || '').trim() }));
 }
 
 /** 段落 + 表格单元格统一检索单元（左右上下取值的基础） */
@@ -316,6 +330,8 @@ function extractFromUnit(
   }
   const kidx = text.indexOf(rule.fieldName);
   if (kidx < 0) return null;
+  // 单字规则（如 ★ ▲ *）是行首标记：只在行首匹配，避免正文误伤
+  if ([...rule.fieldName].length === 1 && text.trimStart().indexOf(rule.fieldName) !== 0) return null;
 
   // 1. 后：同行关键字之后
   let v = cleanValue(text.slice(kidx + rule.fieldName.length), allNames, rule.fieldName);
@@ -398,12 +414,15 @@ function applyRuleExtraction(
   const allNames = rules.map(r => r.fieldName);
 
   for (const rule of rules) {
+    // 别名归因：别名字段的取值记到规范字段名下，结果页只有规范行
+    const key = (rule.aliasFor && rule.aliasFor !== rule.fieldName) ? rule.aliasFor : rule.fieldName;
+    if (extracts[key] && extracts[key].value != null) continue;
     let matched = false;
     for (let i = 0; i < units.length; i++) {
       const hit = extractFromUnit(units[i], units, i, grids, rule, allNames);
       if (hit) {
         const unit = units[i];
-        extracts[rule.fieldName] = {
+        extracts[key] = {
           value: hit.value,
           page: unit.page,
           chapter: unit.chapter,
@@ -411,17 +430,17 @@ function applyRuleExtraction(
           sourceText: hit.sourceText,
           paraIds: [hit.paraId],
         };
-        groups[rule.fieldName] = rule.group;
-        fieldGroups[rule.fieldName] = rule.group;
-        fieldParaMap[rule.fieldName] = hit.paraId;
+        groups[key] = rule.group;
+        fieldGroups[key] = rule.group;
+        fieldParaMap[key] = hit.paraId;
         matched = true;
         break;
       }
     }
-    if (!matched) {
-      extracts[rule.fieldName] = { value: null, page: null, chapter: '', group: rule.group, paraIds: [] };
-      groups[rule.fieldName] = rule.group;
-      fieldGroups[rule.fieldName] = rule.group;
+    if (!matched && !extracts[key]) {
+      extracts[key] = { value: null, page: null, chapter: '', group: rule.group, paraIds: [] };
+      groups[key] = rule.group;
+      fieldGroups[key] = rule.group;
     }
   }
 
@@ -507,7 +526,7 @@ export async function parseDocument(filePath: string): Promise<ParseResult> {
     const seen = new Set<string>();
     const markedItems = [
       ...extractMarkedItems(flatParas, paraToPage),
-      ...extractStarKeywordItems(rules, extracts),
+      ...extractStarKeywordItems(rules, units),
     ].filter(m => {
       const k = `${m.page}|${m.text}`;
       if (seen.has(k)) return false;

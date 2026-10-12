@@ -342,6 +342,7 @@ function mapRule(r: any) {
     enabled: r.enabled,
     category: r.category,
     groupName: r.group_name,
+    aliasFor: r.alias_for || '',
   };
 }
 
@@ -357,16 +358,18 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { fieldName, pattern, category, groupName } = req.body;
+  const { fieldName, pattern, category, groupName, aliasFor } = req.body;
+  const alias = aliasFor && aliasFor !== fieldName ? aliasFor : '';
   const id = crypto.randomUUID();
-  db.prepare(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, ?, ?, ?)`).run(id, fieldName, pattern || '', category || 'regex', groupName || 'info');
+  db.prepare(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name, alias_for) VALUES (?, ?, ?, ?, ?, ?)`).run(id, fieldName, pattern || '', category || 'regex', groupName || 'info', alias);
   const rule = db.prepare('SELECT * FROM extraction_rules WHERE id = ?').get(id);
   res.status(201).json(mapRule(rule as any));
 });
 
 router.put('/:id', (req, res) => {
-  const { fieldName, pattern, enabled, category, groupName } = req.body;
-  db.prepare(`UPDATE extraction_rules SET field_name=?, pattern=?, enabled=?, category=?, group_name=? WHERE id=?`).run(fieldName, pattern ?? '', enabled ?? 1, category ?? 'regex', groupName ?? 'info', req.params.id);
+  const { fieldName, pattern, enabled, category, groupName, aliasFor } = req.body;
+  const alias = aliasFor && aliasFor !== fieldName ? aliasFor : '';
+  db.prepare(`UPDATE extraction_rules SET field_name=?, pattern=?, enabled=?, category=?, group_name=?, alias_for=? WHERE id=?`).run(fieldName, pattern ?? '', enabled ?? 1, category ?? 'regex', groupName ?? 'info', alias, req.params.id);
   const rule = db.prepare('SELECT * FROM extraction_rules WHERE id = ?').get(req.params.id);
   res.json(mapRule(rule as any));
 });
@@ -390,7 +393,7 @@ router.post('/discover', (req, res) => {
   for (const name of fieldNames) {
     if (!existingNames.has(name)) {
       const id = crypto.randomUUID();
-      db.prepare(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, '', 'keyword', ?)`).run(id, name, groupName || 'info');
+      db.prepare(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name, alias_for) VALUES (?, ?, '', 'keyword', ?, '')`).run(id, name, groupName || 'info');
       inserted.push(name);
     }
   }
@@ -586,7 +589,7 @@ router.post('/corrections', (req, res) => {
 });
 
 // 与结果页 sidebar 六类表格字段一一对应（标星为动态项，不 seeding）
-const SEED_CORE_RULES: Array<{ id: string; field: string; group: string }> = [
+const SEED_CORE_RULES: Array<{ id: string; field: string; group: string; aliasFor?: string }> = [
   { id: 'sd_9fb07c10', field: '项目名称', group: 'info' },
   { id: 'sd_8e6bc3d9', field: '项目编号', group: 'info' },
   { id: 'sd_0ba733a0', field: '招标编号', group: 'info' },
@@ -700,6 +703,38 @@ const SEED_CORE_RULES: Array<{ id: string; field: string; group: string }> = [
   { id: 'sd_31fa6342', field: '密封袋标识', group: 'seal' },
   { id: 'sd_654c6537', field: '密封章', group: 'seal' },
   { id: 'sd_1c365dd0', field: '密封处', group: 'seal' },
+  { id: 'al_1a9dd73b', field: '招标名称', group: 'info', aliasFor: '项目名称' },
+  { id: 'al_68ee830f', field: '投标名称', group: 'info', aliasFor: '项目名称' },
+  { id: 'al_6acc7f9a', field: '工程名称', group: 'info', aliasFor: '项目名称' },
+  { id: 'al_0ba733a0', field: '招标编号', group: 'info', aliasFor: '项目编号' },
+  { id: 'al_9a0d43a3', field: '采购编号', group: 'info', aliasFor: '项目编号' },
+  { id: 'al_649e9f13', field: '最高限价', group: 'info', aliasFor: '预算金额' },
+  { id: 'al_9225ce1d', field: '招标控制价', group: 'info', aliasFor: '预算金额' },
+  { id: 'al_caed01db', field: '递交截止时间', group: 'info', aliasFor: '投标截止时间' },
+  { id: 'al_19d5dd93', field: '履约担保', group: 'business', aliasFor: '履约保证金' },
+  { id: 'al_6468ea52', field: '支付方式', group: 'business', aliasFor: '付款方式' },
+  { id: 'al_8bd8df4d', field: '付款条件', group: 'business', aliasFor: '付款方式' },
+  { id: 'al_ac6eb025', field: '质量保证期', group: 'business', aliasFor: '质保期' },
+  { id: 'al_f522b8df', field: '保修期', group: 'business', aliasFor: '质保期' },
+  { id: 'al_c61331ed', field: '验收要求', group: 'tech', aliasFor: '验收标准' },
+  { id: 'al_8b1af1d8', field: '售后保障', group: 'tech', aliasFor: '售后服务' },
+  { id: 'al_71ae7740', field: '参数要求', group: 'tech', aliasFor: '技术参数' },
+  { id: 'al_ac227da1', field: '性能指标', group: 'tech', aliasFor: '性能要求' },
+  { id: 'al_93d9ed95', field: '评标标准', group: 'score', aliasFor: '评分标准' },
+  { id: 'al_8dfe245a', field: '商务标评分', group: 'score', aliasFor: '商务评分' },
+  { id: 'al_8472391e', field: '价格分', group: 'score', aliasFor: '价格评分' },
+  { id: 'al_2179188e', field: '报价得分', group: 'score', aliasFor: '价格评分' },
+  { id: 'al_e33e253c', field: '正本文件', group: 'seal', aliasFor: '正本' },
+  { id: 'al_da5c9359', field: '副本文件', group: 'seal', aliasFor: '副本' },
+  { id: 'al_ce994ef4', field: '密封方式', group: 'seal', aliasFor: '密封要求' },
+  { id: 'al_00af2838', field: '电子投标文件', group: 'seal', aliasFor: '电子文件' },
+  { id: 'al_abaf796c', field: '送达方式', group: 'seal', aliasFor: '递交方式' },
+  { id: 'st_67c561c4', field: '★', group: 'star' },
+  { id: 'st_6280633b', field: '▲', group: 'star' },
+  { id: 'st_f34e02ae', field: '●', group: 'star' },
+  { id: 'st_b5b9c814', field: '◆', group: 'star' },
+  { id: 'st_8f629c13', field: '※', group: 'star' },
+  { id: 'st_3093de0e', field: '*', group: 'star' },
 ];
 
 // Reset all extraction rules to seed defaults
@@ -708,14 +743,14 @@ router.post('/reset', (_req, res) => {
     (db.prepare('SELECT field_name, group_name FROM extraction_rules').all() as any[])
       .map(r => `${r.field_name}|${r.group_name}`),
   );
-  const stmt = db.prepare('INSERT OR IGNORE INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, ?, ?, ?)');
+  const stmt = db.prepare('INSERT OR IGNORE INTO extraction_rules (id, field_name, pattern, category, group_name, alias_for) VALUES (?, ?, ?, ?, ?, ?)');
   stmt.run('info_project_name', '项目名称',
     '(?:(?:项目|采购|工程|服务)\\s*(?:名称|内容|概述|概况)|招标内容|本次招标(?:内容|范围)|采购内容)[：:]?\\s*((?:(?!(?:项目|招标|采购)编号|招标方式|采购方式)[^\\n]){6,})',
-    'regex', 'info');
+    'regex', 'info', '');
   let added = 0;
   for (const s of SEED_CORE_RULES) {
     if (existing.has(`${s.field}|${s.group}`)) continue;
-    const r = stmt.run(s.id, s.field, '', 'keyword', s.group);
+    const r = stmt.run(s.id, s.field, '', 'keyword', s.group, (s as any).aliasFor || '');
     if (r.changes > 0) added++;
   }
   res.json({ ok: true, added });

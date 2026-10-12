@@ -13,21 +13,6 @@ const router = createRouter({
         { path: 'project', redirect: (to) => ({ path: '/result', query: to.query }) },
       ],
     },
-    {
-      path: '/settings',
-      component: () => import('@/components/layout/SettingsLayout.vue'),
-      children: [
-        { path: '', redirect: '/settings/theme' },
-        { path: 'theme', component: () => import('@/views/settings/ThemeSettingsView.vue') },
-        { path: 'template', component: () => import('@/views/settings/TemplateSettingsView.vue') },
-        { path: 'skill', component: () => import('@/views/settings/SkillSettingsView.vue') },
-        { path: 'rules', component: () => import('@/views/settings/RulesSettingsView.vue') },
-        { path: 'model', component: () => import('@/views/settings/ApiKeySettingsView.vue') },
-        { path: 'export', component: () => import('@/views/settings/ExportSettingsView.vue') },
-        { path: 'profile', component: () => import('@/views/settings/ProfileSettingsView.vue') },
-        { path: 'about', component: () => import('@/views/settings/AboutSettingsView.vue') },
-      ],
-    },
   ],
 });
 

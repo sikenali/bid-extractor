@@ -7,6 +7,7 @@ export interface ExtractionRule {
   enabled: boolean;
   category: string;
   groupName: string;
+  aliasFor?: string;
 }
 
 export async function getRules(group?: string): Promise<ExtractionRule[]> {

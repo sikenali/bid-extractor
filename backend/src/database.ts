@@ -101,9 +101,18 @@ export function initializeDatabase() {
       pattern TEXT NOT NULL,
       enabled INTEGER DEFAULT 1,
       category TEXT DEFAULT 'regex',
-      group_name TEXT DEFAULT 'info'
+      group_name TEXT DEFAULT 'info',
+      alias_for TEXT DEFAULT ''
     )`);
   }
+
+  // Migration: extraction_rules.alias_for for alias-to-canonical attribution
+  try {
+    const ruleCols = db.prepare(`PRAGMA table_info(extraction_rules)`).all() as any[];
+    if (!ruleCols.some(c => c.name === 'alias_for')) {
+      db.exec(`ALTER TABLE extraction_rules ADD COLUMN alias_for TEXT DEFAULT ''`);
+    }
+  } catch { /* ignore */ }
 
   if (!tableExists('correction_history')) {
     db.exec(`CREATE TABLE correction_history (
