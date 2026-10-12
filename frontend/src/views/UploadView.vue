@@ -5,6 +5,8 @@ import { ElMessage } from 'element-plus';
 import TopNav from '@/components/layout/TopNav.vue';
 import PageFooter from '@/components/layout/PageFooter.vue';
 import StepStrip from '@/components/StepStrip.vue';
+import CreditQualificationModal from '@/components/layout/CreditQualificationModal.vue';
+import BiddingSitesModal from '@/components/layout/BiddingSitesModal.vue';
 import { uploadFile } from '@/api/upload';
 
 const router = useRouter();
@@ -14,6 +16,8 @@ const selectedFile = ref<File | null>(null);
 const progressPercent = ref(0);
 const progressFileName = ref('');
 let progressTimer: ReturnType<typeof setTimeout> | null = null;
+const showCreditModal = ref(false);
+const showBiddingModal = ref(false);
 
 const steps = [
   { key: 0, label: '解析文件' },
@@ -21,9 +25,21 @@ const steps = [
   { key: 2, label: '提取字段' },
 ];
 
-function validateFile(file: File): boolean {
+function getExt(file: File): string {
   const name = file.name.toLowerCase();
-  const ext = name.slice(name.lastIndexOf('.'));
+  const i = name.lastIndexOf('.');
+  return i >= 0 ? name.slice(i) : '';
+}
+
+function formatSize(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return (bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0) + ' ' + units[i];
+}
+
+function validateFile(file: File): boolean {
+  const ext = getExt(file);
   if (ext === '.doc') {
     ElMessage.warning('不支持 .doc 格式，请转换成 Docx 格式后再上传～');
     return false;
@@ -52,7 +68,6 @@ function handleDrop(e: DragEvent) {
 }
 
 function triggerFileInput() {
-  if (uploading.value) return;
   (document.getElementById('fileInput') as HTMLInputElement)?.click();
 }
 
@@ -99,6 +114,13 @@ function startUpload(file: File) {
   });
 }
 
+function handleReplace() {
+  selectedFile.value = null;
+  progressFileName.value = '';
+  progressPercent.value = 0;
+  uploading.value = false;
+}
+
 onUnmounted(() => {
   if (progressTimer !== null) clearTimeout(progressTimer);
 });
@@ -117,14 +139,12 @@ onUnmounted(() => {
         @drop="handleDrop"
         @click="triggerFileInput"
       >
-        <div class="upload-icon-wrap">
-          <span class="ri-upload-cloud-2-line icon"></span>
-        </div>
-
-        <template v-if="!uploading">
-          <p class="upload-hint">
-            {{ selectedFile ? `已选择：${selectedFile.name}` : '点击选择或拖拽招标文件到此处上传' }}
-          </p>
+        <!-- icon + hint (initial state) -->
+        <template v-if="!uploading && !selectedFile">
+          <div class="upload-icon-wrap">
+            <span class="ri-upload-cloud-2-line icon"></span>
+          </div>
+          <p class="upload-hint">点击选择或拖拽招标文件到此处上传</p>
           <div class="format-row">
             <span class="fmt fmt-w">W</span>
             <span class="fmt fmt-x">X</span>
@@ -134,14 +154,80 @@ onUnmounted(() => {
             <span class="fmt fmt-tx">TX</span>
           </div>
         </template>
-        <template v-else>
-          <p class="upload-hint">正在解析：{{ progressFileName }}</p>
-          <div class="progress-track">
-            <div class="progress-bar" :style="{ width: progressPercent + '%' }">
-              <div class="shimmer"></div>
+
+        <!-- file selected, not yet uploading -->
+        <template v-else-if="selectedFile && !uploading">
+          <div class="file-info">
+            <div class="file-icon" :class="'fmt-' + getExt(selectedFile).replace('.', '')">
+              <svg v-if="getExt(selectedFile) === '.docx' || getExt(selectedFile) === '.wps'" width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M8 9h12M8 13h12M8 17h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              </svg>
+              <svg v-else-if="getExt(selectedFile) === '.xlsx'" width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M8 9h12M8 13h12M8 17h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                <path d="M14 7v14" stroke="currentColor" stroke-width="1.2"/>
+              </svg>
+              <svg v-else-if="getExt(selectedFile) === '.pdf'" width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M9 10l4 3-4 3V10z" fill="currentColor"/>
+                <path d="M17 10l4 3-4 3V10z" fill="currentColor" opacity="0.5"/>
+              </svg>
+              <svg v-else-if="getExt(selectedFile) === '.md'" width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="1.6"/>
+                <text x="7" y="20" font-family="sans-serif" font-size="10" font-weight="700" fill="currentColor">M</text>
+              </svg>
+              <svg v-else width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M9 9h10M9 13h10M9 17h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="file-meta">
+              <p class="file-name">{{ selectedFile.name }}</p>
+              <p class="file-size">{{ formatSize(selectedFile.size) }}</p>
             </div>
           </div>
-          <p class="progress-text">{{ Math.round(progressPercent) }}%</p>
+          <div class="file-actions">
+            <button class="replace-btn" @click.stop="handleReplace">
+              <span class="icon ri-refresh-line"></span>
+              替换文件
+            </button>
+            <button class="extract-btn" @click.stop="startUpload(selectedFile!)">一键提取</button>
+          </div>
+        </template>
+
+        <!-- uploading -->
+        <template v-else>
+          <div class="uploading-content">
+            <div class="file-info-inline">
+              <div class="file-icon-sm" :class="'fmt-' + getExt(selectedFile!).replace('.', '')">
+                <svg v-if="getExt(selectedFile!) === '.docx' || getExt(selectedFile!) === '.wps'" width="18" height="18" viewBox="0 0 28 28" fill="none">
+                  <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="2"/>
+                  <path d="M8 9h12M8 13h12M8 17h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <svg v-else-if="getExt(selectedFile!) === '.xlsx'" width="18" height="18" viewBox="0 0 28 28" fill="none">
+                  <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="2"/>
+                  <path d="M8 9h12M8 13h12M8 17h12M14 7v14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                </svg>
+                <svg v-else-if="getExt(selectedFile!) === '.pdf'" width="18" height="18" viewBox="0 0 28 28" fill="none">
+                  <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="2"/>
+                  <path d="M9 10l4 3-4 3V10z" fill="currentColor"/><path d="M17 10l4 3-4 3V10z" fill="currentColor" opacity="0.5"/>
+                </svg>
+                <svg v-else width="18" height="18" viewBox="0 0 28 28" fill="none">
+                  <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="2"/>
+                  <path d="M9 9h10M9 13h10M9 17h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="uploading-name">{{ progressFileName }}</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-bar" :style="{ width: progressPercent + '%' }">
+                <div class="shimmer"></div>
+              </div>
+            </div>
+            <p class="progress-text">{{ Math.round(progressPercent) }}%</p>
+          </div>
+          <StepStrip :steps="steps" :loading="uploading" />
         </template>
 
         <input
@@ -153,16 +239,12 @@ onUnmounted(() => {
           @change="handleFileSelect"
         />
       </div>
-
-      <StepStrip
-        :steps="steps"
-        :loading="uploading"
-        button-label="一键提取"
-        @extract="triggerFileInput"
-      />
     </div>
 
-    <PageFooter />
+    <PageFooter @credit-query="showCreditModal = true" @bidding-sites="showBiddingModal = true" />
+
+    <CreditQualificationModal v-model:visible="showCreditModal" />
+    <BiddingSitesModal v-model:visible="showBiddingModal" />
   </div>
 </template>
 
@@ -182,8 +264,8 @@ onUnmounted(() => {
   padding: 0 32px;
 }
 .upload-card {
-  width: 875px;
-  min-height: 345px;
+  width: 520px;
+  min-height: 320px;
   background-color: #FFFFFF;
   border: 0.7px solid #E5DFD3;
   border-radius: 14px;
@@ -193,7 +275,10 @@ onUnmounted(() => {
   justify-content: center;
   cursor: pointer;
   transition: border-color 0.2s, background-color 0.2s;
-  margin-bottom: 48px;
+  padding: 40px 32px;
+  gap: 20px;
+  position: relative;
+  overflow: hidden;
 }
 .upload-card.dragging {
   border-color: #C0392B;
@@ -203,8 +288,8 @@ onUnmounted(() => {
   cursor: default;
 }
 .upload-icon-wrap {
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   background-color: #F7F3EA;
   display: flex;
@@ -214,23 +299,23 @@ onUnmounted(() => {
 .upload-icon-wrap .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
-  font-size: 34px;
+  font-size: 28px;
   color: #8A8578;
 }
 .upload-hint {
   margin: 0;
-  padding-top: 28px;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 500;
   color: #1F1D1A;
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
-  line-height: 1.2;
+  line-height: 1.3;
+  text-align: center;
 }
 .format-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-top: 24px;
+  gap: 10px;
+  padding-top: 8px;
 }
 .fmt {
   width: 26px;
@@ -251,13 +336,105 @@ onUnmounted(() => {
 .fmt-md { background-color: #4A6FA5; font-size: 9px; }
 .fmt-tx { background-color: #5A5750; font-size: 9px; }
 
+/* file info card */
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 16px 20px;
+  background-color: #FDFCF9;
+  border: 0.7px solid #EDE9E0;
+  border-radius: 10px;
+}
+.file-info-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.file-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.file-icon-sm {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.file-icon.fmt-docx, .file-icon.fmt-wps,
+.file-icon-sm.fmt-docx, .file-icon-sm.fmt-wps {
+  background-color: #2B579A; color: #fff;
+}
+.file-icon.fmt-xlsx,
+.file-icon-sm.fmt-xlsx {
+  background-color: #217346; color: #fff;
+}
+.file-icon.fmt-pdf,
+.file-icon-sm.fmt-pdf {
+  background-color: #C0392B; color: #fff;
+}
+.file-icon.fmt-md,
+.file-icon-sm.fmt-md {
+  background-color: #4A6FA5; color: #fff;
+}
+.file-icon.fmt-txt,
+.file-icon-sm.fmt-txt {
+  background-color: #5A5750; color: #fff;
+}
+.file-meta {
+  flex: 1;
+  min-width: 0;
+}
+.file-name {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1F1D1A;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-size {
+  margin: 0;
+  font-size: 13px;
+  color: #8A8578;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+.uploading-name {
+  font-size: 14px;
+  color: #3A3A3A;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+.uploading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+}
+
 .progress-track {
-  width: 320px;
-  height: 8px;
+  width: 100%;
+  max-width: 320px;
+  height: 6px;
   background-color: #F7F3EA;
   border-radius: 9999px;
   overflow: hidden;
-  margin-top: 16px;
 }
 .progress-bar {
   height: 100%;
@@ -281,10 +458,53 @@ onUnmounted(() => {
 }
 .progress-text {
   margin: 0;
-  padding-top: 8px;
-  font-size: 14px;
+  font-size: 13px;
   color: #6E6A60;
 }
+
+.file-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+}
+.replace-btn {
+  height: 48px;
+  padding: 0 20px;
+  border: 0.7px solid #E5DFD3;
+  border-radius: 10px;
+  background-color: #FCFBF8;
+  color: #3A3A3A;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.2s;
+}
+.replace-btn:hover { background-color: #F7F3EA; }
+.replace-btn .icon {
+  font-family: "remixicon", sans-serif;
+  font-style: normal;
+  font-size: 16px;
+}
+.extract-btn {
+  width: 200px;
+  height: 48px;
+  border: none;
+  border-radius: 10px;
+  background-color: #C0392B;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+.extract-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.extract-btn:active { transform: translateY(0); }
 
 .file-input-hidden { display: none; }
 </style>
