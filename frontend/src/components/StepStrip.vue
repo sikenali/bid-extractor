@@ -33,11 +33,11 @@
     </div>
 
     <div v-if="buttonLabel" class="btn-area">
-      <button
-        class="extract-btn"
-        :disabled="loading"
-        @click="!loading && onExtract()"
-      >
+        <button
+          class="extract-btn"
+          :disabled="loading || disabled"
+          @click="!loading && !disabled && onExtract()"
+        >
         <span v-if="loading" class="btn-spinner">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.8"/>
@@ -65,9 +65,11 @@ const props = withDefaults(defineProps<{
   steps: Step[];
   loading?: boolean;
   buttonLabel?: string;
+  disabled?: boolean;
 }>(), {
   loading: false,
   buttonLabel: '',
+  disabled: false,
 });
 
 const emit = defineEmits<{
@@ -352,7 +354,7 @@ onUnmounted(() => {
 }
 
 .extract-btn:disabled {
-  opacity: 0.85;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 

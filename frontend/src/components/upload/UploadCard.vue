@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { uploadFile } from '@/api/upload';
 import StepStrip from '@/components/StepStrip.vue';
@@ -9,13 +9,18 @@ interface Step {
   label: string;
 }
 
-defineProps<{
-  title?: string;
+const props = withDefaults(defineProps<{
   steps?: Step[];
-}>();
+  title?: string;
+}>(), {
+  steps: () => [
+    { key: 0, label: '解析文件' },
+    { key: 1, label: '转换释义' },
+    { key: 2, label: '提取字段' },
+  ],
+});
 
 const emit = defineEmits<{
-  (e: 'extract', file: File): void;
   (e: 'success', jobId: string): void;
   (e: 'replace'): void;
 }>();
@@ -26,12 +31,6 @@ const selectedFile = ref<File | null>(null);
 const progressPercent = ref(0);
 const progressFileName = ref('');
 let progressTimer: ReturnType<typeof setTimeout> | null = null;
-
-const defaultSteps: Step[] = [
-  { key: 0, label: '解析文件' },
-  { key: 1, label: '转换释义' },
-  { key: 2, label: '提取字段' },
-];
 
 function getExt(file: File): string {
   const name = file.name.toLowerCase();
@@ -76,7 +75,7 @@ function handleDrop(e: DragEvent) {
 }
 
 function triggerFileInput() {
-  (document.getElementById(`fileInput-${_uid}`) as HTMLInputElement)?.click();
+  (document.getElementById('fileInput') as HTMLInputElement)?.click();
 }
 
 function handleFileSelect(event: Event) {
@@ -92,7 +91,7 @@ function selectFile(file: File) {
   progressFileName.value = file.name;
 }
 
-function startExtract() {
+function startUpload(file: File) {
   if (!selectedFile.value) return;
   uploading.value = true;
   progressPercent.value = 0;
@@ -109,9 +108,7 @@ function startExtract() {
   };
   progressTimer = setTimeout(simProgress, 300);
 
-  emit('extract', selectedFile.value);
-
-  uploadFile(selectedFile.value).then((uploadResult) => {
+  uploadFile(file).then((uploadResult) => {
     cancelled = true;
     progressPercent.value = 100;
     setTimeout(() => {
@@ -136,7 +133,12 @@ function handleReplace() {
   emit('replace');
 }
 
-const _uid = Math.random().toString(36).slice(2, 8);
+const btnDisabled = computed(() => !selectedFile.value || uploading.value);
+const btnLabel = computed(() => {
+  if (uploading.value) return '提取中…';
+  if (selectedFile.value) return '一键提取';
+  return '一键提取';
+});
 
 onUnmounted(() => {
   if (progressTimer !== null) clearTimeout(progressTimer);
@@ -144,7 +146,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="upload-card-wrapper">
+  <div class="upload-wrapper">
     <div
       class="upload-card"
       :class="{ dragging: isDragging, hasFile: !!selectedFile && !uploading, uploading: uploading }"
@@ -167,7 +169,6 @@ onUnmounted(() => {
           <span class="fmt fmt-md">MD</span>
           <span class="fmt fmt-tx">TX</span>
         </div>
-        <button class="btn-extract btn-extract--disabled" disabled>一键提取</button>
       </template>
 
       <!-- file selected, not uploading -->
@@ -201,15 +202,10 @@ onUnmounted(() => {
             <p class="file-size">{{ formatSize(selectedFile.size) }}</p>
           </div>
         </div>
-        <div class="card-actions">
-          <button class="btn-replace" @click.stop="handleReplace">
-            <span class="ri-refresh-line icon"></span>
-            替换文件
-          </button>
-          <button class="btn-extract btn-extract--active" @click.stop="startExtract()">
-            一键提取
-          </button>
-        </div>
+        <button class="btn-replace" @click.stop="handleReplace">
+          <span class="ri-refresh-line icon"></span>
+          替换文件
+        </button>
       </template>
 
       <!-- uploading -->
@@ -246,7 +242,7 @@ onUnmounted(() => {
       </template>
 
       <input
-        :id="`fileInput-${_uid}`"
+        id="fileInput"
         type="file"
         class="file-input-hidden"
         accept=".docx,.pdf,.md,.txt,.xlsx,.wps"
@@ -256,23 +252,25 @@ onUnmounted(() => {
     </div>
 
     <StepStrip
-      :steps="steps || defaultSteps"
+      :steps="steps"
       :loading="uploading"
+      :button-label="btnLabel"
+      :disabled="btnDisabled"
     />
   </div>
 </template>
 
 <style scoped>
-.upload-card-wrapper {
+.upload-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
-  gap: 0;
 }
 
+/* ── upload card ────────────────────────────────────── */
 .upload-card {
-  width: 100%;
+  width: 875px;
   min-height: 345px;
   background-color: #FFFFFF;
   border: 0.7px solid #E5DFD3;
@@ -286,13 +284,18 @@ onUnmounted(() => {
   overflow: hidden;
   gap: 20px;
   padding: 40px 32px;
+  margin-bottom: 48px;
 }
 .upload-card.dragging {
   border-color: #C0392B;
   background-color: #FBE9E7;
 }
-.upload-card.hasFile { cursor: default; }
-.upload-card.uploading { cursor: default; }
+.upload-card.hasFile {
+  cursor: default;
+}
+.upload-card.uploading {
+  cursor: default;
+}
 
 /* initial state */
 .upload-icon-wrap {
@@ -343,7 +346,7 @@ onUnmounted(() => {
 .fmt-md  { background-color: #4A6FA5; font-size: 9px; }
 .fmt-tx  { background-color: #5A5750; font-size: 9px; }
 
-/* file selected state */
+/* ── file selected state ───────────────────────────── */
 .file-card {
   display: flex;
   align-items: center;
@@ -387,19 +390,14 @@ onUnmounted(() => {
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 
-.card-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
 .btn-replace {
-  height: 48px;
-  padding: 0 22px;
+  height: 44px;
+  padding: 0 20px;
   border: 0.7px solid #E5DFD3;
   border-radius: 10px;
   background-color: #FCFBF8;
   color: #3A3A3A;
-  font-size: 15px;
+  font-size: 14px;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
   cursor: pointer;
   display: flex;
@@ -413,31 +411,8 @@ onUnmounted(() => {
   font-style: normal;
   font-size: 16px;
 }
-.btn-extract {
-  width: 200px;
-  height: 48px;
-  border: none;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 500;
-  font-family: "SourceHanSans-Medium", var(--font-family-cn);
-  cursor: pointer;
-  transition: opacity 0.2s, transform 0.15s;
-}
-.btn-extract--disabled {
-  background-color: #D1CCC0;
-  color: #A7A296;
-  cursor: not-allowed;
-}
-.btn-extract--disabled:hover { transform: none; }
-.btn-extract--active {
-  background-color: #C0392B;
-  color: #fff;
-}
-.btn-extract--active:hover { opacity: 0.9; transform: translateY(-1px); }
-.btn-extract--active:active { transform: translateY(0); }
 
-/* uploading state */
+/* ── uploading state ───────────────────────────────── */
 .uploading-inner {
   display: flex;
   align-items: center;
