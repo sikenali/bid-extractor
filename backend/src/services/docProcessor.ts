@@ -265,19 +265,113 @@ function loadFieldRules(): FieldRule[] {
   return rows.map(r => ({ fieldName: r.field_name, group: r.group_name || 'info', pattern: r.pattern || '', category: r.category || 'keyword' }));
 }
 
-function extractValueForKeyword(text: string, fieldName: string): string | null {
-  const idx = text.indexOf(fieldName);
-  if (idx < 0) return null;
-  let rest = text.slice(idx + fieldName.length).trim();
-  rest = rest.replace(/^[：:、,\s]+/, '').trim();
-  if (!rest) return null;
-  const endMatch = rest.match(/[。；;。\n]/);
-  if (endMatch && endMatch.index !== undefined && endMatch.index < 200) {
-    rest = rest.slice(0, endMatch.index);
-  } else if (rest.length > 200) {
-    rest = rest.slice(0, 200);
+/** 段落 + 表格单元格统一检索单元（左右上下取值的基础） */
+export interface SearchUnit {
+  text: string;
+  page: number;
+  chapter: string;
+  level: number;
+  paraId: number;
+  tableId?: string;
+  row?: number;
+  col?: number;
+}
+
+/** 清洗候选取值：去引导符号、截断句长、遇到其他字段名截断 */
+function cleanValue(raw: string, allNames: string[], self: string): string | null {
+  let v = (raw || '').trim().replace(/^[：:、,，；;\s]+/, '').trim();
+  if (!v) return null;
+  const end = v.match(/[。；;\n]/);
+  if (end && end.index !== undefined && end.index < 200) v = v.slice(0, end.index);
+  else if (v.length > 200) v = v.slice(0, 200);
+  v = truncateAtOtherFields(v, allNames, self);
+  v = v.replace(/(\s*的\s*)+$/, '').trim();
+  return v.trim() || null;
+}
+
+const HAS_LABEL = /[：:]/;
+
+/**
+ * 五方向取值：后（同行关键字之后）→ 右/下（表格相邻格）→ 下（下一段）
+ * → 上（上一段，严格守卫）→ 前（同行关键字之前，严格守卫）
+ */
+function extractFromUnit(
+  unit: SearchUnit,
+  units: SearchUnit[],
+  idx: number,
+  grids: Map<string, string[][]>,
+  rule: FieldRule,
+  allNames: string[],
+): { value: string; paraId: number; sourceText: string } | null {
+  const text = unit.text;
+  // 0. 正则优先（精度最高）
+  if (rule.category === 'regex' && rule.pattern) {
+    try {
+      const m = text.match(new RegExp(rule.pattern));
+      const v = ((m && (m[1] || m[0])) || '').trim();
+      if (v) return { value: v, paraId: unit.paraId, sourceText: text };
+    } catch {
+      // 非法正则，回落关键字
+    }
   }
-  return rest.trim() || null;
+  const kidx = text.indexOf(rule.fieldName);
+  if (kidx < 0) return null;
+
+  // 1. 后：同行关键字之后
+  let v = cleanValue(text.slice(kidx + rule.fieldName.length), allNames, rule.fieldName);
+  if (v) return { value: v, paraId: unit.paraId, sourceText: text };
+
+  // 2. 右 / 下：表格相邻格（标签独占一格时）
+  if (unit.tableId != null) {
+    const grid = grids.get(unit.tableId);
+    if (grid && unit.row !== undefined && unit.col !== undefined) {
+      const right = (grid[unit.row] || [])[unit.col + 1] || '';
+      if (right.trim() && !HAS_LABEL.test(right)) {
+        v = cleanValue(right, allNames, rule.fieldName);
+        if (v) return { value: v, paraId: unit.paraId, sourceText: `${text} ${right.trim()}` };
+      }
+      const belowRow = grid[unit.row + 1];
+      const below = (belowRow || [])[unit.col] || '';
+      if (below.trim() && !HAS_LABEL.test(below)) {
+        v = cleanValue(below, allNames, rule.fieldName);
+        if (v) return { value: v, paraId: unit.paraId, sourceText: `${text} ${below.trim()}` };
+      }
+    }
+    return null;
+  }
+
+  // 3. 前：同行关键字之前（同行有字优先于跨行）
+  const before = text.slice(0, kidx);
+  if (before.trim() && [...before].length <= 100) {
+    v = cleanValue(before, allNames, rule.fieldName);
+    if (v) return { value: v, paraId: unit.paraId, sourceText: text };
+  }
+
+  // 4. 下：下一段（仅段落之间，跳过空行；遇到标题则止步；单元格不参与）
+  for (let j = idx + 1; j < units.length; j++) {
+    const nu = units[j];
+    if (nu.tableId != null) continue;
+    if (!nu.text.trim()) continue;
+    if (nu.level > 0) break;
+    if (HAS_LABEL.test(nu.text)) break;
+    v = cleanValue(nu.text, allNames, rule.fieldName);
+    if (v) return { value: v, paraId: nu.paraId, sourceText: `${text}\n${nu.text}` };
+    break;
+  }
+
+  // 5. 上：上一段（仅段落之间；严格守卫：非标题、短文本、无冒号）
+  for (let j = idx - 1; j >= 0; j--) {
+    const pu = units[j];
+    if (pu.tableId != null) continue;
+    if (!pu.text.trim()) continue;
+    if (pu.level > 0 || isSectionStart(pu.text)) break;
+    if (HAS_LABEL.test(pu.text)) break;
+    if ([...pu.text].length > 100) break;
+    v = cleanValue(pu.text, allNames, rule.fieldName);
+    if (v) return { value: v, paraId: pu.paraId, sourceText: `${pu.text}\n${text}` };
+    break;
+  }
+  return null;
 }
 
 /** 关键字取值串到下一个字段时截断（如“预算金额…投标截止时间…”），保证取值干净 */
@@ -294,7 +388,8 @@ function truncateAtOtherFields(value: string, fieldNames: string[], self: string
 
 function applyRuleExtraction(
   rules: FieldRule[],
-  paras: ParagraphMeta[],
+  units: SearchUnit[],
+  grids: Map<string, string[][]>,
 ): { extracts: Record<string, FieldExtract>; groups: Record<string, string>; fieldParaMap: Record<string, number>; fieldGroups: Record<string, string> } {
   const extracts: Record<string, FieldExtract> = {};
   const groups: Record<string, string> = {};
@@ -304,33 +399,21 @@ function applyRuleExtraction(
 
   for (const rule of rules) {
     let matched = false;
-    for (const para of paras) {
-      let value: string | null = null;
-      if (rule.category === 'regex' && rule.pattern) {
-        try {
-          const re = new RegExp(rule.pattern);
-          const m = para.text.match(re);
-          if (m) value = (m[1] || m[0] || '').trim();
-        } catch {
-          // invalid regex, fall through to keyword
-        }
-      }
-      if (value == null) {
-        value = extractValueForKeyword(para.text, rule.fieldName);
-        if (value) value = truncateAtOtherFields(value, allNames, rule.fieldName) || null;
-      }
-      if (value) {
+    for (let i = 0; i < units.length; i++) {
+      const hit = extractFromUnit(units[i], units, i, grids, rule, allNames);
+      if (hit) {
+        const unit = units[i];
         extracts[rule.fieldName] = {
-          value,
-          page: para.page,
-          chapter: para.chapter,
+          value: hit.value,
+          page: unit.page,
+          chapter: unit.chapter,
           group: rule.group,
-          sourceText: para.text,
-          paraIds: [para.paraId],
+          sourceText: hit.sourceText,
+          paraIds: [hit.paraId],
         };
         groups[rule.fieldName] = rule.group;
         fieldGroups[rule.fieldName] = rule.group;
-        fieldParaMap[rule.fieldName] = para.paraId;
+        fieldParaMap[rule.fieldName] = hit.paraId;
         matched = true;
         break;
       }
@@ -395,7 +478,32 @@ export async function parseDocument(filePath: string): Promise<ParseResult> {
     });
 
     const rules = loadFieldRules();
-    const { extracts, groups, fieldParaMap, fieldGroups } = applyRuleExtraction(rules, paragraphsMeta);
+
+    // 段落 + 表格单元格统一检索：表格 label/value 对、跨行取值就靠它
+    const grids = new Map<string, string[][]>();
+    const units: SearchUnit[] = paragraphsMeta.map(p => ({
+      text: p.text,
+      page: p.page,
+      chapter: p.chapter,
+      level: p.level,
+      paraId: p.paraId,
+    }));
+    let nextParaId = paragraphsMeta.length;
+    const cellPages: number[] = [];
+    for (const t of tablesMeta) {
+      grids.set(t.tableId, t.rows);
+      t.rows.forEach((row, r) => row.forEach((cell, c) => {
+        if (!cell.trim()) return;
+        units.push({
+          text: cell.trim(), page: t.page, chapter: t.chapter, level: 0,
+          paraId: nextParaId++, tableId: t.tableId, row: r, col: c,
+        });
+        cellPages.push(t.page);
+      }));
+    }
+    const fullParaToPage = [...paraToPage, ...cellPages];
+
+    const { extracts, groups, fieldParaMap, fieldGroups } = applyRuleExtraction(rules, units, grids);
     const seen = new Set<string>();
     const markedItems = [
       ...extractMarkedItems(flatParas, paraToPage),
@@ -420,7 +528,7 @@ export async function parseDocument(filePath: string): Promise<ParseResult> {
       fieldParaMap,
       fieldGroups,
       pageCount,
-      paraToPage,
+      paraToPage: fullParaToPage,
       paragraphsMeta,
       tablesMeta,
     };
