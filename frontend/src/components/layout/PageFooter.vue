@@ -8,12 +8,12 @@
 
     <!-- 居中：2 个图标 -->
     <div class="footer-actions">
-      <UiTip text="企业信用查询平台" placement="top">
+      <UiTip text="企业信用" placement="top">
         <div class="footer-icon-btn" @click="$emit('credit-query')">
           <span class="footer-mark ri-shield-check-line"></span>
         </div>
       </UiTip>
-      <UiTip text="招标采购网站导航" placement="top">
+      <UiTip text="招标网站" placement="top">
         <div class="footer-icon-btn" @click="$emit('bidding-sites')">
           <span class="footer-mark ri-links-line"></span>
         </div>

@@ -1,9 +1,14 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { initializeDatabase } from './database.js';
 import uploadRouter from './routes/upload.js';
 import rulesRouter from './routes/rules.js';
 import settingsRouter from './routes/settings.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,6 +26,15 @@ app.use('/api/settings', settingsRouter);
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// 生产环境：本地托管前端构建产物（frontend/dist），实现 single-origin 部署
+const frontendDist = path.join(__dirname, '..', '..', 'frontend', 'dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
 
 // 404 handler for unmatched routes
 app.use((_req, res) => {

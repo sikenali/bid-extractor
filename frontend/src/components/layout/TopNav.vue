@@ -28,7 +28,7 @@ const showSettingsModal = ref(false);
       <span class="page-title">{{ title || '' }}</span>
     </div>
     <div class="nav-right">
-      <UiTip v-if="showBack" text="返回上传主界面" placement="bottom">
+      <UiTip v-if="showBack" text="返回" placement="bottom">
         <button class="nav-btn" @click="router.push('/upload')">
           <span class="ri-arrow-left-s-line icon"></span>
         </button>

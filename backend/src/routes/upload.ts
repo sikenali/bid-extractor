@@ -11,7 +11,8 @@ const __dirname = path.dirname(__filename);
 
 const router = Router();
 
-const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads');
+const baseDir = process.env.BID_EXTRACTOR_DATA_DIR || path.join(__dirname, '..', '..');
+const UPLOAD_DIR = path.join(baseDir, 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }

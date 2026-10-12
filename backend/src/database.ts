@@ -5,7 +5,8 @@ import fs from 'fs';
 import crypto from 'node:crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dataDir = path.join(__dirname, '..', '..', 'data');
+const baseDir = process.env.BID_EXTRACTOR_DATA_DIR || path.join(__dirname, '..', '..');
+const dataDir = path.join(baseDir, 'data');
 
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
@@ -238,7 +239,7 @@ export function initializeDatabase() {
     // 项目信息 (info)
     // ════════════════════════════════════════════
     ['info_project_name', '项目名称',
-     '(?:(?:项目|采购|工程|服务)\\s*(?:名称|内容|概述|概况)|招标内容|本次招标(?:内容|范围)|采购内容)[：:]?\\s*((?:(?!(?:项目|招标|采购)编号|招标方式|采购方式)[^\\n]){6,})',
+     '(?:本次招标(?:内容|范围)|采购内容|项目概况|项目内容)[：:]\\s*([^。\\n]{6,80})(?=[。；\\n]|(?:项目|招标|采购)编号|投标截止)',
      'regex', 'info'],
     ['info_project_code', '项目编号',
      '(?:(?:项目|招标|采购)\\s*(?:编号|编号)|(?:项目|招标|采购)号)[：:]?\\s*?([A-Za-z0-9]{2,20}[-_／/]?[A-Za-z0-9]{2,20}[-_／/]?[A-Za-z0-9]{0,20}|\\d{2,6}[-_]\\d{2,6}[-_][A-Za-z0-9]{2,10})',
