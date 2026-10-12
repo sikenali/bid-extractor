@@ -138,7 +138,7 @@ function clear() {
 .is-lg .ui-input-el { height: 52px; padding: 0 18px; font-size: 15px; }
 textarea.ui-input-el { height: auto; padding: 12px 16px; resize: vertical; line-height: 1.6; }
 .ui-input-el::placeholder { color: var(--color-text-faint, #A7A296); }
-.ui-input-el:hover:not(:disabled) { border-color: var(--color-border, #E5DFD3); }
+.ui-input-el:hover:not(:disabled) { border-color: var(--color-border-hover, #D9D2C2); }
 .ui-input-el:focus {
   border-color: var(--color-primary, #C0392B);
   background-color: var(--color-bg-white, #fff);

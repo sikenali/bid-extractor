@@ -138,7 +138,7 @@ onUnmounted(() => {
 }
 .is-md .ui-select-btn { height: 44px; }
 .is-sm .ui-select-btn { height: 36px; font-size: 13px; }
-.ui-select-btn:hover:not(:disabled) { border-color: var(--color-border, #E5DFD3); }
+.ui-select-btn:hover:not(:disabled) { border-color: var(--color-border-hover, #D9D2C2); }
 .is-open .ui-select-btn, .ui-select-btn:focus-visible {
   border-color: var(--color-primary, #C0392B);
   background-color: var(--color-bg-white, #fff);
