@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import RuleDialog from '@/components/settings/RuleDialog.vue';
 import apiClient from '@/api/client';
@@ -48,7 +48,16 @@ const showRuleDialog = ref(false);
 const dialogMode = ref<'regex' | 'keyword'>('regex');
 const editingRule = ref<{ id: string; fieldName: string; pattern: string; groupName: string; aliasFor: string } | null>(null);
 const searchTerm = ref('');
-const activeGroup = ref('');
+// 默认选中首组，只显示对应分组的提取名称项，不全量显示
+const activeGroup = ref((() => {
+  try {
+    const saved = localStorage.getItem('settings.rules.group') || 'info';
+    return GROUP_META.some(g => g.key === saved) ? saved : 'info';
+  } catch { return 'info'; }
+})());
+watch(activeGroup, (v) => {
+  try { localStorage.setItem('settings.rules.group', v); } catch {}
+});
 
 const filteredRules = computed(() => {
   const q = searchTerm.value.trim().toLowerCase();

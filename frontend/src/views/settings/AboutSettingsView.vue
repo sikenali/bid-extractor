@@ -39,11 +39,9 @@ const appVersion = 'V1.0.0';
 
       <div class="about-version">版本: {{ appVersion }}</div>
 
-      <a class="about-repo" href="https://github.com/sikenali/bid-extractor" target="_blank" rel="noopener noreferrer">
+      <a class="about-repo" href="https://github.com/sikenali/bid-extractor" target="_blank" rel="noopener noreferrer" title="访问 GitHub 仓库">
         <span class="repo-right">
           <span class="icon ri-github-line"></span>
-          <span class="repo-url">https://github.com/sikenali/bid-extractor</span>
-          <span class="icon ri-arrow-right-up-line"></span>
         </span>
       </a>
 
@@ -164,49 +162,28 @@ const appVersion = 'V1.0.0';
 }
 .about-repo {
   margin-top: 32px;
-  width: 740px;
-  height: 72px;
-  border: 0.7px solid var(--color-border-soft, #EDE9E0);
-  background-color: var(--color-bg-white, #FFFFFF);
-  border-radius: 14px;
-  padding: 0 24px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   cursor: pointer;
-  transition: background-color 0.2s;
-  box-sizing: border-box;
   text-decoration: none;
   color: inherit;
 }
 .about-repo:hover {
-  background-color: var(--color-bg-secondary, #F7F3EA);
-}
-.repo-left {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--color-text-primary, #1F1D1A);
-  font-family: "SourceHanSans-Medium", var(--font-family-cn);
+  opacity: 0.75;
 }
 .repo-right {
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 100%;
   gap: 8px;
 }
 .repo-right .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
-  font-size: 20px;
+  font-size: 34px;
   color: var(--color-text-secondary, #6E6A60);
-}
-.repo-right .icon:last-child {
-  font-size: 20px;
-  color: var(--color-text-faint, #A7A296);
-}
-.repo-url {
-  font-size: 15px;
-  color: var(--color-text-muted, #8A8578);
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .about-copy {
   margin-top: 32px;

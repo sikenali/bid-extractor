@@ -737,6 +737,60 @@ const SEED_CORE_RULES: Array<{ id: string; field: string; group: string; aliasFo
   { id: 'st_3093de0e', field: '*', group: 'star' },
 ];
 
+// 六分类关键字段的正则表达式（补充规则正则式描述，供精确提取使用）
+const REGEX_PATTERNS: Record<string, { group: string; pattern: string }> = {
+  '项目名称': { group: 'info', pattern: '(?:(?:项目|采购|工程|服务)\\s*(?:名称|内容|概述|概况)|招标内容|本次招标(?:内容|范围)|采购内容)[：:]?\\s*((?:(?!(?:项目|招标|采购)编号|招标方式|采购方式)[^\\n]){6,})' },
+  '项目编号': { group: 'info', pattern: '(?:项目|采购|招标|工程)(?:编号|编号ID|No.)[：:]?\\s*([A-Za-z0-9][A-Za-z0-9\\-_/．.]{3,40})' },
+  '采购方式': { group: 'info', pattern: '(?:采购|招标)\\s*方式[：:]?\\s*([^，。\\n；;]{2,20})' },
+  '预算金额': { group: 'info', pattern: '(?:(?:采购|项目|招标)\\s*)?(?:预算(?:金额)?|最高限价|招标控制价|采购预算)[：:]?\\s*(?:人民币\\s*)?[¥￥]?\\s*(\\d+(?:,\\d{3})*(?:\\.\\d{1,2})?)\\s*(?:万元|万|元)?' },
+  '投标截止时间': { group: 'info', pattern: '(?:投标|递交|应标)(?:文件)?(?:递交)?(?:截止)?时间[：:]?\\s*(.{0,30}?(?:年|月|日|时|分).{0,20})' },
+  '开标时间': { group: 'info', pattern: '(?:开标|解密)时间[：:]?\\s*(.{0,40}?(?:年|月|日|时|分).{0,20})' },
+  '投标地点': { group: 'info', pattern: '(?:投标|递交|开标)地点[：:]?\\s*([^，。\\n；;]{4,80})' },
+  '交付时间': { group: 'info', pattern: '(?:交付|交货)(?:时间|期限)?[：:]?\\s*(.{0,30}?(?:年|月|日|天|个工作日).{0,20})' },
+  '交付地点': { group: 'info', pattern: '(?:交付|交货|供货)地点[：:]?\\s*([^，。\\n；;]{4,60})' },
+  '投标保证金': { group: 'info', pattern: '(?:投标)?保证金[：:]?\\s*(?:人民币\\s*)?[¥￥]?\\s*([^，。\\n；;]{2,40})' },
+  '采购人': { group: 'info', pattern: '(?:采购人|招标人|业主单位|采购单位|项目单位)[：:]?\\s*([^，。\\n；;]{4,40})' },
+  '采购代理': { group: 'info', pattern: '(?:采购|招标)代理(?:机构)?[：:]?\\s*([^，。\\n；;]{4,40})' },
+  '资金来源': { group: 'info', pattern: '资金(?:来源|性质)[：:]?\\s*([^，。\\n；;]{2,30})' },
+
+  '付款方式': { group: 'business', pattern: '(?:付款|支付)(?:方式|条件)?[：:]?\\s*([^，。\\n；;]{4,40})' },
+  '质保期': { group: 'business', pattern: '(?:质保期|质量保证期|保修期|质保期限)[：:]?\\s*([^，。\\n；;]{2,30})' },
+  '履约保证金': { group: 'business', pattern: '(?:履约)?保证金[：:]?\\s*(?:人民币\\s*)?[¥￥]?\\s*([^，。\\n；;]{2,40})' },
+  '交货期': { group: 'business', pattern: '(?:交货期|交货时间|供货期|交付期)[：:]?\\s*([^，。\\n；;]{2,30})' },
+  '投标有效期': { group: 'business', pattern: '(?:投标)?有效期[：:]?\\s*([^，。\\n；;]{2,30})' },
+  '联合体': { group: 'business', pattern: '(?:是否接受|接受|允许)?联合体(?:投标)?[：:]?\\s*([^，。\\n；;]{2,40})' },
+  '售后服务': { group: 'business', pattern: '(?:售后)?服务(?:期|内容|要求)?[：:]?\\s*([^，。\\n；;]{4,40})' },
+  '履约保证金金额': { group: 'business', pattern: '履约保证金[：:]?\\s*(?:人民币\\s*)?[¥￥]?\\s*(\\d+(?:,\\d{3})*(?:\\.\\d{1,2})?)\\s*元?' },
+
+  '技术规格': { group: 'tech', pattern: '技术规格[：:]?\\s*([^，。\\n；;]{4,60})' },
+  '技术指标': { group: 'tech', pattern: '技术指标[：:]?\\s*([^，。\\n；;]{4,60})' },
+  '技术参数': { group: 'tech', pattern: '技术参数[：:]?\\s*([^，。\\n；;]{4,60})' },
+  '验收标准': { group: 'tech', pattern: '验收标准[：:]?\\s*([^，。\\n；;]{4,60})' },
+  '性能要求': { group: 'tech', pattern: '性能要求[：:]?\\s*([^，。\\n；;]{4,60})' },
+
+  '评标办法': { group: 'score', pattern: '评标办法[：:]?\\s*([^，。\\n；;]{2,40})' },
+  '评分标准': { group: 'score', pattern: '评分标准[：:]?\\s*([^，。\\n；;]{2,40})' },
+  '价格评分': { group: 'score', pattern: '价格(?:评分|得分)[：:]?\\s*(\\d+(?:\\.\\d+)?)\\s*分' },
+  '技术评分': { group: 'score', pattern: '技术(?:评分|得分)[：:]?\\s*(\\d+(?:\\.\\d+)?)\\s*分' },
+  '商务评分': { group: 'score', pattern: '商务(?:评分|得分)[：:]?\\s*(\\d+(?:\\.\\d+)?)\\s*分' },
+  '满分值': { group: 'score', pattern: '满分(?:值)?[：:]?\\s*(\\d+(?:\\.\\d+)?)\\s*分' },
+
+  '密封要求': { group: 'seal', pattern: '密封要求[：:]?\\s*([^，。\\n；;]{4,60})' },
+  '正本数量': { group: 'seal', pattern: '正本\\s*(\\d+)\\s*份' },
+  '副本数量': { group: 'seal', pattern: '副本\\s*(\\d+)\\s*份' },
+  '密封袋标识': { group: 'seal', pattern: '密封(?:袋)?标识[：:]?\\s*([^，。\\n；;]{2,40})' },
+};
+
+function applyRegexPatterns(): number {
+  let updated = 0;
+  const stmt = db.prepare('UPDATE extraction_rules SET pattern = ?, category = ? WHERE field_name = ? AND group_name = ?');
+  for (const [field, cfg] of Object.entries(REGEX_PATTERNS)) {
+    const r = stmt.run(cfg.pattern, 'regex', field, cfg.group);
+    if (r.changes > 0) updated++;
+  }
+  return updated;
+}
+
 // Reset all extraction rules to seed defaults
 router.post('/reset', (_req, res) => {
   const existing = new Set(
@@ -753,8 +807,12 @@ router.post('/reset', (_req, res) => {
     const r = stmt.run(s.id, s.field, '', 'keyword', s.group, (s as any).aliasFor || '');
     if (r.changes > 0) added++;
   }
+  applyRegexPatterns();
   res.json({ ok: true, added });
 });
+
+// 启动时自动补齐既有规则的正则表达式
+applyRegexPatterns();
 
 // Reset skills to empty (user-imported skills only)
 router.post('/reset-skills', (_req, res) => {

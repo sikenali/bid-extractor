@@ -211,7 +211,8 @@ const btnLabel = computed(() => {
 /* ── upload card ────────────────────────────────────── */
 .upload-card {
   width: 875px;
-  min-height: 345px;
+  height: 345px;
+  flex-shrink: 0;
   background-color: var(--color-bg-white, #FFFFFF);
   border: 0.7px solid var(--color-border, #E5DFD3);
   border-radius: 14px;

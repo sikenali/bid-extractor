@@ -19,7 +19,7 @@ const showSettingsModal = ref(false);
 
 <template>
   <header class="top-nav">
-    <div class="nav-left">
+    <div class="nav-left" @click="router.push('/upload')">
       <div class="tool-mark">
         <span class="ri-target-line tool-logo"></span>
       </div>
@@ -57,6 +57,10 @@ const showSettingsModal = ref(false);
   display: flex;
   align-items: center;
   gap: 12px;
+  cursor: pointer;
+}
+.nav-left:hover .brand-cn {
+  color: var(--color-primary, #C0392B);
 }
 .tool-mark {
   width: auto;
@@ -96,24 +100,31 @@ const showSettingsModal = ref(false);
   gap: 12px;
 }
 .nav-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  border: 0.7px solid var(--color-border, #E5DFD3);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
   background-color: var(--color-bg-white, #FFFFFF);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.25s ease, color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
 }
 .nav-btn:hover {
-  background-color: var(--color-bg-secondary, #F7F3EA);
+  background-color: var(--color-primary, #C0392B);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary, #C0392B) 30%, transparent);
 }
 .nav-btn .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
-  font-size: 20px;
-  color: var(--color-text-body, #3A3A3A);
+  font-size: 16px;
+  color: var(--color-text-secondary, #6E6A60);
+}
+.nav-btn:hover .icon {
+  color: #fff;
 }
 </style>
