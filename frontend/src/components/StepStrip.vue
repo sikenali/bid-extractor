@@ -24,7 +24,11 @@
           </span>
           <span class="step-label">{{ step.label }}</span>
         </div>
-        <span v-if="i < steps.length - 1" class="step-line"></span>
+        <span
+          v-if="i < steps.length - 1"
+          class="step-line"
+          :class="{ filled: loadingProgress > i }"
+        ></span>
       </template>
     </div>
 
@@ -82,11 +86,12 @@ watch(() => props.loading, (val) => {
     done.value = false;
     loadingProgress.value = 0;
   } else {
+    // loading ended — reset for next click
     if (loadingProgress.value >= 0) {
-      // loading ended — check if we reached the end
       if (loadingProgress.value >= props.steps.length) {
         done.value = true;
       }
+      loadingProgress.value = -1;
     }
   }
 });
@@ -106,7 +111,7 @@ watch(loadingProgress, (val) => {
 const currentStep = computed(() => {
   if (done.value) return props.steps.length;
   if (loadingProgress.value >= 0) return loadingProgress.value + 1;
-  return 1;
+  return -1;
 });
 
 onUnmounted(() => {
@@ -178,7 +183,7 @@ onUnmounted(() => {
 /* --- done --- */
 .step-pill.done {
   background-color: var(--color-success-soft, #E8F5EF);
-  border-color: transparent;
+  border-color: var(--color-success, #4E9B7A);
 }
 .step-pill.done .step-num {
   background-color: var(--color-success, #4E9B7A);
@@ -234,7 +239,7 @@ onUnmounted(() => {
 /* --- done mode --- */
 .step-strip.done .step-pill {
   background-color: var(--color-success-soft, #E8F5EF);
-  border-color: transparent;
+  border-color: var(--color-success, #4E9B7A);
 }
 .step-strip.done .step-pill .step-num {
   background-color: var(--color-success, #4E9B7A);

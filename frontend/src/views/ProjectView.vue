@@ -7,6 +7,8 @@ import TopNav from '@/components/layout/TopNav.vue';
 import PageFooter from '@/components/layout/PageFooter.vue';
 import StepStrip from '@/components/StepStrip.vue';
 import PreviewModal from '@/components/preview/PreviewModal.vue';
+import CreditQualificationModal from '@/components/layout/CreditQualificationModal.vue';
+import BiddingSitesModal from '@/components/layout/BiddingSitesModal.vue';
 import { getParseStatus } from '@/api/upload';
 import { getExportSettings } from '@/api/settings';
 import apiClient from '@/api/client';
