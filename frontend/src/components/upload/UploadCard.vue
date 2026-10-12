@@ -171,9 +171,12 @@ onUnmounted(() => {
         </div>
       </template>
 
-      <!-- file selected, not uploading -->
+      <!-- file selected, not uploading: centered icon + name + size, corner replace icon -->
       <template v-else-if="!uploading">
-        <div class="file-card">
+        <button class="replace-icon" title="替换文件" @click.stop="handleReplace">
+          <span class="ri-refresh-line icon"></span>
+        </button>
+        <div class="file-centered">
           <div class="file-icon" :class="'fmt-' + getExt(selectedFile).replace('.', '')">
             <svg v-if="getExt(selectedFile) === '.docx' || getExt(selectedFile) === '.wps'" width="32" height="32" viewBox="0 0 28 28" fill="none">
               <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="1.6"/>
@@ -197,15 +200,9 @@ onUnmounted(() => {
               <path d="M9 9h10M9 13h10M9 17h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
             </svg>
           </div>
-          <div class="file-meta">
-            <p class="file-name">{{ selectedFile.name }}</p>
-            <p class="file-size">{{ formatSize(selectedFile.size) }}</p>
-          </div>
+          <p class="file-name">{{ selectedFile.name }}</p>
+          <p class="file-size">{{ formatSize(selectedFile.size) }}</p>
         </div>
-        <button class="btn-replace" @click.stop="handleReplace">
-          <span class="ri-refresh-line icon"></span>
-          替换文件
-        </button>
       </template>
 
       <!-- uploading -->
@@ -256,6 +253,7 @@ onUnmounted(() => {
       :loading="uploading"
       :button-label="btnLabel"
       :disabled="btnDisabled"
+      @extract="selectedFile && startUpload(selectedFile)"
     />
   </div>
 </template>
@@ -346,17 +344,45 @@ onUnmounted(() => {
 .fmt-md  { background-color: #4A6FA5; font-size: 9px; }
 .fmt-tx  { background-color: #5A5750; font-size: 9px; }
 
-/* ── file selected state ───────────────────────────── */
-.file-card {
+/* ── file selected state: centered icon + name + size ── */
+.replace-icon {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 0.7px solid var(--color-border, #E5DFD3);
+  background-color: var(--color-bg-white, #FFFFFF);
+  color: var(--color-text-muted, #8A8578);
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 20px;
+  justify-content: center;
+  transition: color 0.2s, border-color 0.2s, background-color 0.2s, transform 0.2s;
+  z-index: 2;
+}
+.replace-icon:hover {
+  color: var(--color-primary, #C0392B);
+  border-color: var(--color-primary, #C0392B);
+  background-color: var(--color-primary-soft, #FBE9E7);
+}
+.replace-icon:hover .icon {
+  transform: rotate(120deg);
+}
+.replace-icon .icon {
+  font-family: "remixicon", sans-serif;
+  font-style: normal;
+  font-size: 18px;
+  transition: transform 0.3s ease;
+}
+.file-centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
   width: 100%;
-  max-width: 620px;
-  padding: 20px 24px;
-  background-color: #FDFCF9;
-  border: 0.7px solid #EDE9E0;
-  border-radius: 12px;
+  text-align: center;
 }
 .file-icon {
   width: 60px;
@@ -372,9 +398,8 @@ onUnmounted(() => {
 .file-icon.fmt-pdf                    { background-color: #C0392B; color: #fff; }
 .file-icon.fmt-md                     { background-color: #4A6FA5; color: #fff; }
 .file-icon.fmt-txt                    { background-color: #5A5750; color: #fff; }
-.file-meta { flex: 1; min-width: 0; }
 .file-name {
-  margin: 0 0 6px 0;
+  margin: 0;
   font-size: 16px;
   font-weight: 500;
   color: #1F1D1A;
@@ -382,34 +407,13 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 .file-size {
   margin: 0;
   font-size: 14px;
   color: #8A8578;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
-}
-
-.btn-replace {
-  height: 44px;
-  padding: 0 20px;
-  border: 0.7px solid #E5DFD3;
-  border-radius: 10px;
-  background-color: #FCFBF8;
-  color: #3A3A3A;
-  font-size: 14px;
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: background-color 0.2s;
-}
-.btn-replace:hover { background-color: #F7F3EA; }
-.btn-replace .icon {
-  font-family: "remixicon", sans-serif;
-  font-style: normal;
-  font-size: 16px;
 }
 
 /* ── uploading state ───────────────────────────────── */
