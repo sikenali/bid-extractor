@@ -3,13 +3,17 @@
     <div class="footer-left" @click="$emit('credit-query')">
       <span class="footer-mark ri-shield-check-line"></span>
     </div>
-    <span class="footer-copy">© 2026 回旋镖 Powered by LightOS</span>
+    <span class="footer-copy">© {{ year }} 回旋镖 Powered by <a href="https://lazycat.cloud" target="_blank" rel="noopener noreferrer" class="footer-link">LightOS</a></span>
     <span class="footer-right ri-links-line" @click="$emit('bidding-sites')"></span>
   </footer>
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue';
 defineEmits(['credit-query', 'bidding-sites'])
+
+const year = ref(new Date().getFullYear())
+onMounted(() => { year.value = new Date().getFullYear() })
 </script>
 
 <style scoped>
@@ -46,6 +50,15 @@ defineEmits(['credit-query', 'bidding-sites'])
 .footer-copy {
   font-size: 14px;
   color: #A7A296;
+}
+.footer-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+.footer-link:hover {
+  opacity: 0.75;
+  text-decoration: underline;
 }
 .footer-right {
   font-family: "remixicon", sans-serif;
