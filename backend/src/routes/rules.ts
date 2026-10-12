@@ -515,6 +515,22 @@ router.post('/corrections', (req, res) => {
   res.json({ saved: true, fieldName, group: g });
 });
 
+// Reset all extraction rules to seed defaults
+router.post('/reset', (_req, res) => {
+  db.prepare('DELETE FROM extraction_rules').run();
+  db.prepare('INSERT OR IGNORE INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, ?, ?, ?)')
+    .run('info_project_name', '项目名称',
+      '(?:(?:项目|采购|工程|服务)\\s*(?:名称|内容|概述|概况)|招标内容|本次招标(?:内容|范围)|采购内容)[：:]?\\s*((?:(?!(?:项目|招标|采购)编号|招标方式|采购方式)[^\\n]){6,})',
+      'regex', 'info');
+  res.json({ ok: true });
+});
+
+// Reset skills to empty (user-imported skills only)
+router.post('/reset-skills', (_req, res) => {
+  writeSkills([]);
+  res.json({ ok: true });
+});
+
 // List correction history
 router.get('/corrections', (req, res) => {
   const corrections = db.prepare('SELECT * FROM correction_history ORDER BY created_at DESC LIMIT 100').all();

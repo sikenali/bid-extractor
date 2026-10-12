@@ -22,6 +22,8 @@ const fileId = ref('');
 const showEditDialog = ref(false);
 const editingField = ref('');
 const editValue = ref('');
+const showCreditModal = ref(false);
+const showBiddingModal = ref(false);
 
 const projectSteps = [
   { key: 0, label: '解析文件' },
@@ -102,6 +104,8 @@ const markedItems = ref<{ symbol: string; text: string; page: number }[]>([]);
 
 const fileInfo = ref({ name: '', size: 0, pageCount: 0 });
 const extractStatus = ref({ status: 'pending', progress: 0, filename: '' });
+const loading = ref(false);
+const loadError = ref('');
 
 const sectionData = computed(() => {
   const active = activeSection.value;
@@ -266,7 +270,16 @@ function buildFieldPageMap(
 
 onMounted(async () => {
   const jobId = route.query.jobId as string;
+  const stateResult = (window as any).history?.state?.uploadResult as any;
+
+  if (stateResult && stateResult.result) {
+    processResult(stateResult);
+    return;
+  }
+
   if (!jobId) return;
+  loading.value = true;
+  loadError.value = '';
   try {
     const statusData = await getParseStatus(jobId);
     fileId.value = statusData.id || jobId;
@@ -276,48 +289,60 @@ onMounted(async () => {
       filename: statusData.filename || ''
     };
 
-    if (statusData.result?.extracts) {
-      const extracts = statusData.result.extracts as Record<string, unknown>;
-      const groups = (statusData.result.groups || {}) as Record<string, string>;
-      const fieldGroups = (statusData.result.fieldGroups || {}) as Record<string, string>;
-      const paraToPageRef = statusData.result.paraToPage || [];
-      const fieldParaMap = (statusData.result.fieldParaMap || {}) as Record<string, number>;
-      const fieldPages = buildFieldPageMap(extracts, groups, paraToPageRef, statusData.result.chapters, fieldParaMap);
-
-      const structured: Record<string, TechSectionItem[]> = {};
-      const flatEntries: ExtractedField[] = [];
-      for (const [field, value] of Object.entries(extracts)) {
-        const norm = normalizeFieldValue(value);
-        const pageNumber = norm ? norm.page : null;
-        const chapter = norm ? norm.chapter : undefined;
-        const sourceText = norm ? norm.sourceText : undefined;
-        const inner = norm ? norm.value : value;
-        const groupName = norm?.group || fieldGroups[field] || groups[field] || 'info';
-        const pageStr = pageNumber != null ? `P${pageNumber}` : (fieldPages[field] || 'P1');
-        if (Array.isArray(inner)) {
-          structured[field] = inner as TechSectionItem[];
-          flatEntries.push({ field, value: '', rawValue: inner, page: pageStr, pageNumber, chapter, sourceText, groupName });
-        } else {
-          flatEntries.push({ field, value: stringifyValue(inner), rawValue: inner, page: pageStr, pageNumber, chapter, sourceText, groupName });
-        }
-      }
-      structuredExtracts.value = structured;
-      tableData.value = flatEntries;
+    if (statusData.result) {
+      processResult(statusData);
+    } else {
+      loadError.value = '解析结果异常，请重新上传';
     }
-
-    if (statusData.result?.tables) {
-      docTables.value = statusData.result.tables as { rows: { cells: string[] }[] }[];
-    }
-    if (statusData.result?.markedItems) {
-      markedItems.value = statusData.result.markedItems as { symbol: string; text: string; page: number }[];
-    }
-    fileInfo.value.name = statusData.filename || '招标文件';
-    fileInfo.value.size = statusData.fileSize || 0;
-    fileInfo.value.pageCount = statusData.result?.pageCount || 0;
-  } catch {
+  } catch (e: any) {
+    loadError.value = e?.response?.data?.error || '加载失败，请检查网络后重试';
     fileInfo.value.name = jobId;
+  } finally {
+    loading.value = false;
   }
 });
+
+function processResult(statusData: any) {
+  const result = statusData.result;
+  if (result?.extracts) {
+    const extracts = result.extracts as Record<string, unknown>;
+    const groups = (result.groups || {}) as Record<string, string>;
+    const fieldGroups = (result.fieldGroups || {}) as Record<string, string>;
+    const paraToPageRef = result.paraToPage || [];
+    const fieldParaMap = (result.fieldParaMap || {}) as Record<string, number>;
+    const fieldPages = buildFieldPageMap(extracts, groups, paraToPageRef, result.chapters, fieldParaMap);
+
+    const structured: Record<string, TechSectionItem[]> = {};
+    const flatEntries: ExtractedField[] = [];
+    for (const [field, value] of Object.entries(extracts)) {
+      const norm = normalizeFieldValue(value);
+      const pageNumber = norm ? norm.page : null;
+      const chapter = norm ? norm.chapter : undefined;
+      const sourceText = norm ? norm.sourceText : undefined;
+      const inner = norm ? norm.value : value;
+      const groupName = norm?.group || fieldGroups[field] || groups[field] || 'info';
+      const pageStr = pageNumber != null ? `P${pageNumber}` : (fieldPages[field] || 'P1');
+      if (Array.isArray(inner)) {
+        structured[field] = inner as TechSectionItem[];
+        flatEntries.push({ field, value: '', rawValue: inner, page: pageStr, pageNumber, chapter, sourceText, groupName });
+      } else {
+        flatEntries.push({ field, value: stringifyValue(inner), rawValue: inner, page: pageStr, pageNumber, chapter, sourceText, groupName });
+      }
+    }
+    structuredExtracts.value = structured;
+    tableData.value = flatEntries;
+  }
+
+  if (result?.tables) {
+    docTables.value = result.tables as { rows: { cells: string[] }[] }[];
+  }
+  if (result?.markedItems) {
+    markedItems.value = result.markedItems as { symbol: string; text: string; page: number }[];
+  }
+  fileInfo.value.name = statusData.filename || '招标文件';
+  fileInfo.value.size = statusData.fileSize || 0;
+  fileInfo.value.pageCount = result?.pageCount || 0;
+}
 
 function handleCopy(field: string) {
   const structured = structuredExtracts.value[field];
@@ -488,8 +513,18 @@ function triggerDownload(blob: Blob, filename: string) {
           </div>
         </div>
 
-        <div class="table-card">
-          <table class="extract-table">
+        <div class="table-card" :class="{ 'is-loading': loading }">
+          <div v-if="loading" class="loading-overlay">
+            <div class="loading-spinner"></div>
+            <span class="loading-text">正在解析文档…</span>
+          </div>
+          <template v-if="!loading">
+            <div v-if="loadError" class="error-box">
+              <span class="ri-alert-line error-icon"></span>
+              <span>{{ loadError }}</span>
+              <button class="retry-btn" @click="handleReupload">重新上传</button>
+            </div>
+            <table v-else class="extract-table">
             <thead>
               <tr>
                 <th class="col-name">字段名称</th>
@@ -542,7 +577,8 @@ function triggerDownload(blob: Blob, filename: string) {
                 <td colspan="4" class="empty-cell">暂无提取数据，请先上传招标文件</td>
               </tr>
             </tbody>
-          </table>
+            </table>
+          </template>
         </div>
 
         <div class="score-card">
@@ -576,7 +612,7 @@ function triggerDownload(blob: Blob, filename: string) {
       </main>
     </div>
 
-    <PageFooter />
+    <PageFooter @credit-query="showCreditModal = true" @bidding-sites="showBiddingModal = true" />
 
     <el-dialog v-model="showEditDialog" title="编辑提取内容" width="540px" :close-on-click-modal="false" @keyup.enter="confirmEdit">
       <div class="edit-field-label">{{ editingField }}</div>
@@ -594,6 +630,9 @@ function triggerDownload(blob: Blob, filename: string) {
       :initial-page="previewPage"
       @close="previewVisible = false"
     />
+
+    <CreditQualificationModal v-model:visible="showCreditModal" />
+    <BiddingSitesModal v-model:visible="showBiddingModal" />
   </div>
 </template>
 
@@ -898,4 +937,59 @@ function triggerDownload(blob: Blob, filename: string) {
 .dialog-btn { height: 36px; padding: 0 20px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
 .dialog-btn.cancel { background-color: #FCFBF8; color: #6E6A60; margin-right: 8px; }
 .dialog-btn.confirm { background-color: #C0392B; color: white; }
+
+/* Loading & Error */
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 253, 248, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 10;
+  border-radius: 10px;
+}
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #EDE9E0;
+  border-top-color: #C0392B;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text {
+  font-size: 14px;
+  color: #8A8578;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+.error-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  color: #991B1B;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.error-icon { font-size: 18px; color: #DC2626; }
+.retry-btn {
+  margin-left: auto;
+  padding: 6px 16px;
+  border-radius: 6px;
+  border: 1px solid #C0392B;
+  background: transparent;
+  color: #C0392B;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  transition: background 0.2s, color 0.2s;
+}
+.retry-btn:hover { background: #C0392B; color: #fff; }
+.table-card.is-loading { position: relative; }
 </style>

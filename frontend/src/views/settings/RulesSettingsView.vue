@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import RuleDialog from '@/components/settings/RuleDialog.vue';
+import apiClient from '@/api/client';
 
 interface RuleItem {
   id: string;
@@ -31,6 +33,22 @@ function handleEditRule(rule: RuleItem) {
   dialogMode.value = 'regex';
   editingRule.value = { id: rule.id, fieldName: rule.name, pattern: rule.description };
   showRuleDialog.value = true;
+}
+
+async function handleResetRules() {
+  try {
+    await ElMessageBox.confirm('确定恢复默认规则？当前自定义规则将被清空。', '确认恢复默认');
+    await apiClient.post('/rules/reset');
+    ElMessage.success('已恢复默认规则');
+    rules.value = [
+      { id: '1', name: '废标条款强制校对', description: '命中未按要求签字盖章等红线时阻断提交' },
+      { id: '2', name: '报价一致性校验', description: '校验大写金额、单价×数量与合价是否一致' },
+      { id: '3', name: '工期承诺合规检查', description: '检查工期是否超出招标文件最大限定天数' },
+      { id: '4', name: '资质门槛匹配规则', description: '比对业绩数量、证书等级是否满足准入条件' },
+      { id: '5', name: '敏感信息脱敏规则', description: '自动识别并遮挡身份证号、银行账号与联系方式' },
+      { id: '6', name: '字体字号统一规则', description: '正文仿宋 GB2312 三号、行距固定值 28 磅' },
+    ];
+  } catch { /* cancelled */ }
 }
 
 function handleDeleteRule(id: string) {
@@ -75,7 +93,7 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
             <p>配置标书生成与校验环节的强制规则，命中即拦截或预警</p>
           </div>
         </div>
-        <button class="reset-button" @click="() => {}">
+        <button class="reset-button" @click="handleResetRules">
           <span class="icon ri-restart-line"></span>
           恢复默认
         </button>

@@ -476,7 +476,6 @@ function resetAll() {
   height: 150px;
   border-radius: 8px;
   padding: 16px;
-  background-color: #F5F1E6;
   display: flex;
   flex-direction: column;
 }
@@ -486,7 +485,7 @@ function resetAll() {
   flex-direction: column;
 }
 .topbar-mockup {
-  background-color: transparent;
+  background-color: rgba(255,255,255,1);
   border-radius: 8px;
 }
 .mockup-header {
@@ -556,7 +555,7 @@ function resetAll() {
   background-color: #E6E2D8;
 }
 .sidebar-mockup {
-  background-color: transparent;
+  background-color: rgba(245,241,230,1);
   border-radius: 8px;
 }
 .mockup-sidebar {

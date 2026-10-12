@@ -125,12 +125,15 @@ export function initializeDatabase() {
       model TEXT NOT NULL,
       api_key TEXT NOT NULL,
       region TEXT,
-      base_url TEXT
+      base_url TEXT,
+      enabled INTEGER DEFAULT 1
     )`);
   } else {
-    // Safely add base_url column only if it doesn't exist
     if (!columnExists('api_configs', 'base_url')) {
       db.exec(`ALTER TABLE api_configs ADD COLUMN base_url TEXT`);
+    }
+    if (!columnExists('api_configs', 'enabled')) {
+      db.exec(`ALTER TABLE api_configs ADD COLUMN enabled INTEGER DEFAULT 1`);
     }
   }
 
@@ -165,6 +168,18 @@ export function initializeDatabase() {
       filename TEXT NOT NULL,
       file_size INTEGER DEFAULT 0,
       result_json TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`);
+  }
+
+  if (!tableExists('templates')) {
+    db.exec(`CREATE TABLE templates (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      category TEXT DEFAULT 'default',
+      type TEXT DEFAULT 'bidding',
+      content TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     )`);
   }

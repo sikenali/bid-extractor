@@ -51,3 +51,17 @@ export async function deleteTemplate(id: number): Promise<void> {
   await apiClient.delete(`/settings/templates/${id}`);
 }
 
+export async function toggleApiKey(id: string): Promise<{ enabled: number }> {
+  const res = await apiClient.put(`/settings/apikeys/${id}/toggle`);
+  return res.data;
+}
+
+export async function deleteApiKey(id: string): Promise<void> {
+  await apiClient.delete(`/settings/apikeys/${id}`);
+}
+
+export async function testApiKey(data: { provider: string; model: string; key: string; endpoint?: string; format?: string }): Promise<{ available: boolean; error?: string }> {
+  const res = await apiClient.post('/settings/test-key', data);
+  return res.data;
+}
+

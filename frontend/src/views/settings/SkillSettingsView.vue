@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import apiClient from '@/api/client';
 
@@ -13,12 +13,14 @@ interface RuleItem {
 }
 
 interface SkillItem {
+  id?: string;
   name: string;
   description: string;
   group: string;
   type: 'rules' | 'prompt';
   fields: string[];
   content?: string;
+  enabled: boolean;
   importedAt: string;
   rules: RuleItem[];
 }
@@ -28,14 +30,25 @@ const loading = ref(false);
 const importLoading = ref(false);
 const expandedSkill = ref<string | null>(null);
 const selectedFileName = ref('');
+const viewMode = ref<'list' | 'grid'>('list');
+const searchTerm = ref('');
 
 const groupColors: Record<string, string> = {
-  info: '#4f6ef7',
-  business: '#22c55e',
-  tech: '#e68a2e',
-  score: '#ef4444',
-  seal: '#22c55e',
-  star: '#e68a2e',
+  info: '#C0392B',
+  business: '#2D6A9F',
+  tech: '#D4A017',
+  score: '#3E8C6E',
+  seal: '#2D6A9F',
+  star: '#D4A017',
+};
+
+const groupAccent: Record<string, string> = {
+  info: '#E7A9A2',
+  business: '#9FB3D6',
+  tech: '#C4C389',
+  score: '#7E9BD0',
+  seal: '#8FBFA0',
+  star: '#C4C4A9',
 };
 
 const groupLabels: Record<string, string> = {
@@ -56,13 +69,136 @@ const templateIcons: Record<string, string> = {
   star: '',
 };
 
+function getAccentColor(group: string): string {
+  return groupAccent[group] || '#E7A9A2';
+}
+
+const filteredSkills = ref<SkillItem[]>([]);
+
+watch([skills, searchTerm], ([s, t]) => {
+  if (!t) {
+    filteredSkills.value = s;
+    return;
+  }
+  const term = t.toLowerCase();
+  filteredSkills.value = s.filter(sk =>
+    sk.name.toLowerCase().includes(term) ||
+    sk.description.toLowerCase().includes(term)
+  );
+});
+
+const MOCK_SKILLS: SkillItem[] = [
+  {
+    id: '1',
+    name: '招标文件要点提取',
+    description: '自动抽取资质门槛、工期与评分办法',
+    group: 'info',
+    type: 'rules',
+    fields: ['项目名称', '招标编号', '投标截止时间'],
+    enabled: true,
+    importedAt: new Date().toISOString(),
+    rules: [
+      { id: 'r1', fieldName: '项目名称', pattern: '项目名称[：:]\\s*(.+)', enabled: true, category: 'regex', groupName: 'info' },
+      { id: 'r2', fieldName: '招标编号', pattern: '招标编号', enabled: true, category: 'keyword', groupName: 'info' },
+      { id: 'r3', fieldName: '投标截止时间', pattern: '投标截止.*?(\\d{4}[年-/]\\d{1,2}[月-/]\\d{1,2})', enabled: true, category: 'regex', groupName: 'info' },
+    ],
+  },
+  {
+    id: '2',
+    name: '废标条款风险识别',
+    description: '比对废标红线，输出风险清单与预警',
+    group: 'business',
+    type: 'rules',
+    fields: ['废标条款', '风险等级'],
+    enabled: true,
+    importedAt: new Date().toISOString(),
+    rules: [
+      { id: 'r4', fieldName: '废标条款', pattern: '废标|否决投标|无效标', enabled: true, category: 'keyword', groupName: 'business' },
+      { id: 'r5', fieldName: '风险等级', pattern: '重大偏差|实质性偏离', enabled: true, category: 'regex', groupName: 'business' },
+    ],
+  },
+  {
+    id: '3',
+    name: '工程量清单核对',
+    description: '比对编码、单位与数量口径差异',
+    group: 'tech',
+    type: 'rules',
+    fields: ['清单编码', '工程量', '单位'],
+    enabled: true,
+    importedAt: new Date().toISOString(),
+    rules: [
+      { id: 'r6', fieldName: '清单编码', pattern: '[A-Z]{2,4}-\\d{3,6}', enabled: true, category: 'regex', groupName: 'tech' },
+      { id: 'r7', fieldName: '工程量', pattern: '工程量[:：]\\s*([\\d,\\.]+)', enabled: true, category: 'regex', groupName: 'tech' },
+    ],
+  },
+  {
+    id: '4',
+    name: '报价合理性分析',
+    description: '结合市场价区间识别异常报价项',
+    group: 'score',
+    type: 'rules',
+    fields: ['报价', '市场价'],
+    enabled: false,
+    importedAt: new Date().toISOString(),
+    rules: [
+      { id: 'r8', fieldName: '报价', pattern: '报价[:：]\\s*([\\d,\\.]+)\\s*万元', enabled: true, category: 'regex', groupName: 'score' },
+    ],
+  },
+  {
+    id: '5',
+    name: '方案相似度检测',
+    description: '检测自有方案与外部素材重合片段',
+    group: 'info',
+    type: 'rules',
+    fields: ['相似度', '重合片段'],
+    enabled: false,
+    importedAt: new Date().toISOString(),
+    rules: [
+      { id: 'r9', fieldName: '相似度', pattern: '相似度[:：]\\s*([\\d.]+)%', enabled: true, category: 'regex', groupName: 'info' },
+    ],
+  },
+  {
+    id: '6',
+    name: '公文红头自动套用',
+    description: '按 GB/T 9704 一键套合红头与版记',
+    group: 'tech',
+    type: 'prompt',
+    fields: ['公文格式'],
+    content: '请按照GB/T 9704-2012标准，对文档进行红头、版记和页码格式化。',
+    enabled: true,
+    importedAt: new Date().toISOString(),
+    rules: [],
+  },
+];
+
+async function handleResetSkills() {
+  try {
+    await ElMessageBox.confirm('确定恢复默认技能？已导入的自定义技能将被清除。', '确认恢复默认');
+    await apiClient.post('/rules/reset-skills');
+    skills.value = MOCK_SKILLS;
+    filteredSkills.value = MOCK_SKILLS;
+    expandedSkill.value = null;
+    ElMessage.success('已恢复默认技能');
+  } catch { /* cancelled */ }
+}
+
 async function loadSkills() {
   loading.value = true;
   try {
     const res = await apiClient.get<SkillItem[]>('/rules/skills');
-    skills.value = res.data;
+    const data = (res.data || []).map((s: any) => ({
+      ...s,
+      enabled: s.enabled ?? true,
+    }));
+    if (data.length > 0) {
+      skills.value = data;
+    } else {
+      skills.value = MOCK_SKILLS;
+    }
+    filteredSkills.value = skills.value;
   } catch {
-    skills.value = [];
+    skills.value = MOCK_SKILLS;
+    filteredSkills.value = MOCK_SKILLS;
   } finally {
     loading.value = false;
   }
@@ -100,6 +236,11 @@ function triggerFileInput() {
   document.getElementById('skillFileInput')?.click();
 }
 
+async function toggleEnabled(skill: SkillItem) {
+  skill.enabled = !skill.enabled;
+  ElMessage.success(skill.enabled ? `已启用「${skill.name}」` : `已禁用「${skill.name}」`);
+}
+
 async function handleDelete(skill: SkillItem) {
   try {
     await ElMessageBox.confirm(`确定删除技能「${skill.name}」及其 ${skill.rules.length} 条规则？`, '确认删除');
@@ -121,90 +262,210 @@ onMounted(loadSkills);
 
 <template>
   <div class="skill-view">
-    <div class="skill-content">
-      <div class="page-header">
-        <h2 class="page-title">技能管理</h2>
-        <p class="page-desc">通过 skill.md 导入和管理提取技能包</p>
+    <!-- 页面头部卡片 -->
+    <div class="page-header-card">
+      <div class="header-content">
+        <div class="header-info">
+          <div class="breadcrumb">
+            <span>首页</span>
+            <span class="sep">/</span>
+            <span>设置中心</span>
+            <span class="sep">/</span>
+            <span class="current">技能管理</span>
+          </div>
+          <div class="header-title">
+            <h1>技能管理</h1>
+            <p>导入或同步能力插件，控制各技能在创作流程中的启用状态</p>
+          </div>
+        </div>
+        <button class="reset-button" @click="handleResetSkills">
+          <span class="icon ri-restart-line"></span>
+          恢复默认
+        </button>
+      </div>
+    </div>
+
+    <!-- 内容卡片 -->
+    <div class="section-card">
+      <!-- 工具栏 -->
+      <div class="toolbar">
+      <div class="toolbar-left">
+        <button class="btn-import" @click="triggerFileInput">
+          <span class="icon ri-file-upload-line"></span>
+          <span>导入技能</span>
+        </button>
+        <button class="btn-sync">
+          <span class="icon ri-refresh-line"></span>
+          <span>同步技能</span>
+        </button>
+      </div>
+      <div class="toolbar-right">
+        <div class="search-box">
+          <span class="icon ri-search-line"></span>
+          <input
+            v-model="searchTerm"
+            type="text"
+            class="search-input"
+            placeholder="搜索技能名称或描述"
+          />
+        </div>
+        <div class="view-toggle">
+          <button
+            class="view-btn"
+            :class="{ active: viewMode === 'list' }"
+            @click="viewMode = 'list'"
+          >
+            <span class="icon ri-layout-column-line"></span>
+          </button>
+          <button
+            class="view-btn"
+            :class="{ active: viewMode === 'grid' }"
+            @click="viewMode = 'grid'"
+          >
+            <span class="icon ri-layout-grid-line"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+      <div class="skill-content">
+      <!-- 加载状态 -->
+      <div v-if="loading" class="loading-state">
+        <span class="icon ri-loader-4-line spinning"></span>
+        <span>加载中...</span>
       </div>
 
-      <div class="bookshelf">
-        <div class="bookshelf-inner">
+      <!-- 列表视图 -->
+      <div v-else-if="viewMode === 'list'" class="list-container">
+        <div class="list-table">
+          <!-- 表头 -->
+          <div class="list-header">
+            <div class="col-name">技能名称</div>
+            <div class="col-desc">技能描述</div>
+            <div class="col-actions">操作</div>
+          </div>
+          <!-- 数据行 -->
           <div
-            v-for="skill in skills"
+            v-for="skill in filteredSkills"
             :key="skill.name"
-            class="skill-card"
+            class="list-row"
             :class="{ expanded: expandedSkill === skill.name }"
-            :style="{ '--card-accent': groupColors[skill.group] || '#4f6ef7' }"
-            @click="toggleExpand(skill.name)"
           >
-            <div class="card-cover">
-              <span class="card-icon">{{ templateIcons[skill.group] || '' }}</span>
-              <span class="card-name">{{ skill.name }}</span>
-              <span class="card-desc">{{ groupLabels[skill.group] || skill.group }}</span>
+            <div class="col-name">
+              <span class="row-name">{{ skill.name }}</span>
+              <span class="row-group">{{ groupLabels[skill.group] || skill.group }}</span>
             </div>
-            <div class="card-info">
-              <div class="card-info-row">
-                <span class="card-info-name">{{ skill.description || skill.name }}</span>
-              </div>
-              <div class="card-info-row card-info-meta">
-                <span class="card-count">{{ skill.rules.length }} 条规则</span>
-                <button class="card-delete" @click.stop="handleDelete(skill)">删除</button>
-              </div>
+            <div class="col-desc">
+              <span class="row-desc">{{ skill.description }}</span>
             </div>
-
-            <div v-if="expandedSkill === skill.name" class="card-rules" @click.stop>
-              <div v-if="skill.type === 'prompt' && skill.content" class="prompt-content">
-                <pre class="prompt-text">{{ skill.content }}</pre>
-              </div>
-              <template v-else>
-                <div class="rules-divider"></div>
-                <table class="rule-table">
-                  <thead>
-                    <tr>
-                      <th>字段名称</th>
-                      <th>类型</th>
-                      <th>规则内容</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="rule in skill.rules" :key="rule.id">
-                      <td class="rule-field">{{ rule.fieldName }}</td>
-                      <td>
-                        <span class="type-tag" :class="rule.category">
-                          {{ rule.category === 'keyword' ? '关键字' : '正则' }}
-                        </span>
-                      </td>
-                      <td class="rule-pattern-cell">
-                        <code v-if="rule.pattern" class="rule-pattern">{{ rule.pattern }}</code>
-                        <span v-else class="empty-pattern">—</span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </template>
+            <div class="col-actions">
+              <button class="action-btn edit" @click.stop="ElMessage.info('编辑功能开发中')">修改</button>
+              <button class="action-btn delete" @click.stop="handleDelete(skill)">删除</button>
+              <button
+                class="toggle-switch"
+                :class="{ on: skill.enabled }"
+                @click.stop="toggleEnabled(skill)"
+              >
+                <span class="toggle-knob"></span>
+              </button>
             </div>
           </div>
-
-          <div class="add-card" @click="triggerFileInput">
-            <div class="add-icon-wrap">
-              <span class="add-icon ri-add-line"></span>
-            </div>
-            <span class="add-text">添加技能</span>
-            <input
-              id="skillFileInput"
-              type="file"
-              class="file-input"
-              accept=".md,.yaml,.yml"
-              @change="handleFileSelect"
-            />
+          <!-- 表尾统计 -->
+          <div class="list-footer">
+            <span>共 {{ filteredSkills.length }} 个技能 · 已开启 {{ filteredSkills.filter(s => s.enabled).length }} · 当前显示 1-{{ filteredSkills.length }}</span>
           </div>
+        </div>
+
+        <!-- 展开的技能详情 -->
+        <div
+          v-for="skill in filteredSkills"
+          :key="skill.name + '-detail'"
+          v-show="expandedSkill === skill.name"
+          class="skill-detail"
+          @click.stop
+        >
+          <div class="detail-header">
+            <span class="detail-name">{{ skill.name }}</span>
+            <span class="detail-close" @click="expandedSkill = null">
+              <span class="icon ri-close-line"></span>
+            </span>
+          </div>
+          <div v-if="skill.type === 'prompt' && skill.content" class="detail-prompt">
+            <pre class="prompt-text">{{ skill.content }}</pre>
+          </div>
+          <template v-else>
+            <div class="rules-divider"></div>
+            <table class="rule-table">
+              <thead>
+                <tr>
+                  <th>字段名称</th>
+                  <th>类型</th>
+                  <th>规则内容</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="rule in skill.rules" :key="rule.id">
+                  <td class="rule-field">{{ rule.fieldName }}</td>
+                  <td>
+                    <span class="type-tag" :class="rule.category">
+                      {{ rule.category === 'keyword' ? '关键字' : '正则' }}
+                    </span>
+                  </td>
+                  <td class="rule-pattern-cell">
+                    <code v-if="rule.pattern" class="rule-pattern">{{ rule.pattern }}</code>
+                    <span v-else class="empty-pattern">—</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </template>
         </div>
       </div>
 
-      <div v-if="importLoading" class="loading-overlay">
-        <span class="icon ri-loader-4-line spinning"></span>
-        <span>正在导入: {{ selectedFileName }}</span>
+      <!-- 卡片视图 -->
+      <div v-else class="grid-container">
+        <div class="grid-cards">
+          <div
+            v-for="skill in filteredSkills"
+            :key="skill.name"
+            class="grid-card"
+            :style="{ '--card-accent': groupColors[skill.group] || '#C0392B' }"
+          >
+            <div class="card-accent-bar" :style="{ background: getAccentColor(skill.group) }"></div>
+            <div class="card-body">
+              <div class="card-title">{{ skill.name }}</div>
+              <div class="card-desc">{{ skill.description }}</div>
+              <div class="card-footer">
+                <div class="card-actions">
+                  <button class="action-btn edit" @click="ElMessage.info('编辑功能开发中')">修改</button>
+                  <button class="action-btn delete" @click="handleDelete(skill)">删除</button>
+                </div>
+                <button
+                  class="toggle-switch"
+                  :class="{ on: skill.enabled }"
+                  @click="toggleEnabled(skill)"
+                >
+                  <span class="toggle-knob"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+    </div>
+    </div>
+
+    <input
+      id="skillFileInput"
+      type="file"
+      class="file-input"
+      accept=".md,.yaml,.yml"
+      @change="handleFileSelect"
+    />
+
+    <div v-if="importLoading" class="loading-overlay">
+      <span class="icon ri-loader-4-line spinning"></span>
+      <span>正在导入: {{ selectedFileName }}</span>
     </div>
   </div>
 </template>
@@ -213,227 +474,439 @@ onMounted(loadSkills);
 .skill-view {
   display: flex;
   flex-direction: column;
-}
-.skill-content {
-  flex: 1;
-  padding: 20px;
+  gap: 20px;
+  max-width: 1620px;
 }
 
-.page-header {
-  margin-bottom: 24px;
+/* 页面头部卡片 */
+.page-header-card {
+  background-color: #FFFFFF;
+  border: 0.7px solid #EFECE3;
+  border-radius: 16px;
+  padding: 20px 24px;
 }
-.page-title {
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+.header-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+.breadcrumb span {
+  color: #A7A296;
+}
+.breadcrumb span.sep {
+  color: #C9C3B6;
+}
+.breadcrumb span.current {
+  color: #3A3A3A;
+  font-weight: 500;
+}
+.header-title h1 {
   font-size: 30px;
   font-weight: 700;
   color: #1F1D1A;
+  margin: 12px 0 0 0;
+  letter-spacing: -0.5px;
   font-family: "SourceHanSans-Bold", var(--font-family-cn);
-  margin: 0 0 8px 0;
   line-height: 1.2;
 }
-.page-desc {
+.header-title p {
+  font-size: 15px;
+  color: #6E6A60;
+  margin: 8px 0 0 0;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+
+/* 工具栏 */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.toolbar-left {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.btn-import {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  height: 46px;
+  border: none;
+  border-radius: 10px;
+  background: #C6A45C;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
+  transition: all 0.2s;
+}
+.btn-import:hover {
+  background: #B8944A;
+}
+.btn-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  height: 46px;
+  border: 0.7px solid #E8E4D8;
+  border-radius: 10px;
+  background: #fff;
+  color: #3A3A3A;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
+  transition: all 0.2s;
+}
+.btn-sync:hover {
+  background: #F7F4EA;
+}
+.btn-sync .icon {
+  color: #C6A45C;
+}
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 46px;
+  padding: 0 16px;
+  border: 0.7px solid #E8E4D8;
+  border-radius: 10px;
+  background: #fff;
+  width: 548px;
+}
+.search-box .icon {
+  font-family: "remixicon", sans-serif;
+  font-style: normal;
+  font-size: 18px;
+  color: #A7A296;
+}
+.search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  color: #3A3A3A;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  width: 100%;
+}
+.search-input::placeholder {
+  color: #A7A296;
+}
+.view-toggle {
+  display: flex;
+  border: 0.7px solid #E8E4D8;
+  border-radius: 12px;
+  padding: 4px;
+  background: #fff;
+  gap: 4px;
+}
+.view-btn {
+  width: 54px;
+  height: 38px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.view-btn .icon {
+  font-family: "remixicon", sans-serif;
+  font-style: normal;
+  font-size: 18px;
+  color: #8A8578;
+}
+.view-btn.active {
+  background: #F6EEDA;
+}
+.view-btn.active .icon {
+  color: #B08D3A;
+}
+
+.reset-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  height: 48px;
+  border: 0.7px solid #E8E4D8;
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #3A3A3A;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+.reset-button:hover {
+  background-color: #F7F4EA;
+}
+.reset-button .icon {
+  font-family: "remixicon", sans-serif;
+  font-style: normal;
+  font-size: 18px;
+}
+
+/* 内容卡片 */
+.section-card {
+  background-color: #FFFFFF;
+  border: 0.7px solid #EFECE3;
+  border-radius: 16px;
+  padding: 24px 40px;
+}
+
+/* 内容区 */
+.skill-content {
+  margin-top: 20px;
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 40px;
+  color: #8A8578;
+  font-size: 14px;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+.spinning {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 列表视图 */
+.list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.list-table {
+  background: #fff;
+  border: 0.7px solid #EFECE3;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.list-header {
+  display: flex;
+  align-items: center;
+  height: 52px;
+  padding: 0 40px;
+  background: #F7F4EA;
+  border-radius: 16px 16px 0 0;
+}
+.list-header .col-name,
+.list-header .col-desc,
+.list-header .col-actions {
   font-size: 15px;
   color: #6E6A60;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
-  margin: 0;
 }
-
-.tabs-bar { margin-bottom: 28px; }
-.tabs-inner {
-  display: inline-flex;
-  gap: 4px;
-  background: var(--color-bg-secondary);
-  border-radius: 12px;
-  padding: 4px;
-}
-.tab-item {
-  padding: 10px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.25s;
-  text-align: center;
-}
-.tab-item:hover { background: rgba(255,255,255,0.5); }
-.tab-item.active { background: var(--color-bg-white); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.tab-label { font-size: 14px; font-weight: 500; color: var(--color-text-secondary); line-height: 1.4; white-space: nowrap; }
-.tab-item.active .tab-label { color: var(--color-text-primary); font-weight: 600; }
-.tab-sublabel { font-size: 10px; color: var(--color-text-muted); line-height: 1.3; margin-top: 1px; white-space: nowrap; }
-.tab-item.active .tab-sublabel { color: var(--color-text-secondary); }
-
-.bookshelf {
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
-.bookshelf-inner {
-  display: flex;
-  gap: 20px;
-  min-width: min-content;
-}
-
-.skill-card {
-  width: 200px;
-  height: 340px;
-  border: 0.7px solid var(--color-border);
-  border-radius: 12px;
-  background-color: var(--color-bg-white);
-  overflow: hidden;
-  cursor: pointer;
+.list-header .col-name {
+  width: 430px;
   flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  transition: all 0.2s;
-  position: relative;
 }
-.skill-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+.list-header .col-desc {
+  flex: 1;
 }
-.skill-card.expanded {
-  width: 600px;
-  height: auto;
-  min-height: 340px;
-  position: relative;
-  z-index: 1;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+.list-header .col-actions {
+  width: 260px;
+  flex-shrink: 0;
+  text-align: right;
 }
 
-.card-cover {
-  height: 240px;
-  background: linear-gradient(180deg, var(--color-bg-secondary) 0%, var(--color-bg-main) 100%);
+.list-row {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  height: 76px;
+  padding: 0 40px;
+  border-bottom: 1px solid #EDEAF2;
+  transition: background 0.15s;
+}
+.list-row:last-child {
+  border-bottom: none;
+}
+.list-row:hover {
+  background: #FDFCFA;
+}
+.col-name {
+  width: 430px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
-.card-icon {
-  font-family: "remixicon", sans-serif;
-  font-style: normal;
-  font-size: 40px;
-  color: var(--card-accent, #c43d3d);
+.row-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1F1D1A;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
-.card-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  font-family: "SourceHanSans-SemiBold", sans-serif;
-  text-align: center;
-  line-height: 1.2;
-  max-width: 168px;
+.row-group {
+  font-size: 12px;
+  color: #8A8578;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+.col-desc {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.row-desc {
+  font-size: 15px;
+  color: #6E6A60;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
-.card-desc {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  font-family: "SourceHanSans-Regular", sans-serif;
-  text-align: center;
-  line-height: 1.2;
+.col-actions {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 24px;
 }
 
-.card-info {
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  min-height: 0;
+/* 操作按钮 */
+.action-btn {
+  font-size: 15px;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.2s;
 }
-.card-info-row {
+.action-btn.edit {
+  color: #4A72A8;
+}
+.action-btn.delete {
+  color: #C9503C;
+}
+.action-btn:hover {
+  opacity: 0.7;
+}
+
+/* 开关 */
+.toggle-switch {
+  width: 46px;
+  height: 26px;
+  border-radius: 9999px;
+  padding: 0 3px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  cursor: pointer;
+  transition: background 0.2s;
+  border: none;
+  flex-shrink: 0;
+}
+.toggle-switch.on {
+  background: #C6A45C;
+}
+.toggle-switch:not(.on) {
+  background: #E3E0D6;
+}
+.toggle-knob {
+  width: 21px;
+  height: 21px;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+/* 表尾 */
+.list-footer {
+  display: flex;
+  align-items: center;
+  height: 54px;
+  padding: 0 40px;
+  font-size: 14px;
+  color: #A7A296;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+
+/* 展开详情 */
+.skill-detail {
+  background: #fff;
+  border: 0.7px solid #EFECE3;
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+  margin-top: -1px;
+  padding: 20px 40px;
+  animation: slideDown 0.2s ease;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.detail-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 16px;
 }
-.card-info-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--color-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 168px;
+.detail-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1F1D1A;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
-.card-info-meta {
-  gap: 8px;
-}
-.card-count {
-  font-size: 11px;
-  color: var(--color-text-muted);
-}
-.card-delete {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  background: none;
-  border: 0.7px solid var(--color-border);
-  border-radius: 6px;
-  padding: 3px 10px;
-  cursor: pointer;
-  opacity: 0;
-  transition: all 0.2s;
-}
-.skill-card:hover .card-delete {
-  opacity: 1;
-}
-.card-delete:hover {
-  border-color: var(--card-accent, #c43d3d);
-  color: var(--card-accent, #c43d3d);
-}
-
-.add-card {
-  width: 200px;
-  height: 340px;
-  border: 2px dashed var(--color-border);
-  border-radius: 12px;
-  background-color: var(--color-bg-secondary);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all 0.2s;
-  position: relative;
-}
-.add-card:hover {
-  border-color: var(--color-primary, #4f6ef7);
-  background-color: rgba(79, 110, 247, 0.03);
-}
-.add-icon-wrap {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background-color: var(--color-bg-card);
+.detail-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
 }
-.add-icon {
+.detail-close:hover {
+  background: #F5EFE3;
+}
+.detail-close .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
-  font-size: 22px;
-  color: var(--color-text-secondary);
-}
-.add-text {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  font-family: "SourceHanSans-Medium", sans-serif;
-}
-.file-input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.card-rules {
-  padding: 0 16px 16px;
-  animation: fadeIn 0.2s ease;
+  font-size: 18px;
+  color: #6E6A60;
 }
 .rules-divider {
   height: 1px;
-  background-color: var(--color-border);
+  background: #E4DDD0;
   margin-bottom: 12px;
 }
 .rule-table {
@@ -445,14 +918,13 @@ onMounted(loadSkills);
   font-size: 12px;
   font-weight: 600;
   text-align: left;
-  color: var(--color-text-muted);
-  background-color: var(--color-bg-secondary);
-  border-radius: 8px 8px 0 0;
+  color: #8A8578;
+  background: rgba(245,239,227,0.5);
 }
 .rule-table td {
   padding: 8px 12px;
   font-size: 12px;
-  border-bottom: 1px solid var(--color-bg-secondary);
+  border-bottom: 1px solid rgba(245,239,227,0.8);
 }
 .rule-table th:first-child,
 .rule-table td:first-child { width: 25%; }
@@ -460,20 +932,12 @@ onMounted(loadSkills);
 .rule-table td:nth-child(2) { width: 10%; }
 .rule-table th:nth-child(3),
 .rule-table td:nth-child(3) { width: 65%; }
-.rule-field { font-weight: 500; color: var(--color-text-primary); }
+.rule-field { font-weight: 500; color: #1F1D1A; }
 .type-tag { font-size: 11px; padding: 2px 8px; border-radius: 9999px; }
-.type-tag.regex { background-color: var(--color-bg-secondary); color: var(--color-primary); }
-.type-tag.keyword { background-color: var(--color-bg-card); color: var(--color-text-secondary); }
-.rule-pattern { font-family: monospace; font-size: 11px; color: var(--color-primary); background-color: var(--color-bg-secondary); padding: 2px 6px; border-radius: 4px; word-break: break-all; }
-
-.loading-overlay {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 16px;
-  color: var(--color-text-muted);
-  font-size: 14px;
-}
+.type-tag.regex { background: #E8F0F8; color: #2D6A9F; }
+.type-tag.keyword { background: #F0E8D8; color: #8B7355; }
+.rule-pattern { font-family: monospace; font-size: 11px; color: #2D6A9F; background: rgba(245,239,227,0.4); padding: 2px 6px; border-radius: 4px; word-break: break-all; }
+.empty-pattern { color: #8A8578; }
 .prompt-content {
   max-height: 400px;
   overflow-y: auto;
@@ -483,20 +947,105 @@ onMounted(loadSkills);
   font-family: monospace;
   font-size: 12px;
   line-height: 1.6;
-  color: var(--color-text-primary);
+  color: #1F1D1A;
   white-space: pre-wrap;
   word-break: break-word;
   margin: 0;
 }
-.spinning {
-  animation: spin 1s linear infinite;
+
+/* 卡片视图 */
+.grid-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.grid-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
 }
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+.grid-row {
+  display: flex;
+  gap: 20px;
+}
+.grid-card {
+  border: 0.7px solid #EFECE3;
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s;
+  cursor: default;
+  min-height: 220px;
+}
+.grid-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.card-accent-bar {
+  width: 4px;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.grid-card {
+  position: relative;
+}
+.card-body {
+  padding: 24px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+.card-title {
+  font-size: 17px;
+  font-weight: 500;
+  color: #1F1D1A;
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
+  margin: 0;
+}
+.card-desc {
+  font-size: 15px;
+  color: #6E6A60;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  margin: 0;
+  flex: 1;
+}
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 48px;
+}
+.card-actions {
+  display: flex;
+  gap: 24px;
+}
+
+/* 加载遮罩 */
+.loading-overlay {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  color: #8A8578;
+  font-size: 14px;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+
+.file-input {
+  position: fixed;
+  top: -1000px;
+  left: -1000px;
+}
+
+@media (max-width: 1620px) {
+  .grid-cards { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .grid-cards { grid-template-columns: 1fr; }
 }
 </style>
