@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import apiClient from '@/api/client';
+import { UiInput, UiSwitch } from '@/components/ui';
 
 interface TemplateItem {
   id: string;
@@ -9,6 +10,7 @@ interface TemplateItem {
   description: string;
   category: string;
   type: string;
+  enabled: boolean;
 }
 
 const templates = ref<TemplateItem[]>([]);
@@ -19,19 +21,15 @@ const showAddDialog = ref(false);
 const newTemplateName = ref('');
 const newTemplateDesc = ref('');
 const newTemplateCategory = ref('');
-const activeTab = ref('bidding');
-
-const tabs = [
-  { key: 'bidding', label: '招标模板' },
-  { key: 'proposal', label: '标书模板' },
-  { key: 'custom', label: '自定义模板' },
-];
 
 async function loadTemplates() {
   loading.value = true;
   try {
     const res = await apiClient.get('/settings/templates');
-    templates.value = (res.data.templates || []) as TemplateItem[];
+    templates.value = ((res.data.templates || []) as any[]).map((t: any) => ({
+      ...t,
+      enabled: t.enabled ?? true,
+    }));
   } catch {
     templates.value = getPlaceholderTemplates();
   } finally {
@@ -41,12 +39,12 @@ async function loadTemplates() {
 
 function getPlaceholderTemplates(): TemplateItem[] {
   return [
-    { id: 'tpl-1', name: '商务标 · 通用章节模板', description: '含投标函、授权委托书、工程量清单等 12 个章节', category: '商务标', type: 'bidding' },
-    { id: 'tpl-2', name: '技术标 · 施工组织设计模板', description: '覆盖施工方案、进度计划、质量与安全保障措施', category: '技术标', type: 'bidding' },
-    { id: 'tpl-3', name: '资格标 · 资质业绩模板', description: '营业执照、资质证书、类似项目业绩汇总表', category: '资格标', type: 'bidding' },
-    { id: 'tpl-4', name: '报价标 · 清单报价模板', description: '分部分项、措施项目、规费税金标准表式', category: '报价标', type: 'bidding' },
-    { id: 'tpl-5', name: '封面目录 · 标书装帧模板', description: '统一封面、目录、页眉页脚与装订顺序', category: '排版', type: 'custom' },
-    { id: 'tpl-6', name: '承诺函 · 合规声明模板', description: '廉政承诺、质保承诺、售后服务承诺标准文案', category: '合规', type: 'custom' },
+    { id: 'tpl-1', name: '商务标 · 通用章节模板', description: '含投标函、授权委托书、工程量清单等 12 个章节', category: '商务标', type: 'bidding', enabled: true },
+    { id: 'tpl-2', name: '技术标 · 施工组织设计模板', description: '覆盖施工方案、进度计划、质量与安全保障措施', category: '技术标', type: 'bidding', enabled: true },
+    { id: 'tpl-3', name: '资格标 · 资质业绩模板', description: '营业执照、资质证书、类似项目业绩汇总表', category: '资格标', type: 'bidding', enabled: true },
+    { id: 'tpl-4', name: '报价标 · 清单报价模板', description: '分部分项、措施项目、规费税金标准表式', category: '报价标', type: 'bidding', enabled: true },
+    { id: 'tpl-5', name: '封面目录 · 标书装帧模板', description: '统一封面、目录、页眉页脚与装订顺序', category: '排版', type: 'custom', enabled: true },
+    { id: 'tpl-6', name: '承诺函 · 合规声明模板', description: '廉政承诺、质保承诺、售后服务承诺标准文案', category: '合规', type: 'custom', enabled: true },
   ];
 }
 
@@ -54,14 +52,6 @@ const filteredTemplates = ref<TemplateItem[]>([]);
 
 function applyFilter() {
   let list = templates.value;
-  if (activeTab.value !== 'bidding') {
-    const tabMap: Record<string, string[]> = {
-      proposal: ['proposal', 'custom'],
-      custom: ['custom'],
-    };
-    const allowed = tabMap[activeTab.value] || ['bidding'];
-    list = list.filter(t => allowed.includes(t.type));
-  }
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase();
     list = list.filter(t => t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q));
@@ -69,9 +59,9 @@ function applyFilter() {
   filteredTemplates.value = list;
 }
 
-function switchTab(key: string) {
-  activeTab.value = key;
-  applyFilter();
+async function toggleEnabled(tpl: TemplateItem) {
+  tpl.enabled = !tpl.enabled;
+  ElMessage.success(tpl.enabled ? `已启用「${tpl.name}」` : `已停用「${tpl.name}」`);
 }
 
 async function handleDelete(tpl: TemplateItem) {
@@ -84,10 +74,6 @@ async function handleDelete(tpl: TemplateItem) {
   } catch { /* cancelled */ }
 }
 
-async function handleApply(tpl: TemplateItem) {
-  ElMessage.success(`已应用模板「${tpl.name}」`);
-}
-
 async function handleAdd() {
   if (!newTemplateName.value.trim()) {
     ElMessage.warning('请输入模板名称'); return;
@@ -97,9 +83,9 @@ async function handleAdd() {
       name: newTemplateName.value.trim(),
       description: newTemplateDesc.value.trim(),
       category: newTemplateCategory.value.trim() || '自定义',
-      type: activeTab.value === 'custom' ? 'custom' : 'bidding',
+      type: 'custom',
     });
-    templates.value.unshift(res.data);
+    templates.value.unshift({ ...res.data, enabled: true });
     showAddDialog.value = false;
     newTemplateName.value = '';
     newTemplateDesc.value = '';
@@ -157,10 +143,14 @@ onMounted(() => {
         </button>
       </div>
       <div class="toolbar-right">
-        <div class="search-box">
-          <span class="icon ri-search-line"></span>
-          <input v-model="searchQuery" type="text" class="search-input" placeholder="搜索模板名称或描述" @input="applyFilter" />
-        </div>
+        <UiInput
+          v-model="searchQuery"
+          type="search"
+          class="toolbar-search"
+          placeholder="搜索模板名称或描述"
+          clearable
+          @update:modelValue="applyFilter"
+        />
         <div class="view-toggle">
           <button class="view-btn" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'" title="列表视图">
             <span class="icon ri-layout-column-line"></span>
@@ -170,17 +160,6 @@ onMounted(() => {
           </button>
         </div>
       </div>
-    </div>
-
-    <!-- 标签切换 -->
-    <div class="tabs-bar">
-      <button
-        v-for="tab in tabs"
-        :key="tab.key"
-        class="tab-btn"
-        :class="{ active: activeTab === tab.key }"
-        @click="switchTab(tab.key)"
-      >{{ tab.label }}</button>
     </div>
 
     <!-- 列表视图 -->
@@ -204,9 +183,11 @@ onMounted(() => {
                 <span class="row-desc">{{ tpl.description }}</span>
               </td>
               <td class="col-action">
-                <span class="action-link edit" @click="ElMessage.info('编辑功能开发中')">修改</span>
-                <span class="action-link delete" @click="handleDelete(tpl)">删除</span>
-                <span class="action-link apply" @click="handleApply(tpl)">应用</span>
+                <div class="row-actions">
+                  <button class="action-btn edit" @click="ElMessage.info('编辑功能开发中')">修改</button>
+                  <button class="action-btn delete" @click="handleDelete(tpl)">删除</button>
+                  <UiSwitch :model-value="tpl.enabled" size="sm" @update:model-value="toggleEnabled(tpl)" />
+                </div>
               </td>
             </tr>
             <tr v-if="filteredTemplates.length === 0" class="empty-row">
@@ -237,7 +218,7 @@ onMounted(() => {
             <div class="grid-card-actions">
               <button class="action-btn edit" @click="ElMessage.info('编辑功能开发中')">修改</button>
               <button class="action-btn delete" @click="handleDelete(tpl)">删除</button>
-              <button class="action-btn apply" @click="handleApply(tpl)">应用</button>
+              <UiSwitch :model-value="tpl.enabled" size="sm" @update:model-value="toggleEnabled(tpl)" />
             </div>
           </div>
         </div>
@@ -256,15 +237,15 @@ onMounted(() => {
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label">模板名称 <span class="required">*</span></label>
-            <input v-model="newTemplateName" class="form-input" placeholder="请输入模板名称" />
+            <UiInput v-model="newTemplateName" placeholder="请输入模板名称" />
           </div>
           <div class="form-group">
             <label class="form-label">模板描述</label>
-            <textarea v-model="newTemplateDesc" class="form-textarea" placeholder="请输入模板描述（可选）" rows="3" />
+            <UiInput v-model="newTemplateDesc" multiline :rows="3" placeholder="请输入模板描述（可选）" />
           </div>
           <div class="form-group">
             <label class="form-label">所属分类</label>
-            <input v-model="newTemplateCategory" class="form-input" placeholder="例如：商务标、技术标" />
+            <UiInput v-model="newTemplateCategory" placeholder="例如：商务标、技术标" />
           </div>
         </div>
         <div class="modal-footer">
@@ -329,16 +310,7 @@ onMounted(() => {
 }
 .btn-add:hover { background: #B8944A; }
 .btn-add .icon { font-family: "remixicon", sans-serif; font-style: normal; font-size: 20px; }
-.search-box {
-  display: flex; align-items: center; gap: 12px; height: 46px; padding: 0 16px;
-  border: 0.7px solid #E8E4D8; border-radius: 10px; background: #fff; width: 548px;
-}
-.search-box .icon { font-family: "remixicon", sans-serif; font-style: normal; font-size: 18px; color: #A7A296; }
-.search-input {
-  border: none; outline: none; background: transparent; font-size: 15px; color: #3A3A3A;
-  font-family: "SourceHanSans-Regular", var(--font-family-cn); width: 100%;
-}
-.search-input::placeholder { color: #A7A296; }
+.toolbar-search { width: 548px; }
 .view-toggle {
   display: flex; border: 0.7px solid #E8E4D8; border-radius: 12px; padding: 4px;
   background: #fff; gap: 4px;
@@ -352,15 +324,6 @@ onMounted(() => {
 }
 .view-btn.active { background: #F6EEDA; }
 .view-btn.active .icon { color: #B08D3A; }
-
-/* 标签 */
-.tabs-bar { display: flex; gap: 0; }
-.tab-btn {
-  padding: 10px 24px; border-radius: 10px; border: none; background: transparent;
-  color: #3A3A3A; font-size: 15px; font-family: "SourceHanSans-Regular", var(--font-family-cn);
-  cursor: pointer; transition: all 0.2s;
-}
-.tab-btn.active { background-color: #F6EEDA; color: #B08D3A; font-weight: 500; }
 
 /* 列表视图 */
 .list-container { background-color: #FFFFFF; border: 0.7px solid #EFECE3; border-radius: 16px; overflow: hidden; }
@@ -387,14 +350,28 @@ onMounted(() => {
 }
 .row-desc { font-size: 15px; color: #6E6A60; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
 .row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 24px; }
-.action-link {
-  font-size: 15px; font-family: "SourceHanSans-Regular", var(--font-family-cn);
-  cursor: pointer; transition: opacity 0.2s;
+
+/* 操作按钮（与技能管理一致） */
+.row-actions .action-btn {
+  font-size: 15px;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.2s;
 }
-.action-link:hover { opacity: 0.7; }
-.action-link.edit { color: #4A72A8; }
-.action-link.delete { color: #C9503C; }
-.action-link.apply { color: #B08D3A; }
+.row-actions .action-btn.edit {
+  color: #4A72A8;
+}
+.row-actions .action-btn.delete {
+  color: #C9503C;
+}
+.row-actions .action-btn:hover {
+  opacity: 0.7;
+}
+
+/* 开关已统一为 UiSwitch，样式见 components/ui */
 .empty-row td { text-align: center; color: #A7A296; font-size: 14px; padding: 40px; }
 .table-footer {
   padding: 0 40px; height: 54px; display: flex; align-items: center;
@@ -419,18 +396,16 @@ onMounted(() => {
 .grid-card-title { font-size: 17px; font-weight: 500; color: #1F1D1A; font-family: "SourceHanSans-Medium", var(--font-family-cn); margin: 0; }
 .grid-card-desc { font-size: 14px; color: #6E6A60; font-family: "SourceHanSans-Regular", var(--font-family-cn); flex: 1; }
 .grid-card-footer { padding: 16px 24px; border-top: 1px solid #F0EDE4; display: flex; justify-content: flex-end; }
-.grid-card-actions { display: flex; gap: 12px; }
-.action-btn {
+.grid-card-actions { display: flex; align-items: center; gap: 12px; }
+.grid-card-actions .action-btn {
   font-size: 14px; font-family: "SourceHanSans-Regular", var(--font-family-cn);
   background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 6px;
   transition: background 0.15s;
 }
-.action-btn.edit { color: #4A72A8; }
-.action-btn.edit:hover { background: rgba(74, 114, 168, 0.08); }
-.action-btn.delete { color: #C9503C; }
-.action-btn.delete:hover { background: rgba(201, 80, 60, 0.08); }
-.action-btn.apply { color: #B08D3A; }
-.action-btn.apply:hover { background: rgba(176, 141, 58, 0.08); }
+.grid-card-actions .action-btn.edit { color: #4A72A8; }
+.grid-card-actions .action-btn.edit:hover { background: rgba(74, 114, 168, 0.08); }
+.grid-card-actions .action-btn.delete { color: #C9503C; }
+.grid-card-actions .action-btn.delete:hover { background: rgba(201, 80, 60, 0.08); }
 
 @media (max-width: 1200px) { .grid-cards { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 768px) { .grid-cards { grid-template-columns: 1fr; } }
@@ -460,13 +435,7 @@ onMounted(() => {
 .form-group { display: flex; flex-direction: column; gap: 8px; }
 .form-label { font-size: 14px; color: #3A3A3A; font-weight: 500; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
 .form-label .required { color: #C0392B; }
-.form-input, .form-textarea {
-  height: 44px; padding: 0 16px; border: 0.7px solid #E5DFD3; border-radius: 10px;
-  background: #FAF8F0; font-size: 14px; color: #1F1D1A; outline: none;
-  font-family: "SourceHanSans-Regular", var(--font-family-cn); transition: border-color 0.2s;
-}
-.form-input:focus, .form-textarea:focus { border-color: #B08D3A; background: #fff; }
-.form-textarea { height: auto; padding: 12px 16px; resize: vertical; }
+.form-group .ui-input { width: 100%; }
 .modal-footer { display: flex; justify-content: flex-end; gap: 12px; }
 .btn-cancel {
   height: 44px; padding: 0 20px; border: 0.7px solid #E8E4D8; border-radius: 10px;

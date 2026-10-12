@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import apiClient from '@/api/client';
+import { UiInput, UiSwitch } from '@/components/ui';
 
 interface RuleItem {
   id: string;
@@ -285,9 +286,7 @@ onMounted(loadSkills);
       </div>
     </div>
 
-    <!-- 内容卡片 -->
-    <div class="section-card">
-      <!-- 工具栏 -->
+    <!-- 工具栏 -->
       <div class="toolbar">
       <div class="toolbar-left">
         <button class="btn-import" @click="triggerFileInput">
@@ -300,15 +299,13 @@ onMounted(loadSkills);
         </button>
       </div>
       <div class="toolbar-right">
-        <div class="search-box">
-          <span class="icon ri-search-line"></span>
-          <input
-            v-model="searchTerm"
-            type="text"
-            class="search-input"
-            placeholder="搜索技能名称或描述"
-          />
-        </div>
+        <UiInput
+          v-model="searchTerm"
+          type="search"
+          class="toolbar-search"
+          placeholder="搜索技能名称或描述"
+          clearable
+        />
         <div class="view-toggle">
           <button
             class="view-btn"
@@ -361,13 +358,7 @@ onMounted(loadSkills);
             <div class="col-actions">
               <button class="action-btn edit" @click.stop="ElMessage.info('编辑功能开发中')">修改</button>
               <button class="action-btn delete" @click.stop="handleDelete(skill)">删除</button>
-              <button
-                class="toggle-switch"
-                :class="{ on: skill.enabled }"
-                @click.stop="toggleEnabled(skill)"
-              >
-                <span class="toggle-knob"></span>
-              </button>
+              <UiSwitch :model-value="skill.enabled" size="sm" @click.stop="toggleEnabled(skill)" />
             </div>
           </div>
           <!-- 表尾统计 -->
@@ -440,19 +431,11 @@ onMounted(loadSkills);
                   <button class="action-btn edit" @click="ElMessage.info('编辑功能开发中')">修改</button>
                   <button class="action-btn delete" @click="handleDelete(skill)">删除</button>
                 </div>
-                <button
-                  class="toggle-switch"
-                  :class="{ on: skill.enabled }"
-                  @click="toggleEnabled(skill)"
-                >
-                  <span class="toggle-knob"></span>
-                </button>
-              </div>
+                <UiSwitch :model-value="skill.enabled" size="sm" @click="toggleEnabled(skill)" />
             </div>
           </div>
         </div>
       </div>
-    </div>
     </div>
 
     <input
@@ -587,35 +570,7 @@ onMounted(loadSkills);
   align-items: center;
   gap: 12px;
 }
-.search-box {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: 46px;
-  padding: 0 16px;
-  border: 0.7px solid #E8E4D8;
-  border-radius: 10px;
-  background: #fff;
-  width: 548px;
-}
-.search-box .icon {
-  font-family: "remixicon", sans-serif;
-  font-style: normal;
-  font-size: 18px;
-  color: #A7A296;
-}
-.search-input {
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 15px;
-  color: #3A3A3A;
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
-  width: 100%;
-}
-.search-input::placeholder {
-  color: #A7A296;
-}
+.toolbar-search { width: 548px; }
 .view-toggle {
   display: flex;
   border: 0.7px solid #E8E4D8;
@@ -674,17 +629,9 @@ onMounted(loadSkills);
   font-size: 18px;
 }
 
-/* 内容卡片 */
-.section-card {
-  background-color: #FFFFFF;
-  border: 0.7px solid #EFECE3;
-  border-radius: 16px;
-  padding: 24px 40px;
-}
-
 /* 内容区 */
 .skill-content {
-  margin-top: 20px;
+  flex: 1;
 }
 
 /* 加载状态 */
@@ -820,33 +767,7 @@ onMounted(loadSkills);
   opacity: 0.7;
 }
 
-/* 开关 */
-.toggle-switch {
-  width: 46px;
-  height: 26px;
-  border-radius: 9999px;
-  padding: 0 3px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  cursor: pointer;
-  transition: background 0.2s;
-  border: none;
-  flex-shrink: 0;
-}
-.toggle-switch.on {
-  background: #C6A45C;
-}
-.toggle-switch:not(.on) {
-  background: #E3E0D6;
-}
-.toggle-knob {
-  width: 21px;
-  height: 21px;
-  border-radius: 9999px;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-}
+/* 开关已统一为 UiSwitch，样式见 components/ui */
 
 /* 表尾 */
 .list-footer {

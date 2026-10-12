@@ -71,7 +71,7 @@ function clear() {
 <template>
   <span
     class="ui-input"
-    :class="['is-' + size, { 'has-prefix': prefixIcon || type === 'search', 'has-clear': showClear, 'is-disabled': disabled }]"
+    :class="['is-' + size, { 'has-prefix': prefixIcon || type === 'search', 'has-clear': showClear, 'has-suffix': $slots.suffix, 'is-disabled': disabled }]"
   >
     <span v-if="prefixIcon || type === 'search'" :class="['ui-input-prefix icon', prefixIcon || 'ri-search-line']"></span>
     <textarea
@@ -107,6 +107,9 @@ function clear() {
     <button v-if="showClear" class="ui-input-clear" type="button" title="清空" @click.stop="clear">
       <span class="icon ri-close-circle-fill"></span>
     </button>
+    <span v-if="$slots.suffix" class="ui-input-suffix">
+      <slot name="suffix" />
+    </span>
   </span>
 </template>
 
@@ -157,6 +160,16 @@ textarea.ui-input-el { height: auto; padding: 12px 16px; resize: vertical; line-
 }
 .is-sm .ui-input-prefix { left: 10px; font-size: 14px; }
 .has-clear .ui-input-el { padding-right: 36px; }
+.has-suffix .ui-input-el { padding-right: 44px; }
+.has-suffix.has-clear .ui-input-el { padding-right: 68px; }
+.has-suffix.has-clear .ui-input-clear { right: 36px; }
+.ui-input-suffix {
+  position: absolute;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 .ui-input-clear {
   position: absolute;
   right: 8px;

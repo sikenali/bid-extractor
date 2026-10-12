@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
 import { useThemeStore } from '@/stores/theme';
+import { UiCheck } from '@/components/ui';
 import { setTheme as saveTheme } from '@/api/settings';
 
 const themeStore = useThemeStore();
@@ -152,6 +153,7 @@ function resetAll() {
           :class="{ active: selectedTheme === theme.type }"
           @click="selectTheme(theme.type)"
         >
+          <UiCheck :checked="selectedTheme === theme.type" class="card-check" :size="22" />
           <div class="preview-thumb" :style="{ backgroundColor: theme.previewBg }">
             <div class="thumb-topbar" :style="{ backgroundColor: theme.topbar }"></div>
             <div class="thumb-content" :style="{ backgroundColor: theme.content }"></div>
@@ -193,6 +195,7 @@ function resetAll() {
           :class="{ active: selectedLayout === layout.key }"
           @click="selectLayout(layout.key)"
         >
+          <UiCheck :checked="selectedLayout === layout.key" class="card-check" :size="22" />
           <div class="layout-preview">
             <template v-if="layout.key === 'topbar'">
               <div class="preview-mockup topbar-mockup">
@@ -357,6 +360,14 @@ function resetAll() {
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 
+/* 统一勾选徽标（UiCheck） */
+.card-check {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+}
+
 /* 外观主题 */
 .theme-group {
   display: flex;
@@ -365,6 +376,7 @@ function resetAll() {
 }
 .theme-preview-card {
   flex: 1;
+  position: relative;
   border: 0.7px solid #EFECE3;
   background-color: #FFFFFF;
   border-radius: 14px;
@@ -457,6 +469,7 @@ function resetAll() {
 }
 .layout-card {
   flex: 1;
+  position: relative;
   border: 0.7px solid #EFECE3;
   background-color: #FFFFFF;
   border-radius: 14px;
@@ -557,12 +570,14 @@ function resetAll() {
 .sidebar-mockup {
   background-color: rgba(245,241,230,1);
   border-radius: 8px;
+  flex-direction: row;
 }
 .mockup-sidebar {
   display: flex;
   flex-direction: column;
   gap: 12px;
   align-items: center;
+  justify-content: center;
   padding: 12px 0;
   width: 56px;
 }
@@ -575,6 +590,7 @@ function resetAll() {
   flex: 1;
   display: flex;
   flex-direction: column;
+  padding-left: 12px;
 }
 .sidebar-mockup .mockup-header {
   margin-bottom: 12px;
