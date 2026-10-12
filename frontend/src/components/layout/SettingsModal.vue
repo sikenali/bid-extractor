@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import ThemeSettingsView from '@/views/settings/ThemeSettingsView.vue';
 import TemplateSettingsView from '@/views/settings/TemplateSettingsView.vue';
 import SkillSettingsView from '@/views/settings/SkillSettingsView.vue';
@@ -78,6 +78,11 @@ const menuItems = [
 ];
 
 const activeKey = ref('theme');
+
+// 每次打开弹窗都聚焦主题管理
+watch(() => props.visible, (v) => {
+  if (v) activeKey.value = 'theme';
+});
 
 const activeComponent = computed(() => {
   return menuItems.find(i => i.key === activeKey.value)?.component;

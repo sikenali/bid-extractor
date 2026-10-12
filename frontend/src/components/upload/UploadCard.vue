@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import { uploadFile } from '@/api/upload';
 import StepStrip from '@/components/StepStrip.vue';
+import { UiTip } from '@/components/ui';
 
 interface Step {
   key: number;
@@ -145,9 +146,13 @@ const btnLabel = computed(() => {
 
       <!-- file selected: centered icon + name + size (kept as-is during upload, animation lives in StepStrip below) -->
       <template v-else>
-        <button v-if="!uploading" class="replace-icon" title="替换文件" @click.stop="handleReplace">
-          <span class="ri-refresh-line icon"></span>
-        </button>
+        <UiTip text="替换文件" placement="left">
+        <UiTip text="替换文件" placement="left" class="replace-tip">
+          <button v-if="!uploading" class="replace-icon" @click.stop="handleReplace">
+            <span class="ri-refresh-line icon"></span>
+          </button>
+        </UiTip>
+        </UiTip>
         <div class="file-centered">
           <div class="file-icon" :class="'fmt-' + getExt(selectedFile).replace('.', '')">
             <svg v-if="getExt(selectedFile) === '.docx' || getExt(selectedFile) === '.wps'" width="32" height="32" viewBox="0 0 28 28" fill="none">
@@ -284,10 +289,13 @@ const btnLabel = computed(() => {
 .fmt-tx  { background-color: #5A5750; font-size: 9px; }
 
 /* ── file selected state: centered icon + name + size ── */
-.replace-icon {
+.replace-tip {
   position: absolute;
   top: 16px;
   right: 16px;
+  z-index: 2;
+}
+.replace-icon {
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -299,7 +307,6 @@ const btnLabel = computed(() => {
   align-items: center;
   justify-content: center;
   transition: color 0.2s, border-color 0.2s, background-color 0.2s, transform 0.2s;
-  z-index: 2;
 }
 .replace-icon:hover {
   color: var(--color-primary, #C0392B);

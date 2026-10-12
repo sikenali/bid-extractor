@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import apiClient from '@/api/client';
-import { UiInput, UiSwitch, UiModal } from '@/components/ui';
+import { UiInput, UiSwitch, UiModal, UiTip } from '@/components/ui';
 
 interface TemplateItem {
   id: string;
@@ -15,7 +15,13 @@ interface TemplateItem {
 
 const templates = ref<TemplateItem[]>([]);
 const loading = ref(false);
-const viewMode = ref<'list' | 'grid'>('list');
+const viewMode = ref<'list' | 'grid'>((() => {
+  try { return localStorage.getItem('settings.template.viewMode') === 'grid' ? 'grid' : 'list'; }
+  catch { return 'list'; }
+})());
+watch(viewMode, (v) => {
+  try { localStorage.setItem('settings.template.viewMode', v); } catch {}
+});
 const searchQuery = ref('');
 const showAddDialog = ref(false);
 const newTemplateName = ref('');
@@ -200,12 +206,16 @@ onMounted(() => {
           @update:modelValue="applyFilter"
         />
         <div class="view-toggle">
-          <button class="view-btn" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'" title="列表视图">
-            <span class="icon ri-layout-column-line"></span>
-          </button>
-          <button class="view-btn" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'" title="网格视图">
-            <span class="icon ri-layout-grid-line"></span>
-          </button>
+          <UiTip text="列表视图">
+            <button class="view-btn" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'">
+              <span class="icon ri-layout-column-line"></span>
+            </button>
+          </UiTip>
+          <UiTip text="网格视图">
+            <button class="view-btn" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'">
+              <span class="icon ri-layout-grid-line"></span>
+            </button>
+          </UiTip>
         </div>
       </div>
     </div>

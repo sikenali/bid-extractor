@@ -121,7 +121,6 @@ const markedItems = ref<{ symbol: string; text: string; page: number }[]>([]);
 const fileInfo = ref({ name: '', size: 0, pageCount: 0 });
 const extractStatus = ref({ status: 'pending', progress: 0, filename: '' });
 const loading = ref(false);
-const loadError = ref('');
 
 const sectionData = computed(() => {
   const active = activeSection.value;
@@ -302,11 +301,11 @@ onMounted(async () => {
     || (window as any).history?.state?.jobId as string
     || (() => { try { return sessionStorage.getItem('bidextractor.lastJobId') || ''; } catch { return ''; } })();
   if (!jobId) {
-    loadError.value = '暂无解析任务，请先上传招标文件';
+    ElMessage.warning('暂无解析任务，请先上传招标文件');
+    handleReupload();
     return;
   }
   loading.value = true;
-  loadError.value = '';
   try {
     const statusData = await getParseStatus(jobId);
     fileId.value = statusData.id || jobId;
@@ -319,10 +318,10 @@ onMounted(async () => {
     if (statusData.result) {
       processResult(statusData);
     } else {
-      loadError.value = '解析结果异常，请重新上传';
+      ElMessage.error('解析结果异常，请重新上传');
     }
   } catch (e: any) {
-    loadError.value = e?.response?.data?.error || '加载失败，请检查网络后重试';
+    ElMessage.error(e?.response?.data?.error || '加载失败，请检查网络后重试');
     fileInfo.value.name = jobId;
   } finally {
     loading.value = false;
@@ -700,12 +699,7 @@ function triggerDownload(blob: Blob, filename: string) {
             <span class="loading-text">正在解析文档…</span>
           </div>
           <template v-if="!loading">
-            <div v-if="loadError" class="error-box">
-              <span class="ri-alert-line error-icon"></span>
-              <span>{{ loadError }}</span>
-              <button class="retry-btn" @click="handleReupload">重新上传</button>
-            </div>
-            <table v-else class="extract-table">
+            <table class="extract-table">
             <thead>
               <tr>
                 <th class="col-name">字段名称</th>
@@ -1207,31 +1201,5 @@ function triggerDownload(blob: Blob, filename: string) {
   color: var(--color-text-muted, #8A8578);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-.error-box {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px 20px;
-  background: #FEF2F2;
-  border: 1px solid #FECACA;
-  border-radius: 8px;
-  color: #991B1B;
-  font-size: 14px;
-  margin-bottom: 16px;
-}
-.error-icon { font-size: 18px; color: #DC2626; }
-.retry-btn {
-  margin-left: auto;
-  padding: 6px 16px;
-  border-radius: 6px;
-  border: 1px solid var(--color-primary, #C0392B);
-  background: transparent;
-  color: var(--color-primary, #C0392B);
-  font-size: 13px;
-  cursor: pointer;
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
-  transition: background 0.2s, color 0.2s;
-}
-.retry-btn:hover { background: var(--color-primary, #C0392B); color: #fff; }
 .table-card.is-loading { position: relative; }
 </style>

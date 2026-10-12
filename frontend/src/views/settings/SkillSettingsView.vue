@@ -2,7 +2,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import apiClient from '@/api/client';
-import { UiInput, UiSwitch, UiModal } from '@/components/ui';
+import { UiInput, UiSwitch, UiModal, UiTip } from '@/components/ui';
 
 interface RuleItem {
   id: string;
@@ -32,7 +32,13 @@ const importLoading = ref(false);
 const syncLoading = ref(false);
 const expandedSkill = ref<string | null>(null);
 const selectedFileName = ref('');
-const viewMode = ref<'list' | 'grid'>('list');
+const viewMode = ref<'list' | 'grid'>((() => {
+  try { return localStorage.getItem('settings.skill.viewMode') === 'grid' ? 'grid' : 'list'; }
+  catch { return 'list'; }
+})());
+watch(viewMode, (v) => {
+  try { localStorage.setItem('settings.skill.viewMode', v); } catch {}
+});
 const searchTerm = ref('');
 const showEditDialog = ref(false);
 const editingSkill = ref<SkillItem | null>(null);
@@ -362,20 +368,24 @@ onMounted(loadSkills);
           clearable
         />
         <div class="view-toggle">
-          <button
-            class="view-btn"
-            :class="{ active: viewMode === 'list' }"
-            @click="viewMode = 'list'"
-          >
-            <span class="icon ri-layout-column-line"></span>
-          </button>
-          <button
-            class="view-btn"
-            :class="{ active: viewMode === 'grid' }"
-            @click="viewMode = 'grid'"
-          >
-            <span class="icon ri-layout-grid-line"></span>
-          </button>
+          <UiTip text="列表视图">
+            <button
+              class="view-btn"
+              :class="{ active: viewMode === 'list' }"
+              @click="viewMode = 'list'"
+            >
+              <span class="icon ri-layout-column-line"></span>
+            </button>
+          </UiTip>
+          <UiTip text="网格视图">
+            <button
+              class="view-btn"
+              :class="{ active: viewMode === 'grid' }"
+              @click="viewMode = 'grid'"
+            >
+              <span class="icon ri-layout-grid-line"></span>
+            </button>
+          </UiTip>
         </div>
       </div>
     </div>

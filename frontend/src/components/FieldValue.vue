@@ -6,22 +6,24 @@
       :chapter="chapter"
       :source-text="sourceText"
     />
-    <button
-      v-if="page != null"
-      type="button"
-      class="locate-btn"
-      title="在预览中定位"
-      @click="handleLocate"
-    >
-      <span class="icon ri-crosshair-2-line"></span>
-      <span>定位</span>
-    </button>
+    <UiTip text="在预览中定位">
+      <button
+        v-if="page != null"
+        type="button"
+        class="locate-btn"
+        @click="handleLocate"
+      >
+        <span class="icon ri-crosshair-2-line"></span>
+        <span>定位</span>
+      </button>
+    </UiTip>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import ProvenanceBadge from './ProvenanceBadge.vue';
+import { UiTip } from '@/components/ui';
 
 const props = defineProps<{
   field: string;

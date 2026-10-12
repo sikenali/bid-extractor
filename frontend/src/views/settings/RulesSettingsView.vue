@@ -173,7 +173,6 @@ async function handleRuleSubmit(data: { fieldName: string; pattern: string; cate
             <button
               class="group-icon-btn"
               :class="{ active: activeGroup === g.key }"
-              :title="g.label"
               @click="toggleGroup(g.key)"
             >
               <span class="icon" :class="g.icon"></span>

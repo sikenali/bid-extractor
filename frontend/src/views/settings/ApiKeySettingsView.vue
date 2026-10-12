@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import apiClient from '@/api/client';
 import { deleteApiKey, toggleApiKey, testApiKey } from '@/api/settings';
-import { UiSelect, UiInput, UiSelectCard, type UiSelectOption } from '@/components/ui';
+import { UiSelect, UiInput, UiSelectCard, UiTip, type UiSelectOption } from '@/components/ui';
 
 const configTab = ref<'provider' | 'custom'>('provider');
 const keyInput = ref('');
@@ -306,12 +306,16 @@ onMounted(loadKeys);
               <span v-else-if="testFailed[key.id]" class="icon ri-close-circle-line failed"></span>
               <span v-else>{{ testSuccess[key.id] ? '连通性正常' : testFailed[key.id] ? '失败' : '测试' }}</span>
             </button>
-            <button class="saved-key-edit" @click="startEdit(key)" title="编辑">
-              <span class="icon ri-edit-line"></span>
-            </button>
-            <button class="saved-key-delete" @click="handleDelete(key.id)" title="删除">
-              <span class="icon ri-delete-bin-line"></span>
-            </button>
+            <UiTip text="编辑">
+              <button class="saved-key-edit" @click="startEdit(key)">
+                <span class="icon ri-edit-line"></span>
+              </button>
+            </UiTip>
+            <UiTip text="删除">
+              <button class="saved-key-delete" @click="handleDelete(key.id)">
+                <span class="icon ri-delete-bin-line"></span>
+              </button>
+            </UiTip>
             <UiSwitch :model-value="key.enabled" size="sm" @click="handleToggle(key)" />
           </div>
         </div>

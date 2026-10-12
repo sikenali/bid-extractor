@@ -48,11 +48,13 @@ withDefaults(defineProps<{
 .ui-tip-bubble {
   position: absolute;
   z-index: var(--z-tooltip, 1070);
-  padding: 7px 11px;
-  border-radius: 8px;
-  background-color: rgba(31, 29, 26, 0.94);
-  color: #fff;
+  padding: 7px 12px;
+  border-radius: 9px;
+  background-color: var(--color-bg-white, #FFFFFF);
+  border: 0.7px solid var(--color-border, #E5DFD3);
+  color: var(--color-text-body, #3A3A3A);
   font-size: 12.5px;
+  font-weight: 400;
   line-height: 1.5;
   font-family: "SourceHanSans-Regular", var(--font-family-cn), sans-serif;
   white-space: normal;
