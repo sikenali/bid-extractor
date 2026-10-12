@@ -759,10 +759,10 @@ onMounted(loadSkills);
   transition: opacity 0.2s;
 }
 .action-btn.edit {
-  color: #4A72A8;
+  color: var(--color-info, #4A72A8);
 }
 .action-btn.delete {
-  color: #C9503C;
+  color: var(--color-error, #E74C3C);
 }
 .action-btn:hover {
   opacity: 0.7;
@@ -856,9 +856,9 @@ onMounted(loadSkills);
 .rule-table td:nth-child(3) { width: 65%; }
 .rule-field { font-weight: 500; color: var(--color-text-primary, #1F1D1A); }
 .type-tag { font-size: 11px; padding: 2px 8px; border-radius: 9999px; }
-.type-tag.regex { background: #E8F0F8; color: #2D6A9F; }
+.type-tag.regex { background: var(--color-info-soft, #E8F0F8); color: var(--color-info, #4A72A8); }
 .type-tag.keyword { background: #F0E8D8; color: var(--color-text-muted, #8A8578); }
-.rule-pattern { font-family: monospace; font-size: 11px; color: #2D6A9F; background: rgba(245,239,227,0.4); padding: 2px 6px; border-radius: 4px; word-break: break-all; }
+.rule-pattern { font-family: monospace; font-size: 11px; color: var(--color-info, #4A72A8); background: rgba(245,239,227,0.4); padding: 2px 6px; border-radius: 4px; word-break: break-all; }
 .empty-pattern { color: var(--color-text-muted, #8A8578); }
 .prompt-content {
   max-height: 400px;

@@ -342,10 +342,10 @@ function handleRuleSubmit(data: { fieldName: string; pattern: string; category: 
   cursor: pointer;
 }
 .action-link.edit {
-  color: #4A72A8;
+  color: var(--color-info, #4A72A8);
 }
 .action-link.delete {
-  color: #C9503C;
+  color: var(--color-error, #E74C3C);
 }
 .table-footer {
   padding: 0 40px;

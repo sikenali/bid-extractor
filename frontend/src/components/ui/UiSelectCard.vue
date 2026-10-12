@@ -25,7 +25,7 @@ withDefaults(defineProps<{
   iconText?: string;
   iconColor?: string;
   disabled?: boolean;
-  /** 选中态边框 / 底色（默认对齐导出格式卡） */
+  /** 选中态边框 / 底色（默认走主题 primary，适配深色） */
   activeBorder?: string;
   activeBg?: string;
 }>(), {
@@ -35,8 +35,8 @@ withDefaults(defineProps<{
   iconText: '',
   iconColor: '#8A8578',
   disabled: false,
-  activeBorder: '#E0C98A',
-  activeBg: '#FBF5E6',
+  activeBorder: 'var(--color-primary, #C0392B)',
+  activeBg: 'var(--color-primary-soft, #FBE9E7)',
 });
 
 const emit = defineEmits<{

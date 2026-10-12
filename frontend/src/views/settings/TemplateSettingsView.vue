@@ -355,10 +355,10 @@ onMounted(() => {
   transition: opacity 0.2s;
 }
 .row-actions .action-btn.edit {
-  color: #4A72A8;
+  color: var(--color-info, #4A72A8);
 }
 .row-actions .action-btn.delete {
-  color: #C9503C;
+  color: var(--color-error, #E74C3C);
 }
 .row-actions .action-btn:hover {
   opacity: 0.7;
@@ -395,9 +395,9 @@ onMounted(() => {
   background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 6px;
   transition: background 0.15s;
 }
-.grid-card-actions .action-btn.edit { color: #4A72A8; }
+.grid-card-actions .action-btn.edit { color: var(--color-info, #4A72A8); }
 .grid-card-actions .action-btn.edit:hover { background: rgba(74, 114, 168, 0.08); }
-.grid-card-actions .action-btn.delete { color: #C9503C; }
+.grid-card-actions .action-btn.delete { color: var(--color-error, #E74C3C); }
 .grid-card-actions .action-btn.delete:hover { background: rgba(201, 80, 60, 0.08); }
 
 @media (max-width: 1200px) { .grid-cards { grid-template-columns: repeat(2, 1fr); } }

@@ -19,7 +19,7 @@ const showSettingsModal = ref(false);
   <header class="top-nav">
     <div class="nav-left">
       <div class="tool-mark">
-        <span class="tool-dot"></span>
+        <span class="ri-target-line tool-logo"></span>
       </div>
       <span class="brand-cn">{{ brand || '文取猩' }}</span>
       <span class="divider"></span>
@@ -53,19 +53,18 @@ const showSettingsModal = ref(false);
   gap: 12px;
 }
 .tool-mark {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background-color: var(--color-primary-soft, #FBE9E7);
+  width: auto;
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.tool-dot {
-  width: 9px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: var(--color-primary, #C0392B);
+.tool-logo {
+  font-family: "remixicon", sans-serif;
+  font-style: normal;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--color-primary, #C0392B);
 }
 .brand-cn {
   font-size: 20px;

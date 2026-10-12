@@ -524,15 +524,15 @@ onMounted(loadKeys);
   font-size: 14px;
 }
 .saved-key-test .icon.spinning { animation: spin 1s linear infinite; }
-.saved-key-test .icon.success { color: #2D8A4E; }
-.saved-key-test .icon.failed { color: #C9503C; }
+.saved-key-test .icon.success { color: var(--color-success, #4E9B7A); }
+.saved-key-test .icon.failed { color: var(--color-error, #E74C3C); }
 
 /* 开关已统一为 UiSwitch，样式见 components/ui */
 
 .test-error-msg {
   margin-top: 8px;
   font-size: 12px;
-  color: #C9503C;
+  color: var(--color-error, #E74C3C);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 

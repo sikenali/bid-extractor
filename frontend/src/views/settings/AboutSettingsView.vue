@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
+const currentYear = new Date().getFullYear();
 </script>
 
 <template>
@@ -32,25 +33,23 @@ const router = useRouter();
     <!-- 品牌信息卡片 -->
     <div class="about-card">
       <div class="about-badge">
-        <svg width="34" height="35" viewBox="-17 -17.5 34 35" xmlns="http://www.w3.org/2000/svg">
-          <path d="M 10 42 C 17 23 30 11 44 9 C 43 24 30 37 12 44 Z" transform="translate(-27, -26.5)" fill="var(--color-primary, #BE3B2E)"/>
-        </svg>
+        <span class="ri-target-line badge-logo"></span>
       </div>
 
-      <div class="about-name">回旋镖 · 智能标书解决方案平台</div>
+      <div class="about-name">文取猩 · 智能标书解决方案平台</div>
 
-      <div class="about-slogan">一体化智能标书创作平台 · 让每一次投标都投出有把握的那一版</div>
+      <div class="about-slogan">智能化文件提取工具</div>
 
       <div class="about-repo" @click="router.push('/settings/theme')">
         <span class="repo-left">GitHub 开源仓库</span>
         <span class="repo-right">
           <span class="icon ri-github-line"></span>
-          <span class="repo-url">github.com/boomerang-bid</span>
+          <span class="repo-url">github.com/sikenali/bid-extactor</span>
           <span class="icon ri-arrow-right-up-line"></span>
         </span>
       </div>
 
-      <div class="about-copy">© 2026 回旋镖智能科技（中国 · 深圳）版权所有</div>
+      <div class="about-copy">© {{ currentYear }} 文取猩 · sikenali</div>
     </div>
   </div>
 </template>
@@ -160,6 +159,13 @@ const router = useRouter();
   align-items: center;
   justify-content: center;
 }
+.badge-logo {
+  font-family: "remixicon", sans-serif;
+  font-style: normal;
+  font-size: 52px;
+  line-height: 1;
+  color: #BE3B2E;
+}
 .about-name {
   margin-top: 32px;
   font-size: 24px;
@@ -191,7 +197,7 @@ const router = useRouter();
   box-sizing: border-box;
 }
 .about-repo:hover {
-  background-color: #FAF8F0;
+  background-color: var(--color-bg-secondary, #F7F3EA);
 }
 .repo-left {
   font-size: 16px;

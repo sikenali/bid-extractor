@@ -124,7 +124,7 @@ function clear() {
   flex: 1;
   width: 100%;
   min-width: 0;
-  background-color: #FAF8F0;
+  background-color: var(--color-bg-secondary, #F7F3EA);
   border: 0.7px solid var(--color-border, #E5DFD3);
   border-radius: 10px;
   font-size: 14px;

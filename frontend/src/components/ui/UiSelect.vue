@@ -125,7 +125,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  background-color: #FAF8F0;
+  background-color: var(--color-bg-secondary, #F7F3EA);
   border: 0.7px solid var(--color-border, #E5DFD3);
   border-radius: 10px;
   padding: 0 14px 0 16px;
