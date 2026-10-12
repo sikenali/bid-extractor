@@ -283,7 +283,7 @@ const biddingSites = [
   justify-content: center;
   padding-top: 6px;
   margin-top: 4px;
-  border-top: 1px solid var(--color-bg-secondary, #F7F3EA);
+  border-top: 1px solid var(--color-border-soft, #EDE9E0);
 }
 
 .site-link {
@@ -295,15 +295,13 @@ const biddingSites = [
   font-size: 12px;
   font-weight: 500;
   color: var(--color-primary, #C0392B);
-  background: var(--color-primary-soft, #FBE9E7);
   text-decoration: none;
   transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .site-link:hover {
-  background: color-mix(in srgb, var(--color-primary, #C0392B) 14%, transparent);
+  opacity: 0.8;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary, #C0392B) 18%, transparent);
 }
 
 .site-link i {
