@@ -1,16 +1,18 @@
 <script setup lang="ts">
 // @ts-nocheck
 import { ref, onMounted, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import TopNav from '@/components/layout/TopNav.vue';
 import PageFooter from '@/components/layout/PageFooter.vue';
+import StepStrip from '@/components/StepStrip.vue';
 import PreviewModal from '@/components/preview/PreviewModal.vue';
 import { getParseStatus } from '@/api/upload';
 import { getExportSettings } from '@/api/settings';
 import apiClient from '@/api/client';
 
 const route = useRoute();
+const router = useRouter();
 
 const previewVisible = ref(false);
 const previewPage = ref<number | null>(null);
@@ -18,6 +20,16 @@ const fileId = ref('');
 const showEditDialog = ref(false);
 const editingField = ref('');
 const editValue = ref('');
+
+const projectSteps = [
+  { key: 0, label: '解析文件' },
+  { key: 1, label: '转换释义' },
+  { key: 2, label: '提取字段' },
+];
+
+function handleReupload() {
+  router.replace({ path: '/' });
+}
 
 const activeSection = ref('info');
 const currentPage = ref(1);
@@ -434,6 +446,15 @@ function triggerDownload(blob: Blob, filename: string) {
   <div class="extract-view">
     <TopNav title="提取结果" />
 
+    <div class="project-strippad">
+      <StepStrip
+        :steps="projectSteps"
+        :loading="false"
+        button-label="重新上传"
+        @extract="handleReupload"
+      />
+    </div>
+
     <div class="extract-body">
       <aside class="sidebar">
         <div class="sidebar-title">提取分类</div>
@@ -579,7 +600,14 @@ function triggerDownload(blob: Blob, filename: string) {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #FAF7F2;
+  background-color: var(--color-bg-main);
+}
+.project-strippad {
+  background-color: var(--color-bg-card, #fff);
+  border-bottom: 0.7px solid var(--color-border, #EDE9E0);
+  padding: 20px 32px;
+  display: flex;
+  justify-content: center;
 }
 .extract-body {
   flex: 1;

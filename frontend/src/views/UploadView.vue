@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import TopNav from '@/components/layout/TopNav.vue';
 import PageFooter from '@/components/layout/PageFooter.vue';
+import StepStrip from '@/components/StepStrip.vue';
 import { uploadFile } from '@/api/upload';
 
 const router = useRouter();
@@ -19,17 +20,6 @@ const steps = [
   { key: 1, label: '转换释义' },
   { key: 2, label: '提取字段' },
 ];
-
-function currentStep() {
-  if (!uploading.value && progressPercent.value === 0) return 1;
-  if (progressPercent.value === 100) return 3;
-  if (uploading.value) {
-    if (progressPercent.value < 40) return 1;
-    if (progressPercent.value < 75) return 2;
-    return 2;
-  }
-  return 1;
-}
 
 function validateFile(file: File): boolean {
   const name = file.name.toLowerCase();
@@ -139,7 +129,7 @@ onUnmounted(() => {
             <span class="fmt fmt-w">W</span>
             <span class="fmt fmt-x">X</span>
             <span class="fmt fmt-p">P</span>
-            <span class="fmt fmt-pd">PD</span>
+            <span class="fmt fmt-pdf">PDF</span>
             <span class="fmt fmt-md">MD</span>
             <span class="fmt fmt-tx">TX</span>
           </div>
@@ -164,32 +154,12 @@ onUnmounted(() => {
         />
       </div>
 
-      <div class="step-strip">
-        <template v-for="(step, i) in steps" :key="step.key">
-          <div
-            class="step-pill"
-            :class="{
-              done: currentStep() > step.key,
-              active: currentStep() === step.key,
-              todo: currentStep() < step.key,
-            }"
-          >
-            <span class="step-num">{{ step.key + 1 }}</span>
-            <span class="step-label">{{ step.label }}</span>
-          </div>
-          <span v-if="i < steps.length - 1" class="step-line"></span>
-        </template>
-      </div>
-
-      <div class="btn-area">
-        <button
-          class="extract-btn"
-          :disabled="uploading"
-          @click="!uploading && triggerFileInput()"
-        >
-          一键提取
-        </button>
-      </div>
+      <StepStrip
+        :steps="steps"
+        :loading="uploading"
+        button-label="一键提取"
+        @extract="triggerFileInput"
+      />
     </div>
 
     <PageFooter />
@@ -276,7 +246,7 @@ onUnmounted(() => {
 .fmt-w { background-color: #2B579A; font-size: 11px; }
 .fmt-x { background-color: #217346; font-size: 11px; }
 .fmt-p { background-color: #C0392B; font-size: 11px; }
-.fmt-pd { background-color: #B03A2E; font-size: 9px; }
+.fmt-pdf { background-color: #B03A2E; font-size: 9px; }
 .fmt-md { background-color: #4A6FA5; font-size: 9px; }
 .fmt-tx { background-color: #5A5750; font-size: 9px; }
 
@@ -315,80 +285,5 @@ onUnmounted(() => {
   color: #6E6A60;
 }
 
-.step-strip {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  padding-top: 56px;
-}
-.step-pill {
-  height: 50px;
-  padding: 0 20px;
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background-color: #FFFFFF;
-  border: 0.7px solid #EDE9E0;
-}
-.step-pill.active {
-  border-color: #C0392B;
-}
-.step-pill.done {
-  background-color: #E4F0EA;
-  border-color: transparent;
-}
-.step-num {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background-color: #EFEBE1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 500;
-  color: #8A8578;
-  font-family: "SourceHanSans-Medium", var(--font-family-cn);
-}
-.step-pill.done .step-num {
-  background-color: #4E9B7A;
-  color: #fff;
-}
-.step-pill.active .step-num {
-  background-color: #C0392B;
-  color: #fff;
-}
-.step-label {
-  font-size: 17px;
-  color: #8A8578;
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
-}
-.step-pill.done .step-label { color: #3E8A6B; }
-.step-pill.active .step-label { color: #C0392B; }
-.step-line {
-  width: 57px;
-  height: 1px;
-  background-color: #DDD7C9;
-}
-
-.btn-area {
-  padding-top: 48px;
-}
-.extract-btn {
-  width: 260px;
-  height: 58px;
-  border: none;
-  border-radius: 10px;
-  background-color: #C0392B;
-  color: #fff;
-  font-size: 18px;
-  font-weight: 500;
-  font-family: "SourceHanSans-Medium", var(--font-family-cn);
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-.extract-btn:hover { opacity: 0.9; }
-.extract-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .file-input-hidden { display: none; }
 </style>
