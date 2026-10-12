@@ -115,7 +115,7 @@ function stringifyValue(v: unknown): string {
 
 const tableData = ref<ExtractedField[]>([]);
 const structuredExtracts = ref<Record<string, TechSectionItem[]>>({});
-const docTables = ref<{ rows: { cells: string[] }[] }[]>([]);
+const docTables = ref<{ rows: { cells: string[] }[]; page?: string; chapter?: string; group?: string }[]>([]);
 const markedItems = ref<{ symbol: string; text: string; page: number }[]>([]);
 
 const fileInfo = ref({ name: '', size: 0, pageCount: 0 });
@@ -137,6 +137,12 @@ const sectionData = computed(() => {
 
 const totalRows = computed(() => sectionData.value.length);
 const totalPages = computed(() => Math.max(1, Math.ceil(totalRows.value / pageSize.value)));
+
+/** 技术 / 评分：优先展示文档原文表格（后端已按关键词归组），无表格时仍显示关键字提取行 */
+const sectionTables = computed(() => {
+  if (activeSection.value !== 'tech' && activeSection.value !== 'score') return [];
+  return docTables.value.filter(t => t.group === activeSection.value);
+});
 
 const paginatedData = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value;
@@ -355,7 +361,14 @@ function processResult(statusData: any) {
   }
 
   if (result?.tables) {
-    docTables.value = result.tables as { rows: { cells: string[] }[] }[];
+    docTables.value = (result.tables as any[]).map((t: any) => ({
+      rows: (t.rows || []).map((r: any) => ({
+        cells: Array.isArray(r) ? r.map((c: any) => String(c ?? '')) : [],
+      })),
+      page: typeof t.page === 'number' ? `P${t.page}` : (t.page || ''),
+      chapter: t.chapter || '',
+      group: t.group || '',
+    }));
   }
   if (result?.markedItems) {
     markedItems.value = result.markedItems as { symbol: string; text: string; page: number }[];
@@ -730,7 +743,7 @@ function triggerDownload(blob: Blob, filename: string) {
           </template>
         </div>
 
-        <div class="score-card">
+        <div v-if="activeSection === 'score'" class="score-card">
           <div class="score-row">
             <span class="score-label">评分构成</span>
             <span v-for="card in scoreCards" :key="card.key" class="score-pill">
@@ -739,6 +752,21 @@ function triggerDownload(blob: Blob, filename: string) {
           </div>
           <div class="score-note">
             综合得分 = 商务得分 + 技术得分 + 价格得分； 价格得分 = （评标基准价 / 评标价）× 30 × 100%
+          </div>
+        </div>
+
+        <div v-if="sectionTables.length > 0" class="doc-tables-card">
+          <div class="doc-tables-title">
+            原文表格（{{ sectionTables.length }}）
+            <span class="doc-tables-tip">直接取自文档中的表格</span>
+          </div>
+          <div v-for="(t, ti) in sectionTables" :key="ti" class="doc-table-wrap">
+            <div class="doc-table-meta">表格 {{ ti + 1 }} · {{ t.page }} · {{ t.chapter || '正文' }}</div>
+            <table class="doc-table">
+              <tr v-for="(row, ri) in t.rows" :key="ri" :class="{ 'is-header': ri === 0 }">
+                <td v-for="(cell, ci) in row.cells" :key="ci">{{ cell || '—' }}</td>
+              </tr>
+            </table>
           </div>
         </div>
 
@@ -1048,6 +1076,54 @@ function triggerDownload(blob: Blob, filename: string) {
   font-size: 15px;
   color: var(--color-text-secondary, #6E6A60);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+
+.doc-tables-card {
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
+  border-radius: 12px;
+  background-color: var(--color-bg-white, #FFFFFF);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.doc-tables-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text-primary, #1F1D1A);
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.doc-tables-tip {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-text-muted, #8A8578);
+}
+.doc-table-wrap { overflow-x: auto; }
+.doc-table-meta {
+  font-size: 13px;
+  color: var(--color-text-secondary, #6E6A60);
+  margin-bottom: 8px;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.doc-table td {
+  border: 0.7px solid var(--color-border, #E5DFD3);
+  padding: 10px 14px;
+  color: var(--color-text-body, #3A3A3A);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  vertical-align: top;
+}
+.doc-table tr.is-header td {
+  background-color: var(--color-bg-secondary, #F7F3EA);
+  font-weight: 500;
+  color: var(--color-text-primary, #1F1D1A);
 }
 
 .pagination-row {

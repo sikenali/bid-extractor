@@ -29,6 +29,7 @@ export interface TableMeta {
   page: number;
   chapter: string;
   rows: string[][];
+  group: string;
 }
 
 export interface FieldExtract {
@@ -201,6 +202,39 @@ function buildParaToPage(paras: FlatParagraph[]): { paraToPage: number[]; pageCo
   return { paraToPage, pageCount: estimatedPages };
 }
 
+const SCORE_TABLE_KEYWORDS = ['评分', '分值', '得分', '权重', '评标', '商务分', '技术分', '价格分'];
+const TECH_TABLE_KEYWORDS = ['技术', '参数', '规格', '配置', '设备', '性能', '服务', '验收', '指标', '系统', '软件', '硬件', '方案', '质保'];
+
+/** 按关键词命中给表格归组（技术 / 评分），命中不足则不归组 */
+function detectTableGroup(rows: string[][]): string {
+  const text = rows.flat().join(' ');
+  const count = (kws: string[]) => kws.reduce((n, k) => n + (text.includes(k) ? 1 : 0), 0);
+  const scoreHits = count(SCORE_TABLE_KEYWORDS);
+  const techHits = count(TECH_TABLE_KEYWORDS);
+  if (scoreHits < 2 && techHits < 2) return '';
+  return scoreHits >= techHits ? 'score' : 'tech';
+}
+
+/** 标星组关键字命中同样计入标星条款（符号 ★），与符号检测互补 */
+function extractStarKeywordItems(
+  rules: FieldRule[],
+  extracts: Record<string, FieldExtract>,
+): MarkedItem[] {
+  const items: MarkedItem[] = [];
+  for (const rule of rules) {
+    if (rule.group !== 'star') continue;
+    const ex = extracts[rule.fieldName];
+    if (!ex || ex.value == null || ex.value === '') continue;
+    const text = String(ex.sourceText || ex.value);
+    items.push({
+      symbol: '★',
+      text: [...text].length > 120 ? [...text].slice(0, 120).join('') + '...' : text.trim(),
+      page: ex.page ?? 1,
+    });
+  }
+  return items;
+}
+
 function extractMarkedItems(paras: FlatParagraph[], paraToPage: number[]): MarkedItem[] {
   const items: MarkedItem[] = [];
   for (let i = 0; i < paras.length; i++) {
@@ -347,7 +381,6 @@ export async function parseDocument(filePath: string): Promise<ParseResult> {
 
     const paragraphsMeta = buildParagraphsMeta(flatParas, paraToPage);
     const chapters = buildChapters(flatParas, paraToPage);
-    const markedItems = extractMarkedItems(flatParas, paraToPage);
 
     const tablesMeta: TableMeta[] = tableRows.map((rows, ti) => {
       const anchor = paragraphsMeta[Math.min(ti, paragraphsMeta.length - 1)] || { page: 1, chapter: '' };
@@ -357,11 +390,22 @@ export async function parseDocument(filePath: string): Promise<ParseResult> {
         page: anchor.page,
         chapter: anchor.chapter,
         rows,
+        group: detectTableGroup(rows),
       };
     });
 
     const rules = loadFieldRules();
     const { extracts, groups, fieldParaMap, fieldGroups } = applyRuleExtraction(rules, paragraphsMeta);
+    const seen = new Set<string>();
+    const markedItems = [
+      ...extractMarkedItems(flatParas, paraToPage),
+      ...extractStarKeywordItems(rules, extracts),
+    ].filter(m => {
+      const k = `${m.page}|${m.text}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
 
     const fullText = flatParas.map(p => p.text).join('\n');
 
