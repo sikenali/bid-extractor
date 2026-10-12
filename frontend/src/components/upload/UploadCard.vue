@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue';
+import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import { uploadFile } from '@/api/upload';
 import StepStrip from '@/components/StepStrip.vue';
@@ -28,9 +28,6 @@ const emit = defineEmits<{
 const uploading = ref(false);
 const isDragging = ref(false);
 const selectedFile = ref<File | null>(null);
-const progressPercent = ref(0);
-const progressFileName = ref('');
-let progressTimer: ReturnType<typeof setTimeout> | null = null;
 
 function getExt(file: File): string {
   const name = file.name.toLowerCase();
@@ -88,47 +85,27 @@ function handleFileSelect(event: Event) {
 
 function selectFile(file: File) {
   selectedFile.value = file;
-  progressFileName.value = file.name;
 }
 
 function startUpload(file: File) {
-  if (!selectedFile.value) return;
+  if (!selectedFile.value || uploading.value) return;
   uploading.value = true;
-  progressPercent.value = 0;
-
-  let cancelled = false;
-  const simProgress = () => {
-    if (cancelled || progressPercent.value >= 95) return;
-    const target = progressPercent.value < 40 ? 40
-      : progressPercent.value < 75 ? 75
-      : 90;
-    const step = Math.max(1, (target - progressPercent.value) / 8);
-    progressPercent.value = Math.min(target, progressPercent.value + step);
-    progressTimer = setTimeout(simProgress, 600);
-  };
-  progressTimer = setTimeout(simProgress, 300);
 
   uploadFile(file).then((uploadResult) => {
-    cancelled = true;
-    progressPercent.value = 100;
     setTimeout(() => {
       emit('success', uploadResult.id);
     }, 500);
   }).catch((err: any) => {
-    cancelled = true;
     const msg = err?.response?.data?.error || '上传失败，请重试';
     ElMessage.error(msg);
     uploading.value = false;
-    progressPercent.value = 0;
-    progressFileName.value = '';
     selectedFile.value = null;
   });
 }
 
 function handleReplace() {
+  if (uploading.value) return;
   selectedFile.value = null;
-  progressFileName.value = '';
-  progressPercent.value = 0;
   uploading.value = false;
   emit('replace');
 }
@@ -136,12 +113,7 @@ function handleReplace() {
 const btnDisabled = computed(() => !selectedFile.value || uploading.value);
 const btnLabel = computed(() => {
   if (uploading.value) return '提取中…';
-  if (selectedFile.value) return '一键提取';
   return '一键提取';
-});
-
-onUnmounted(() => {
-  if (progressTimer !== null) clearTimeout(progressTimer);
 });
 </script>
 
@@ -171,9 +143,9 @@ onUnmounted(() => {
         </div>
       </template>
 
-      <!-- file selected, not uploading: centered icon + name + size, corner replace icon -->
-      <template v-else-if="!uploading">
-        <button class="replace-icon" title="替换文件" @click.stop="handleReplace">
+      <!-- file selected: centered icon + name + size (kept as-is during upload, animation lives in StepStrip below) -->
+      <template v-else>
+        <button v-if="!uploading" class="replace-icon" title="替换文件" @click.stop="handleReplace">
           <span class="ri-refresh-line icon"></span>
         </button>
         <div class="file-centered">
@@ -202,39 +174,6 @@ onUnmounted(() => {
           </div>
           <p class="file-name">{{ selectedFile.name }}</p>
           <p class="file-size">{{ formatSize(selectedFile.size) }}</p>
-        </div>
-      </template>
-
-      <!-- uploading -->
-      <template v-else>
-        <div class="uploading-inner">
-          <div class="file-icon-sm" :class="'fmt-' + getExt(selectedFile!).replace('.', '')">
-            <svg v-if="getExt(selectedFile!) === '.docx' || getExt(selectedFile!) === '.wps'" width="20" height="20" viewBox="0 0 28 28" fill="none">
-              <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="2"/>
-              <path d="M8 9h12M8 13h12M8 17h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-            <svg v-else-if="getExt(selectedFile!) === '.xlsx'" width="20" height="20" viewBox="0 0 28 28" fill="none">
-              <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="2"/>
-              <path d="M8 9h12M8 13h12M8 17h12M14 7v14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-            <svg v-else-if="getExt(selectedFile!) === '.pdf'" width="20" height="20" viewBox="0 0 28 28" fill="none">
-              <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="2"/>
-              <path d="M9 10l4 3-4 3V10z" fill="currentColor"/><path d="M17 10l4 3-4 3V10z" fill="currentColor" opacity="0.5"/>
-            </svg>
-            <svg v-else width="20" height="20" viewBox="0 0 28 28" fill="none">
-              <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="2"/>
-              <path d="M9 9h10M9 13h10M9 17h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="uploading-info">
-            <p class="uploading-name">{{ progressFileName }}</p>
-            <div class="progress-track">
-              <div class="progress-bar" :style="{ width: progressPercent + '%' }">
-                <div class="shimmer"></div>
-              </div>
-            </div>
-            <p class="progress-text">{{ Math.round(progressPercent) }}%</p>
-          </div>
         </div>
       </template>
 
@@ -413,73 +352,6 @@ onUnmounted(() => {
   margin: 0;
   font-size: 14px;
   color: #8A8578;
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
-}
-
-/* ── uploading state ───────────────────────────────── */
-.uploading-inner {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  max-width: 600px;
-}
-.file-icon-sm {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.file-icon-sm.fmt-docx, .file-icon-sm.fmt-wps { background-color: #2B579A; color: #fff; }
-.file-icon-sm.fmt-xlsx                      { background-color: #217346; color: #fff; }
-.file-icon-sm.fmt-pdf                       { background-color: #C0392B; color: #fff; }
-.file-icon-sm.fmt-md                        { background-color: #4A6FA5; color: #fff; }
-.file-icon-sm.fmt-txt                       { background-color: #5A5750; color: #fff; }
-.uploading-info { flex: 1; min-width: 0; }
-.uploading-name {
-  margin: 0 0 10px 0;
-  font-size: 15px;
-  font-weight: 500;
-  color: #1F1D1A;
-  font-family: "SourceHanSans-Medium", var(--font-family-cn);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.progress-track {
-  width: 100%;
-  height: 6px;
-  background-color: #F7F3EA;
-  border-radius: 9999px;
-  overflow: hidden;
-}
-.progress-bar {
-  height: 100%;
-  background-color: #C0392B;
-  border-radius: 9999px;
-  transition: width 0.2s;
-  position: relative;
-}
-.shimmer {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
-  animation: shimmer 1.5s infinite;
-}
-@keyframes shimmer {
-  0% { left: -100%; }
-  100% { left: 100%; }
-}
-.progress-text {
-  margin: 6px 0 0 0;
-  font-size: 13px;
-  color: #6E6A60;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 
