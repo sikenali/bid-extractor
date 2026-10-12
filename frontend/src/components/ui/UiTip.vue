@@ -44,6 +44,9 @@ withDefaults(defineProps<{
   position: relative;
   display: inline-flex;
   align-items: center;
+  /* Ensure the tooltip wrapper fits its content (the button) rather than stretching */
+  min-width: fit-content;
+  width: fit-content;
 }
 .ui-tip-bubble {
   position: absolute;
@@ -71,7 +74,6 @@ withDefaults(defineProps<{
 .ui-tip:not(.is-disabled):hover .ui-tip-bubble,
 .ui-tip:not(.is-disabled):focus-within .ui-tip-bubble {
   opacity: 1;
-  transform: scale(1);
 }
 /* 小箭头 */
 .ui-tip-bubble::after {
@@ -88,6 +90,7 @@ withDefaults(defineProps<{
   transform: translateX(-50%) scale(0.96);
 }
 .is-top:hover .ui-tip-bubble, .is-top:focus-within .ui-tip-bubble {
+  opacity: 1;
   transform: translateX(-50%) scale(1);
 }
 .is-top .ui-tip-bubble::after { top: calc(100% - 4px); left: calc(50% - 3.5px); }
@@ -97,6 +100,7 @@ withDefaults(defineProps<{
   transform: translateX(-50%) scale(0.96);
 }
 .is-bottom:hover .ui-tip-bubble, .is-bottom:focus-within .ui-tip-bubble {
+  opacity: 1;
   transform: translateX(-50%) scale(1);
 }
 .is-bottom .ui-tip-bubble::after { bottom: calc(100% - 4px); left: calc(50% - 3.5px); }
@@ -106,6 +110,7 @@ withDefaults(defineProps<{
   transform: translateY(-50%) scale(0.96);
 }
 .is-left:hover .ui-tip-bubble, .is-left:focus-within .ui-tip-bubble {
+  opacity: 1;
   transform: translateY(-50%) scale(1);
 }
 .is-left .ui-tip-bubble::after { left: calc(100% - 4px); top: calc(50% - 3.5px); }
@@ -115,6 +120,7 @@ withDefaults(defineProps<{
   transform: translateY(-50%) scale(0.96);
 }
 .is-right:hover .ui-tip-bubble, .is-right:focus-within .ui-tip-bubble {
+  opacity: 1;
   transform: translateY(-50%) scale(1);
 }
 .is-right .ui-tip-bubble::after { right: calc(100% - 4px); top: calc(50% - 3.5px); }

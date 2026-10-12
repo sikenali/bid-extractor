@@ -111,11 +111,20 @@ function handleReplace() {
   emit('replace');
 }
 
-const btnDisabled = computed(() => !selectedFile.value || uploading.value);
+const btnDisabled = computed(() => uploading.value);
 const btnLabel = computed(() => {
   if (uploading.value) return '提取中…';
   return '一键提取';
 });
+
+function handleExtract() {
+  if (uploading.value) return;
+  if (!selectedFile.value) {
+    ElMessage.warning('请先上传文件后再点击提取～');
+    return;
+  }
+  startUpload(selectedFile.value);
+}
 </script>
 
 <template>
@@ -195,7 +204,7 @@ const btnLabel = computed(() => {
       :loading="uploading"
       :button-label="btnLabel"
       :disabled="btnDisabled"
-      @extract="selectedFile && startUpload(selectedFile)"
+      @extract="handleExtract"
     />
   </div>
 </template>
