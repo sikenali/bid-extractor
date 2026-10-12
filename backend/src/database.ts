@@ -113,6 +113,58 @@ export function initializeDatabase() {
     if (!ruleCols.some(c => c.name === 'alias_for')) {
       db.exec(`ALTER TABLE extraction_rules ADD COLUMN alias_for TEXT DEFAULT ''`);
     }
+    if (!ruleCols.some(c => c.name === 'biz_type')) {
+      db.exec(`ALTER TABLE extraction_rules ADD COLUMN biz_type TEXT DEFAULT ''`);
+      // Backfill: map group_name to biz_type
+      db.exec(`UPDATE extraction_rules SET biz_type = group_name WHERE biz_type = ''`);
+    }
+  } catch { /* ignore */ }
+
+  // Migration: tender_llm_skill table (V1.3 skill management)
+  if (!tableExists('tender_llm_skill')) {
+    db.exec(`CREATE TABLE tender_llm_skill (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      skill_name TEXT NOT NULL,
+      skill_code TEXT NOT NULL UNIQUE,
+      biz_type TEXT NOT NULL DEFAULT 'info',
+      prompt_template TEXT NOT NULL,
+      temperature REAL DEFAULT 0.1,
+      top_p REAL DEFAULT 0.9,
+      max_tokens INTEGER DEFAULT 2048,
+      enable INTEGER DEFAULT 1,
+      remark TEXT,
+      version INTEGER DEFAULT 1,
+      create_time TEXT DEFAULT (datetime('now')),
+      update_time TEXT DEFAULT (datetime('now'))
+    )`);
+  }
+  // Migration: tender_llm_skill_version table
+  if (!tableExists('tender_llm_skill_version')) {
+    db.exec(`CREATE TABLE tender_llm_skill_version (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      skill_id INTEGER NOT NULL,
+      skill_snapshot TEXT NOT NULL,
+      version INTEGER NOT NULL,
+      create_user TEXT,
+      create_time TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (skill_id) REFERENCES tender_llm_skill(id)
+    )`);
+  }
+  // Seed default LLM skills (only if empty)
+  try {
+    const skillCount = (db.prepare('SELECT COUNT(*) as c FROM tender_llm_skill').get() as any).c;
+    if (skillCount === 0) {
+      const seedSkills = [
+        ['extract_project_info', '项目信息抽取技能', 'info', '你是招标文件抽取专家，下面是招标文件章节原文。\n只抽取【项目信息】的字段，严格遵守下面约束：\n1. 所有条款内容优先保留原文，不要改写、总结，禁止编造不存在信息；没有该字段则填空字符串""；\n2. 如果文本不属于目标章节，则返回空数组；\n3. 输出只能是JSON，禁止额外解释文字；\n4. 标星★条款标记isKey=true；\n\n原文chunk：\n{{chunkText}}', 0.1, 0.9, 2048],
+        ['extract_business_clause', '商务条款抽取技能', 'business', '你是招标文件抽取专家，下面是招标文件章节原文。\n只抽取【商务条款】的字段，严格遵守下面约束：\n1. 所有条款内容优先保留原文，不要改写、总结，禁止编造不存在信息；\n2. 否决投标（废标）条款逐条拆分，一条为一项；\n3. 输出只能是JSON，禁止额外解释文字；\n\n原文chunk：\n{{chunkText}}', 0.1, 0.9, 2048],
+        ['extract_tech_clause', '技术条款抽取技能', 'tech', '你是招标文件抽取专家，下面是招标文件章节原文。\n只抽取【技术条款】的字段，严格遵守下面约束：\n1. 所有条款内容优先保留原文，不要改写、总结，禁止编造不存在信息；\n2. 输出只能是JSON，禁止额外解释文字；\n\n原文chunk：\n{{chunkText}}', 0.1, 0.9, 2048],
+        ['extract_score_standard', '评分标准抽取技能', 'score', '你是招标文件抽取专家，下面是招标文件章节原文。\n只抽取【评分标准】的字段，严格遵守下面约束：\n1. 所有条款内容优先保留原文，不要改写、总结；\n2. 分值数值必须准确；总分校验；\n3. 输出只能是JSON，禁止额外解释文字；\n\n原文chunk：\n{{chunkText}}', 0.1, 0.9, 2048],
+        ['extract_seal_info', '封标信息抽取技能', 'seal', '你是招标文件抽取专家，下面是招标文件章节原文。\n只抽取【封标信息】的字段，严格遵守下面约束：\n1. 正副本份数、密封要求、标记要求逐条提取；\n2. 保留原文，不要改写；\n3. 输出只能是JSON，禁止额外解释文字；\n\n原文chunk：\n{{chunkText}}', 0.1, 0.9, 2048],
+        ['extract_star_clause', '标星条款抽取技能', 'star', '你是招标文件抽取专家，下面是招标文件章节原文。\n只抽取【标星条款★】的字段，严格遵守下面约束：\n1. 带★标记的强制关键条款，漏召回是重大风险；\n2. 保留原文，逐条拆分；\n3. 输出只能是JSON，禁止额外解释文字；\n\n原文chunk：\n{{chunkText}}', 0.1, 0.9, 2048],
+      ];
+      const insSkill = db.prepare('INSERT INTO tender_llm_skill (skill_code, skill_name, biz_type, prompt_template, temperature, top_p, max_tokens, enable) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+      for (const s of seedSkills) insSkill.run(...s);
+    }
   } catch { /* ignore */ }
 
   if (!tableExists('correction_history')) {
@@ -238,6 +290,9 @@ export function initializeDatabase() {
     // ════════════════════════════════════════════
     // 项目信息 (info)
     // ════════════════════════════════════════════
+    // 标题兜底：第一行无标签但像项目名称的长纯文本
+    ['info_project_name_title', '项目名称',
+     '', 'title_first', 'info'],
     ['info_project_name', '项目名称',
      '(?:本次招标(?:内容|范围)[为是]|(?:采购|项目)(?:内容|概况)[：:]\\s*(?:[^\\n。]{0,20}?[为是])?)\\s*([^。\\n]{6,80})(?=[。；\\n]|(?:项目|招标|采购)编号|投标截止|评分)',
      'regex', 'info'],
@@ -706,6 +761,9 @@ function seedMissingGroups(missingGroups: string[]) {
 
   const groupSeedRules: Record<string, Array<[string, string, string, string]>> = {
     info: [
+      // 标题兜底：第一行无标签但像项目名称的长纯文本
+      ['info_project_name_title', '项目名称',
+       '', 'title_first'],
       ['info_project_name', '项目名称',
        '(?:本次招标(?:内容|范围)[为是]|(?:采购|项目)(?:内容|概况)[：:]\\s*(?:[^\\n。]{0,20}?[为是])?)\\s*([^。\\n]{6,80})(?=[。；\\n]|(?:项目|招标|采购)编号|投标截止|评分)',
        'regex'],

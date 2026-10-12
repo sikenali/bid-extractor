@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { parseDocument } from '../services/docProcessor.js';
-import type { ParseResult } from '../services/docProcessor.js';
+import type { ExtractOutput } from '../services/docProcessor.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,7 +20,7 @@ if (!fs.existsSync(UPLOAD_DIR)) {
 interface JobEntry {
   filename: string;
   size: number;
-  result: ParseResult;
+  result: ExtractOutput;
   createdAt: number;
 }
 
@@ -94,15 +94,8 @@ router.post('/', upload.single('file'), async (req, res) => {
 
   try {
     const result = await parseDocument(req.file.path);
-
-    if (result.status === 'error') {
-      if (fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
-      }
-      return res.status(400).json({
-        error: result.error || '解析失败'
-      });
-    }
+    const warnings = result.fileMeta?.warningList || [];
+    const hasErrors = warnings.some(w => w.includes('失败') || w.includes('不支持') || w.includes('不存在'));
 
     const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
     const jobId = req.file.filename;
@@ -118,7 +111,8 @@ router.post('/', upload.single('file'), async (req, res) => {
       id: jobId,
       filename: originalName,
       size: req.file.size,
-      status: 'parsed',
+      status: hasErrors ? 'error' : 'parsed',
+      warnings,
       result
     });
   } catch (err: any) {

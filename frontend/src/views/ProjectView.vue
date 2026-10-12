@@ -33,7 +33,6 @@ function loadTemplateBytes(url: string): Promise<ArrayBuffer> {
     });
   });
 }
-import { saveAs } from 'file-saver';
 
 const route = useRoute();
 const router = useRouter();
