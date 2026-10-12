@@ -145,7 +145,7 @@ onUnmounted(() => {
         @drop="handleDrop"
         @click="!uploading && triggerFileInput()"
       >
-        <!-- initial state: upload icon + hint + format badges -->
+        <!-- initial state: upload icon + hint + format badges + disabled btn -->
         <template v-if="!selectedFile">
           <div class="upload-icon-wrap">
             <span class="ri-upload-cloud-2-line icon"></span>
@@ -159,9 +159,10 @@ onUnmounted(() => {
             <span class="fmt fmt-md">MD</span>
             <span class="fmt fmt-tx">TX</span>
           </div>
+          <button class="btn-extract btn-extract--disabled" disabled>一键提取</button>
         </template>
 
-        <!-- file selected, not uploading: show file info + extract button -->
+        <!-- file selected, not uploading: show file info + active btn -->
         <template v-else-if="!uploading">
           <div class="file-card">
             <div class="file-icon" :class="'fmt-' + getExt(selectedFile).replace('.', '')">
@@ -202,7 +203,7 @@ onUnmounted(() => {
               <span class="ri-refresh-line icon"></span>
               替换文件
             </button>
-            <button class="btn-extract" @click.stop="startUpload(selectedFile!)">
+            <button class="btn-extract btn-extract--active" @click.stop="startUpload(selectedFile!)">
               一键提取
             </button>
           </div>
@@ -254,7 +255,6 @@ onUnmounted(() => {
       <StepStrip
         :steps="steps"
         :loading="uploading"
-        button-label="一键提取"
       />
     </div>
 
@@ -297,6 +297,7 @@ onUnmounted(() => {
   position: relative;
   overflow: hidden;
   gap: 20px;
+  padding: 40px 32px;
 }
 .upload-card.dragging {
   border-color: #C0392B;
@@ -304,13 +305,9 @@ onUnmounted(() => {
 }
 .upload-card.hasFile {
   cursor: default;
-  justify-content: center;
-  gap: 28px;
 }
 .upload-card.uploading {
   cursor: default;
-  justify-content: center;
-  gap: 20px;
 }
 
 /* initial state */
@@ -436,16 +433,31 @@ onUnmounted(() => {
   height: 48px;
   border: none;
   border-radius: 10px;
-  background-color: #C0392B;
-  color: #fff;
   font-size: 16px;
   font-weight: 500;
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
   cursor: pointer;
   transition: opacity 0.2s, transform 0.15s;
 }
-.btn-extract:hover { opacity: 0.9; transform: translateY(-1px); }
-.btn-extract:active { transform: translateY(0); }
+.btn-extract--disabled {
+  background-color: #D1CCC0;
+  color: #A7A296;
+  cursor: not-allowed;
+}
+.btn-extract--disabled:hover {
+  transform: none;
+}
+.btn-extract--active {
+  background-color: #C0392B;
+  color: #fff;
+}
+.btn-extract--active:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.btn-extract--active:active {
+  transform: translateY(0);
+}
 
 /* ── uploading state ───────────────────────────────── */
 .uploading-inner {
