@@ -193,6 +193,7 @@ onUnmounted(() => {
   justify-content: center;
   cursor: pointer;
   transition: border-color 0.2s, background-color 0.2s;
+  margin-bottom: 48px;
 }
 .upload-card.dragging {
   border-color: #C0392B;
