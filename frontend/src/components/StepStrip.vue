@@ -225,7 +225,7 @@ onUnmounted(() => {
 .step-strip-root.loading .step-pill.next .step-num {
   background-color: var(--color-primary, #C0392B);
   color: #fff;
-  animation: numBounce 0.6s ease-in-out infinite;
+  animation: numBlink 0.6s ease-in-out infinite;
 }
 .step-strip-root.loading .step-pill.next .step-label { color: var(--color-primary, #C0392B); }
 
@@ -254,9 +254,8 @@ onUnmounted(() => {
 
 /* --- keyframes --- */
 @keyframes processPulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.04); }
-  100% { transform: scale(1); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(78, 155, 122, 0); }
+  50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-success, #4E9B7A) 22%, transparent); }
 }
 
 @keyframes nextGlow {
@@ -264,9 +263,9 @@ onUnmounted(() => {
   50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-primary, #C0392B) 25%, transparent); }
 }
 
-@keyframes numBounce {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
+@keyframes numBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
 
 /* --- num circle --- */
@@ -296,9 +295,8 @@ onUnmounted(() => {
 }
 
 @keyframes checkIn {
-  0% { transform: scale(0); opacity: 0; }
-  60% { transform: scale(1.2); }
-  100% { transform: scale(1); opacity: 1; }
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 .step-label {
