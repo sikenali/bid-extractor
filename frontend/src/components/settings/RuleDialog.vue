@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
+import { UiModal, UiInput } from '@/components/ui';
 
 const props = defineProps<{
   visible: boolean;
@@ -15,6 +16,11 @@ const emit = defineEmits<{
 const dialogVisible = ref(false);
 const fieldName = ref('');
 const pattern = ref('');
+
+const dialogTitle = computed(() => {
+  const action = props.editRule ? '编辑' : '添加';
+  return props.mode === 'regex' ? `${action}规则` : `${action}关键字`;
+});
 
 watch(() => props.visible, (val) => {
   dialogVisible.value = val;
@@ -45,174 +51,47 @@ function handleSubmit() {
 </script>
 
 <template>
-  <teleport to="body">
-    <div v-if="dialogVisible" class="modal-overlay" @click.self="dialogVisible = false">
-      <div class="modal-dialog">
-        <div class="modal-header">
-          <h3 class="modal-title">{{ props.mode === 'regex' ? '添加规则' : '添加关键字' }}</h3>
-          <button class="modal-close" @click="dialogVisible = false">
-            <span class="icon ri-close-line"></span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label class="form-label">字段名称</label>
-            <input
-              v-model="fieldName"
-              class="form-input"
-              :placeholder="props.mode === 'regex' ? '例如：项目编号' : '例如：废标'"
-              @keyup.enter="handleSubmit"
-            />
-          </div>
-          <div v-if="props.mode === 'regex'" class="form-group">
-            <label class="form-label">正则表达式</label>
-            <input
-              v-model="pattern"
-              class="form-input"
-              placeholder="请输入正则表达式"
-            />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-cancel" @click="dialogVisible = false">取消</button>
-          <button class="btn-submit" :disabled="!fieldName.trim()" @click="handleSubmit">确定</button>
-        </div>
-      </div>
+  <UiModal
+    v-model="dialogVisible"
+    :title="dialogTitle"
+    :subtitle="props.mode === 'regex' ? '用正则匹配招标文件中的目标字段' : '用关键字标记需要关注的条款'"
+    :icon="props.editRule ? 'ri-edit-line' : 'ri-add-line'"
+    :width="560"
+    :confirm-disabled="!fieldName.trim()"
+    @confirm="handleSubmit"
+  >
+    <div class="form-group">
+      <label class="form-label">字段名称</label>
+      <UiInput
+        v-model="fieldName"
+        :placeholder="props.mode === 'regex' ? '例如：项目编号' : '例如：废标'"
+        clearable
+        @enter="handleSubmit"
+      />
     </div>
-  </teleport>
+    <div v-if="props.mode === 'regex'" class="form-group">
+      <label class="form-label">正则表达式</label>
+      <UiInput
+        v-model="pattern"
+        placeholder="请输入正则表达式"
+        clearable
+        @enter="handleSubmit"
+      />
+    </div>
+  </UiModal>
 </template>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  animation: fadeIn 0.2s;
-}
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.modal-dialog {
-  width: 480px;
-  max-width: 90vw;
-  background-color: var(--color-bg-white);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 12px 48px rgba(61, 43, 31, 0.2);
+.form-group {
   display: flex;
   flex-direction: column;
-  animation: slideUp 0.25s ease-out;
-}
-@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--color-border);
-}
-.modal-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin: 0;
-}
-.modal-close {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-secondary);
-  font-size: 18px;
-  transition: all 0.2s;
-}
-.modal-close:hover {
-  background-color: var(--color-bg-card);
-  color: var(--color-text-primary);
-}
-.modal-close .icon {
-  font-family: "remixicon", sans-serif;
-  font-style: normal;
-}
-.modal-body {
-  padding: 24px;
-}
-.form-group {
-  margin-bottom: 20px;
-}
-.form-group:last-child {
-  margin-bottom: 0;
+  gap: 8px;
 }
 .form-label {
-  display: block;
   font-size: 14px;
   font-weight: 500;
-  color: var(--color-text-primary);
-  margin-bottom: 8px;
+  color: var(--color-text-primary, #1F1D1A);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn), sans-serif;
 }
-.form-input {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-bg-secondary);
-  font-size: 14px;
-  color: var(--color-text-primary);
-  outline: none;
-  transition: border-color 0.2s;
-  box-sizing: border-box;
-  font-family: inherit;
-}
-.form-input:focus {
-  border-color: var(--color-primary);
-}
-.form-input::placeholder {
-  color: var(--color-text-muted);
-}
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 24px;
-  border-top: 1px solid var(--color-border);
-}
-.btn-cancel {
-  padding: 10px 24px;
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  font-weight: 500;
-  background-color: var(--color-bg-card);
-  color: var(--color-text-secondary);
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.btn-cancel:hover {
-  background-color: var(--color-bg-secondary);
-  color: var(--color-text-primary);
-}
-.btn-submit {
-  padding: 10px 32px;
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  font-weight: 500;
-  background-color: var(--color-primary);
-  color: white;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.btn-submit:hover:not(:disabled) {
-  opacity: 0.9;
-}
-.btn-submit:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.form-group .ui-input { width: 100%; }
 </style>

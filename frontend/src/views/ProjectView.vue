@@ -8,6 +8,7 @@ import PageFooter from '@/components/layout/PageFooter.vue';
 import PreviewModal from '@/components/preview/PreviewModal.vue';
 import CreditQualificationModal from '@/components/layout/CreditQualificationModal.vue';
 import BiddingSitesModal from '@/components/layout/BiddingSitesModal.vue';
+import { UiModal, UiInput } from '@/components/ui';
 import { getParseStatus } from '@/api/upload';
 import { getExportSettings } from '@/api/settings';
 import apiClient from '@/api/client';
@@ -518,44 +519,25 @@ function triggerDownload(blob: Blob, filename: string) {
               </tr>
             </thead>
             <tbody>
-              <template v-if="activeSection === 'star'">
-                <tr v-for="(item, idx) in paginatedData" :key="idx" class="data-row">
-                  <td class="col-name">
-                    <span class="star-symbol" style="color:#ef4444">{{ item.field.startsWith('★') ? '★' : '▲' }}</span>
-                  </td>
-                  <td class="col-value">{{ item.value }}</td>
-                  <td class="col-page"><span class="page-link">{{ item.page }}</span></td>
-                  <td class="col-action">
-                    <div class="action-btns">
-                      <button class="icon-btn" title="复制" @click="handleCopy(item.field)">
-                        <span class="icon ri-file-copy-line"></span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </template>
-
-              <template v-else>
-                <tr v-for="row in paginatedData" :key="row.field" class="data-row">
-                  <td class="col-name">
-                    <span>{{ row.field }}</span>
-                  </td>
-                  <td class="col-value">{{ row.value || '—' }}</td>
-                  <td class="col-page">
-                    <span class="page-link" @click="handleLocate({ field: row.field, page: row.pageNumber })">{{ row.page }}</span>
-                  </td>
-                  <td class="col-action">
-                    <div class="action-btns">
-                      <button class="icon-btn" title="复制" @click="handleCopy(row.field)">
-                        <span class="icon ri-file-copy-line"></span>
-                      </button>
-                      <button class="icon-btn" title="编辑" @click="handleEdit(row.field)">
-                        <span class="icon ri-pencil-line"></span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </template>
+              <tr v-for="row in paginatedData" :key="row.field" class="data-row">
+                <td class="col-name">
+                  <span>{{ row.field }}</span>
+                </td>
+                <td class="col-value">{{ row.value || '—' }}</td>
+                <td class="col-page">
+                  <span class="page-link" @click="handleLocate({ field: row.field, page: row.pageNumber })">{{ row.page }}</span>
+                </td>
+                <td class="col-action">
+                  <div class="action-btns">
+                    <button class="icon-btn" title="复制" @click="handleCopy(row.field)">
+                      <span class="icon ri-file-copy-line"></span>
+                    </button>
+                    <button class="icon-btn" title="编辑" @click="handleEdit(row.field)">
+                      <span class="icon ri-pencil-line"></span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
 
               <tr v-if="paginatedData.length === 0" class="empty-row">
                 <td colspan="4" class="empty-cell">暂无提取数据，请先上传招标文件</td>
@@ -598,14 +580,16 @@ function triggerDownload(blob: Blob, filename: string) {
 
     <PageFooter @credit-query="showCreditModal = true" @bidding-sites="showBiddingModal = true" />
 
-    <el-dialog v-model="showEditDialog" title="编辑提取内容" width="540px" :close-on-click-modal="false" @keyup.enter="confirmEdit">
-      <div class="edit-field-label">{{ editingField }}</div>
-      <el-input v-model="editValue" type="textarea" :rows="4" />
-      <template #footer>
-        <button class="dialog-btn cancel" @click="showEditDialog = false">取消</button>
-        <button class="dialog-btn confirm" @click="confirmEdit">确定</button>
-      </template>
-    </el-dialog>
+    <UiModal
+      v-model="showEditDialog"
+      title="编辑提取内容"
+      :subtitle="editingField"
+      icon="ri-edit-line"
+      :width="540"
+      @confirm="confirmEdit"
+    >
+      <UiInput v-model="editValue" multiline :rows="4" placeholder="请输入修正后的内容" />
+    </UiModal>
 
     <PreviewModal
       :visible="previewVisible"
@@ -752,12 +736,32 @@ function triggerDownload(blob: Blob, filename: string) {
   text-align: left;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
+.extract-table th.col-name,
+.extract-table td.col-name {
+  width: 220px;
+  min-width: 220px;
+}
+.extract-table th.col-value,
+.extract-table td.col-value {
+  width: auto;
+}
+.extract-table th.col-page,
+.extract-table td.col-page {
+  width: 110px;
+  min-width: 110px;
+}
+.extract-table th.col-action,
+.extract-table td.col-action {
+  width: 130px;
+  min-width: 130px;
+}
 .extract-table td {
   height: 82px;
   padding: 0 24px;
   font-size: 16px;
   vertical-align: middle;
   border-top: 0.7px solid #EDE9E0;
+  box-sizing: border-box;
 }
 .extract-table tbody tr:nth-child(2n) {
   background-color: #FDFCF9;
@@ -900,20 +904,6 @@ function triggerDownload(blob: Blob, filename: string) {
   color: #fff;
   font-weight: 500;
 }
-
-.edit-field-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #1F1D1A;
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  background-color: #FCFBF8;
-  border-radius: 6px;
-  font-family: "SourceHanSans-Medium", var(--font-family-cn);
-}
-.dialog-btn { height: 36px; padding: 0 20px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
-.dialog-btn.cancel { background-color: #FCFBF8; color: #6E6A60; margin-right: 8px; }
-.dialog-btn.confirm { background-color: #C0392B; color: white; }
 
 /* Loading & Error */
 .loading-overlay {

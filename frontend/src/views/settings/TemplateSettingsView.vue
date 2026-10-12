@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import apiClient from '@/api/client';
-import { UiInput, UiSwitch } from '@/components/ui';
+import { UiInput, UiSwitch, UiModal } from '@/components/ui';
 
 interface TemplateItem {
   id: string;
@@ -226,34 +226,27 @@ onMounted(() => {
     </div>
 
     <!-- 新增模板弹窗 -->
-    <div v-if="showAddDialog" class="modal-overlay" @click.self="showAddDialog = false">
-      <div class="modal-dialog">
-        <div class="modal-header">
-          <span class="modal-title">新增模板</span>
-          <button class="modal-close" @click="showAddDialog = false">
-            <span class="icon ri-close-line"></span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label class="form-label">模板名称 <span class="required">*</span></label>
-            <UiInput v-model="newTemplateName" placeholder="请输入模板名称" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">模板描述</label>
-            <UiInput v-model="newTemplateDesc" multiline :rows="3" placeholder="请输入模板描述（可选）" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">所属分类</label>
-            <UiInput v-model="newTemplateCategory" placeholder="例如：商务标、技术标" />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-cancel" @click="showAddDialog = false">取消</button>
-          <button class="btn-confirm" @click="handleAdd">确定</button>
-        </div>
+    <UiModal
+      v-model="showAddDialog"
+      title="新增模板"
+      subtitle="填写模板基本信息，创建后可在列表中启用"
+      icon="ri-add-line"
+      :width="560"
+      @confirm="handleAdd"
+    >
+      <div class="form-group">
+        <label class="form-label">模板名称 <span class="required">*</span></label>
+        <UiInput v-model="newTemplateName" placeholder="请输入模板名称" />
       </div>
-    </div>
+      <div class="form-group">
+        <label class="form-label">模板描述</label>
+        <UiInput v-model="newTemplateDesc" multiline :rows="3" placeholder="请输入模板描述（可选）" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">所属分类</label>
+        <UiInput v-model="newTemplateCategory" placeholder="例如：商务标、技术标" />
+      </div>
+    </UiModal>
   </div>
 </template>
 
@@ -410,43 +403,9 @@ onMounted(() => {
 @media (max-width: 1200px) { .grid-cards { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 768px) { .grid-cards { grid-template-columns: 1fr; } }
 
-/* 弹窗 */
-.modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.4);
-  display: flex; align-items: center; justify-content: center; z-index: 1000;
-}
-.modal-dialog {
-  width: 480px; background: #fff; border-radius: 16px; padding: 24px;
-  display: flex; flex-direction: column; gap: 20px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.12);
-}
-.modal-header {
-  display: flex; align-items: center; justify-content: space-between;
-}
-.modal-title { font-size: 18px; font-weight: 600; color: #1F1D1A; font-family: "SourceHanSans-Medium", var(--font-family-cn); }
-.modal-close {
-  width: 32px; height: 32px; border: none; border-radius: 8px; background: #F7F3EA;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: background 0.15s;
-}
-.modal-close:hover { background: #EDE9E0; }
-.modal-close .icon { font-family: "remixicon", sans-serif; font-style: normal; font-size: 16px; color: #6E6A60; }
-.modal-body { display: flex; flex-direction: column; gap: 16px; }
+/* 弹窗表单（壳已统一为 UiModal） */
 .form-group { display: flex; flex-direction: column; gap: 8px; }
 .form-label { font-size: 14px; color: #3A3A3A; font-weight: 500; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
 .form-label .required { color: #C0392B; }
 .form-group .ui-input { width: 100%; }
-.modal-footer { display: flex; justify-content: flex-end; gap: 12px; }
-.btn-cancel {
-  height: 44px; padding: 0 20px; border: 0.7px solid #E8E4D8; border-radius: 10px;
-  background: #fff; color: #3A3A3A; font-size: 15px; cursor: pointer;
-  font-family: "SourceHanSans-Regular", var(--font-family-cn); transition: all 0.2s;
-}
-.btn-cancel:hover { background: #F7F4EA; }
-.btn-confirm {
-  height: 44px; padding: 0 24px; border: none; border-radius: 10px;
-  background: #C6A45C; color: #fff; font-size: 15px; font-weight: 500;
-  cursor: pointer; font-family: "SourceHanSans-Medium", var(--font-family-cn); transition: background 0.2s;
-}
-.btn-confirm:hover { background: #B8944A; }
 </style>
