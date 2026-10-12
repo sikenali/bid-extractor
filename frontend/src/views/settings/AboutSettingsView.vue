@@ -39,11 +39,10 @@ const appVersion = 'V1.0.0';
 
       <div class="about-version">版本: {{ appVersion }}</div>
 
-      <a class="about-repo" href="https://github.com/sikenali/bid-extactor" target="_blank" rel="noopener noreferrer">
-        <span class="repo-left">GitHub 开源仓库</span>
+      <a class="about-repo" href="https://github.com/sikenali/bid-extractor" target="_blank" rel="noopener noreferrer">
         <span class="repo-right">
           <span class="icon ri-github-line"></span>
-          <span class="repo-url">github.com/sikenali/bid-extactor</span>
+          <span class="repo-url">https://github.com/sikenali/bid-extractor</span>
           <span class="icon ri-arrow-right-up-line"></span>
         </span>
       </a>

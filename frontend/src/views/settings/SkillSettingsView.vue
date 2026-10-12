@@ -70,24 +70,6 @@ async function confirmEdit() {
   }
 }
 
-const groupColors: Record<string, string> = {
-  info: '#C0392B',
-  business: '#2D6A9F',
-  tech: '#D4A017',
-  score: '#3E8C6E',
-  seal: '#2D6A9F',
-  star: '#D4A017',
-};
-
-const groupAccent: Record<string, string> = {
-  info: '#E7A9A2',
-  business: '#9FB3D6',
-  tech: '#C4C389',
-  score: '#7E9BD0',
-  seal: '#8FBFA0',
-  star: '#C4C4A9',
-};
-
 const groupLabels: Record<string, string> = {
   info: '项目信息',
   business: '商务条款',
@@ -105,10 +87,6 @@ const templateIcons: Record<string, string> = {
   seal: '',
   star: '',
 };
-
-function getAccentColor(group: string): string {
-  return groupAccent[group] || '#E7A9A2';
-}
 
 const filteredSkills = ref<SkillItem[]>([]);
 
@@ -487,24 +465,23 @@ onMounted(loadSkills);
             v-for="skill in filteredSkills"
             :key="skill.name"
             class="grid-card"
-            :style="{ '--card-accent': groupColors[skill.group] || '#C0392B' }"
           >
-            <div class="card-accent-bar" :style="{ background: getAccentColor(skill.group) }"></div>
-            <div class="card-body">
-              <div class="card-title">{{ skill.name }}</div>
-              <div class="card-desc">{{ skill.description }}</div>
-              <div class="card-footer">
-                <div class="card-actions">
-                  <button class="action-btn edit" @click="openEdit(skill)">修改</button>
-                  <button class="action-btn delete" @click="handleDelete(skill)">删除</button>
-                  <UiSwitch :model-value="skill.enabled" size="sm" @click="toggleEnabled(skill)" />
-                </div>
+            <div class="grid-card-body">
+              <div class="grid-card-icon">{{ groupLabels[skill.group] || skill.group }}</div>
+              <div class="grid-card-title">{{ skill.name }}</div>
+              <div class="grid-card-desc">{{ skill.description }}</div>
+            </div>
+            <div class="grid-card-footer">
+              <div class="grid-card-actions">
+                <button class="action-btn edit" @click="openEdit(skill)">修改</button>
+                <button class="action-btn delete" @click="handleDelete(skill)">删除</button>
+                <UiSwitch :model-value="skill.enabled" size="sm" @click.stop="toggleEnabled(skill)" />
               </div>
             </div>
           </div>
         </div>
       </div>
-      </div>
+    </div>
 
     <input
       id="skillFileInput"
@@ -992,48 +969,25 @@ onMounted(loadSkills);
 .grid-card:hover {
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
-.card-accent-bar {
-  width: 4px;
-  height: 100%;
-  position: absolute;
-  left: 0;
-  top: 0;
+.grid-card-body { padding: 24px; display: flex; flex: 1; flex-direction: column; gap: 8px; }
+.grid-card-icon {
+  display: inline-block; padding: 4px 12px; border-radius: 20px;
+  background: var(--color-bg-secondary, #F7F3EA); font-size: 12px; color: var(--color-text-muted, #8A8578);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn); width: fit-content;
 }
-.grid-card {
-  position: relative;
+.grid-card-title { font-size: 17px; font-weight: 500; color: var(--color-text-primary, #1F1D1A); font-family: "SourceHanSans-Medium", var(--font-family-cn); margin: 0; }
+.grid-card-desc { font-size: 14px; color: var(--color-text-secondary, #6E6A60); font-family: "SourceHanSans-Regular", var(--font-family-cn); flex: 1; }
+.grid-card-footer { padding: 16px 24px; border-top: 1px solid var(--color-border-soft, #EDE9E0); display: flex; justify-content: flex-end; }
+.grid-card-actions { display: flex; align-items: center; gap: 12px; }
+.grid-card-actions .action-btn {
+  font-size: 14px; font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 6px;
+  transition: background 0.15s;
 }
-.card-body {
-  padding: 24px;
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 0;
-}
-.card-title {
-  font-size: 17px;
-  font-weight: 500;
-  color: var(--color-text-primary, #1F1D1A);
-  font-family: "SourceHanSans-Medium", var(--font-family-cn);
-  margin: 0;
-}
-.card-desc {
-  font-size: 15px;
-  color: var(--color-text-secondary, #6E6A60);
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
-  margin: 0;
-  flex: 1;
-}
-.card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 48px;
-}
-.card-actions {
-  display: flex;
-  gap: 24px;
-}
+.grid-card-actions .action-btn.edit { color: var(--color-info, #4A72A8); }
+.grid-card-actions .action-btn.edit:hover { background: rgba(74, 114, 168, 0.08); }
+.grid-card-actions .action-btn.delete { color: var(--color-error, #E74C3C); }
+.grid-card-actions .action-btn.delete:hover { background: rgba(201, 80, 60, 0.08); }
 
 /* 加载遮罩 */
 .loading-overlay {
