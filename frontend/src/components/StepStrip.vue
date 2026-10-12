@@ -1,19 +1,19 @@
 <template>
-  <div class="step-strip-root">
-    <div class="step-strip" :class="{ loading: loading, done: done }">
+  <div class="step-strip-root" :class="{ loading: loading, done: done }">
+    <div class="step-strip">
       <template v-for="(step, i) in steps" :key="step.key">
         <div
           class="step-pill"
           :class="{
-            done: currentStep > step.key,
-            active: currentStep === step.key && !loading,
+            done: !loading && currentStep > step.key,
+            active: !loading && currentStep === step.key,
             processing: loading && step.key < loadingProgress,
             next: loading && step.key === loadingProgress,
           }"
         >
           <span class="step-num">
             <span
-              v-if="currentStep > step.key || (loading && step.key < loadingProgress)"
+              v-if="(!loading && currentStep > step.key) || (loading && step.key < loadingProgress)"
               class="check-icon"
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -88,11 +88,10 @@ watch(() => props.loading, (val) => {
     done.value = false;
     loadingProgress.value = 0;
   } else {
-    // loading ended — reset for next click
+    // loading ended — kill ghost timer, reset for next click
+    if (animTimer) { clearTimeout(animTimer); animTimer = null; }
     if (loadingProgress.value >= 0) {
-      if (loadingProgress.value >= props.steps.length) {
-        done.value = true;
-      }
+      done.value = loadingProgress.value >= props.steps.length;
       loadingProgress.value = -1;
     }
   }
@@ -103,6 +102,7 @@ let animTimer: ReturnType<typeof setTimeout> | null = null;
 watch(loadingProgress, (val) => {
   if (val < 0 || val >= props.steps.length) return;
   animTimer = setTimeout(() => {
+    if (!props.loading) return; // stopped midway — freeze
     loadingProgress.value = val + 1;
     if (loadingProgress.value >= props.steps.length) {
       done.value = true;
@@ -233,22 +233,22 @@ onUnmounted(() => {
 .step-line.filled::after { left: 0; }
 
 /* --- loading mode: highlight lines between processed steps --- */
-.step-strip.loading .step-line {
+.step-strip-root.loading .step-line {
   background: transparent;
 }
-.step-strip.loading .step-line.filled::after { left: 0; }
+.step-strip-root.loading .step-line.filled::after { left: 0; }
 
 /* --- done mode --- */
-.step-strip.done .step-pill {
+.step-strip-root.done .step-pill {
   background-color: var(--color-success-soft, #E8F5EF);
   border-color: var(--color-success, #4E9B7A);
 }
-.step-strip.done .step-pill .step-num {
+.step-strip-root.done .step-pill .step-num {
   background-color: var(--color-success, #4E9B7A);
   color: #fff;
 }
-.step-strip.done .step-pill .step-label { color: var(--color-success, #3E8A6B); }
-.step-strip.done .step-line {
+.step-strip-root.done .step-pill .step-label { color: var(--color-success, #3E8A6B); }
+.step-strip-root.done .step-line {
   background-color: var(--color-success, #4E9B7A);
 }
 
