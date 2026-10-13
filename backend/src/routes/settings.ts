@@ -359,4 +359,33 @@ router.put('/profile', (req, res) => {
   res.json(row);
 });
 
+// LLM Enhance config
+router.get('/llm-enhance', (_req, res) => {
+  const row = db.prepare(
+    'SELECT llm_enhance_enabled, llm_hit_rate_threshold, llm_model_id FROM profile_settings WHERE id = 1'
+  ).get() as any;
+
+  res.json({
+    enabled: (row?.llm_enhance_enabled ?? 1) === 1,
+    hitRateThreshold: row?.llm_hit_rate_threshold ?? 0.6,
+    modelId: row?.llm_model_id ?? '',
+  });
+});
+
+router.put('/llm-enhance', (req, res) => {
+  const { enabled, hitRateThreshold, modelId } = req.body;
+
+  db.prepare(`UPDATE profile_settings SET
+    llm_enhance_enabled = ?,
+    llm_hit_rate_threshold = ?,
+    llm_model_id = ?
+    WHERE id = 1`).run(
+    enabled ? 1 : 0,
+    hitRateThreshold || 0.6,
+    modelId || '',
+  );
+
+  res.json({ success: true });
+});
+
 export default router;
