@@ -67,8 +67,8 @@ function validateFile(file: File): boolean {
     ElMessage.warning('不支持 .doc 格式，请转换成 Docx 格式后再上传～');
     return false;
   }
-  if (!['.docx', '.pdf', '.md', '.txt', '.xlsx', '.wps'].includes(ext)) {
-    ElMessage.warning('不支持的格式，请上传招标文件');
+  if (!['.docx', '.pdf', '.md', '.txt', '.xlsx', '.csv', '.html'].includes(ext)) {
+    ElMessage.warning('不支持的格式，请上传招标文件（docx/pdf/md/txt/xlsx/csv/html）');
     return false;
   }
   return true;
@@ -180,7 +180,7 @@ function handleExtract() {
         </UiTip>
         <div class="file-centered">
           <div class="file-icon" :class="'fmt-' + getExt(selectedFile).replace('.', '')">
-            <svg v-if="getExt(selectedFile) === '.docx' || getExt(selectedFile) === '.wps'" width="32" height="32" viewBox="0 0 28 28" fill="none">
+            <svg v-if="getExt(selectedFile) === '.docx'" width="32" height="32" viewBox="0 0 28 28" fill="none">
               <rect x="3" y="2" width="22" height="24" rx="2" stroke="currentColor" stroke-width="1.6"/>
               <path d="M8 9h12M8 13h12M8 17h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
             </svg>
@@ -211,7 +211,7 @@ function handleExtract() {
         id="fileInput"
         type="file"
         class="file-input-hidden"
-        accept=".docx,.pdf,.md,.txt,.xlsx,.wps"
+        accept=".docx,.pdf,.md,.txt,.xlsx,.csv,.html"
         :disabled="uploading"
         @change="handleFileSelect"
       />
@@ -379,9 +379,9 @@ function handleExtract() {
   justify-content: center;
   flex-shrink: 0;
 }
-.file-icon.fmt-docx, .file-icon.fmt-wps { background-color: #2B579A; color: #fff; }
-.file-icon.fmt-xlsx                   { background-color: #217346; color: #fff; }
-.file-icon.fmt-pdf                    { background-color: var(--color-primary, #C0392B); color: #fff; }
+.file-icon.fmt-docx                      { background-color: #2B579A; color: #fff; }
+.file-icon.fmt-xlsx, .file-icon.fmt-csv   { background-color: #217346; color: #fff; }
+.file-icon.fmt-pdf, .file-icon.fmt-html   { background-color: var(--color-primary, #C0392B); color: #fff; }
 .file-icon.fmt-md                     { background-color: #4A6FA5; color: #fff; }
 .file-icon.fmt-txt                    { background-color: #5A5750; color: #fff; }
 .file-name {

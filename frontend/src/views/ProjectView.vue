@@ -154,7 +154,8 @@ const sectionCounts = computed<Record<string, number>>(() => {
     if (key === 'star') {
       counts[key] = markedItems.value.length;
     } else {
-      counts[key] = fixedFields[key]?.length ?? 0;
+      // 实际命中数：该分组下有非空值的字段数，而非固定字段总数
+      counts[key] = tableData.value.filter(d => d.groupName === key && String(d.value ?? '').trim() !== '').length;
     }
   }
   return counts;
@@ -423,7 +424,7 @@ function confirmEdit() {
       fieldName: editingField.value,
       originalValue,
       correctedValue: editValue.value,
-      paragraphText: '',
+      paragraphText: row.sourceText || '',
       groupName: activeSection.value,
       fileName: fileInfo.value.name
     }).catch(err => console.warn('Failed to save correction:', err));
@@ -712,7 +713,10 @@ function triggerDownload(blob: Blob, filename: string) {
                 <td class="col-name">
                   <span>{{ row.field }}</span>
                 </td>
-                <td class="col-value">{{ row.value || '—' }}</td>
+                <td class="col-value">
+                  <span>{{ row.value || '—' }}</span>
+                  <span v-if="row.chapter" class="row-chapter" :title="row.sourceText || ''">{{ row.chapter }}</span>
+                </td>
                 <td class="col-page">
                   <span class="page-link" @click="handleLocate({ field: row.field, page: row.pageNumber })">{{ row.page }}</span>
                 </td>
@@ -994,6 +998,20 @@ function triggerDownload(blob: Blob, filename: string) {
 .data-row .col-value {
   color: var(--color-text-body, #3A3A3A);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+.data-row .col-value span:first-child {
+  display: block;
+}
+.row-chapter {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-faint, #A7A296);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 520px;
 }
 .page-link {
   color: var(--color-text-secondary, #6E6A60);

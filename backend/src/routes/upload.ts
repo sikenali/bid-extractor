@@ -25,6 +25,7 @@ interface JobEntry {
   result: ExtractOutput;
   createdAt: number;
   skillId?: string;
+  taskId?: string;
 }
 
 const JOB_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -112,6 +113,7 @@ router.post('/', upload.single('file'), async (req, res) => {
       result,
       createdAt: Date.now(),
       skillId,
+      taskId,
     });
 
     // 持久化到 doc_results 表
@@ -158,7 +160,7 @@ router.get('/:id/status', (req, res) => {
   if (job) {
     res.json({
       id: req.params.id,
-      taskId: undefined,
+      taskId: job.taskId,
       status: 'parsed',
       progress: 100,
       filename: job.filename,
@@ -197,7 +199,12 @@ router.delete('/:id', (req, res) => {
 });
 
 router.get('/file/:filename', (req, res) => {
-  const filePath = path.join(UPLOAD_DIR, req.params.filename);
+  const name = req.params.filename;
+  if (!name || name.includes('..') || name.includes('/') || name.includes('\\') || path.basename(name) !== name) {
+    res.status(400).json({ error: 'Invalid filename' });
+    return;
+  }
+  const filePath = path.join(UPLOAD_DIR, name);
   if (!fs.existsSync(filePath)) {
     res.status(404).json({ error: 'File not found' });
     return;
@@ -245,14 +252,11 @@ router.get('/export/:jobId', (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}.md"`);
     res.send(md);
   } else if (format === 'docx') {
-    // Stub: return a placeholder text response until docxtemplater is wired
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}.docx"`);
-    // Return a minimal valid DOCX stub for now
-    const docxStub = buildDocxStub(result);
-    res.send(Buffer.from(docxStub));
+    // 后端 docx 导出尚未实现：前端已通过模板生成 docx，此处如被直调则明确报错，
+    // 绝不返回损坏的空文件。
+    res.status(501).json({ error: '后端 docx 导出尚未实现，请使用页面导出功能' });
   } else {
-    res.status(400).json({ error: `不支持的格式: ${format}，支持: json, markdown, docx` });
+    res.status(400).json({ error: `不支持的格式: ${format}，支持: json, markdown` });
   }
 });
 
@@ -293,13 +297,6 @@ function buildMarkdownExport(result: ExtractOutput): string {
   }
 
   return lines.join('\n');
-}
-
-// Minimal valid DOCX (ZIP with [Content_Types].xml + word/document.xml)
-function buildDocxStub(result: ExtractOutput): ArrayBuffer {
-  // This is a placeholder; production should use docxtemplater/pizzip
-  // For now return an empty buffer — the frontend already handles docx export via template
-  return new ArrayBuffer(0);
 }
 
 export default router;

@@ -85,9 +85,18 @@ router.delete('/apikeys/:id', (req, res) => {
 
 router.put('/apikeys/:id', (req, res) => {
   const { provider, model, api_key, region, base_url, enabled } = req.body;
-  const encryptedKey = api_key ? encrypt(api_key) : '';
+  const existing = db.prepare('SELECT * FROM api_configs WHERE id = ?').get(req.params.id) as any;
+  if (!existing) { res.status(404).json({ error: 'Not found' }); return; }
+  // 未传新密钥时保留原加密密钥，避免误清空
+  const encryptedKey = api_key ? encrypt(api_key) : existing.api_key;
   db.prepare(`UPDATE api_configs SET provider=?, model=?, api_key=?, region=?, base_url=?, enabled=? WHERE id=?`).run(
-    provider, model, encryptedKey, region, base_url, enabled ?? 1, req.params.id
+    provider ?? existing.provider,
+    model ?? existing.model,
+    encryptedKey,
+    region ?? existing.region,
+    base_url ?? existing.base_url,
+    enabled ?? existing.enabled ?? 1,
+    req.params.id
   );
   res.json({ ok: true });
 });

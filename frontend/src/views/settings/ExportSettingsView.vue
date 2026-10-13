@@ -83,6 +83,7 @@ onMounted(async () => {
     applyLoaded(await getExportSettings());
   } catch {
     // 后端不可用时保持本地默认值
+    ElMessage.warning('后端服务不可用，导出设置暂用本地默认');
   } finally {
     ready = true;
   }

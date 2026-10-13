@@ -15,6 +15,10 @@ function handleSuccess(jobId: string) {
   try { sessionStorage.setItem('bidextractor.lastJobId', jobId); } catch {}
   router.replace({ path: '/result' });
 }
+
+function handleReplace() {
+  try { sessionStorage.removeItem('bidextractor.lastJobId'); } catch {}
+}
 </script>
 
 <template>
@@ -22,7 +26,7 @@ function handleSuccess(jobId: string) {
     <TopNav title="智能标书解决方案平台-提取" :show-back="false" />
 
     <div class="upload-body">
-      <UploadCard @success="handleSuccess" />
+      <UploadCard @success="handleSuccess" @replace="handleReplace" />
     </div>
 
     <PageFooter @credit-query="showCreditModal = true" @bidding-sites="showBiddingModal = true" />

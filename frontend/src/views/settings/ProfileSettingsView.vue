@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import { UiSwitch, UiInput, UiModal, UiSelect } from '@/components/ui';
 import RuleDialog from '@/components/settings/RuleDialog.vue';
 import apiClient from '@/api/client';
@@ -52,7 +52,18 @@ async function saveLlmEdit() {
 }
 async function toggleLlmSkill(s: LlmSkill) { s.enable = s.enable===0?1:0; await updateLlmSkill(s.id,{enable:s.enable}); ElMessage.success(s.enable===1?'已启用':'已禁用'); }
 async function toggleLlmFeature(s: LlmSkill) { const next = s.enable_llm===1?0:1; s.enable_llm = next; try { await updateLlmSkill(s.id,{enable_llm:next}); ElMessage.success(next===1?'LLM增强已启用':'LLM增强已禁用'); } catch { s.enable_llm = next===1?0:1; ElMessage.error('操作失败'); } }
-async function delLlmSkill(s: LlmSkill) { await ElMessageBox.confirm(`删除技能「${s.skill_name}」？`,'确认删除'); await deleteLlmSkill(s.id); ElMessage.success('已删除'); await loadLlmSkills(); }
+const showDelSkillDialog = ref(false);
+const deletingSkill = ref<LlmSkill | null>(null);
+function openDelSkill(s: LlmSkill) { deletingSkill.value = s; showDelSkillDialog.value = true; }
+async function confirmDelSkill() {
+  if (!deletingSkill.value) return;
+  try {
+    await deleteLlmSkill(deletingSkill.value.id);
+    showDelSkillDialog.value = false;
+    ElMessage.success('已删除');
+    await loadLlmSkills();
+  } catch { ElMessage.error('删除失败'); }
+}
 
 // ── Tab 3: 提示词模板 ───────────────────────────────────────────
 interface PromptTpl { id: string; name: string; description: string; biz_type: string; template_text: string; enable: number; version: number; }
@@ -79,7 +90,18 @@ async function saveTpl() {
   } catch { ElMessage.error('保存失败'); }
 }
 async function toggleTpl(t: PromptTpl) { t.enable = t.enable===1?0:1; await apiClient.put(`/llm-prompts/${t.id}`,{enable:t.enable}); }
-async function delTpl(t: PromptTpl) { await ElMessageBox.confirm(`删除模板「${t.name}」？`,'确认删除'); await apiClient.delete(`/llm-prompts/${t.id}`); ElMessage.success('已删除'); await loadTemplates(); }
+const showDelTplDialog = ref(false);
+const deletingTpl = ref<PromptTpl | null>(null);
+function openDelTpl(t: PromptTpl) { deletingTpl.value = t; showDelTplDialog.value = true; }
+async function confirmDelTpl() {
+  if (!deletingTpl.value) return;
+  try {
+    await apiClient.delete(`/llm-prompts/${deletingTpl.value.id}`);
+    showDelTplDialog.value = false;
+    ElMessage.success('已删除');
+    await loadTemplates();
+  } catch { ElMessage.error('删除失败'); }
+}
 
 watch(mainTab, (tab) => {
   if (tab === 'llm') loadLlmSkills();
@@ -132,7 +154,18 @@ async function saveRule(data: { fieldName: string; pattern: string; category: st
     ElMessage.success('已保存'); showRuleDialog.value = false; await loadRules();
   } catch { ElMessage.error('保存失败'); }
 }
-async function handleDelete(id: string) { await ElMessageBox.confirm('确定删除此规则？','确认删除'); await deleteRule(id); await loadRules(); }
+const showDelRuleDialog = ref(false);
+const deletingRuleId = ref('');
+function openDelRule(id: string) { deletingRuleId.value = id; showDelRuleDialog.value = true; }
+async function confirmDelRule() {
+  if (!deletingRuleId.value) return;
+  try {
+    await deleteRule(deletingRuleId.value);
+    showDelRuleDialog.value = false;
+    ElMessage.success('已删除');
+    await loadRules();
+  } catch { ElMessage.error('删除失败'); }
+}
 async function handleSeedUniversal() {
   const res = await seedUniversalRules();
   await loadRules();
@@ -179,7 +212,7 @@ async function handleSeedUniversal() {
             </div>
             <div class="card-actions">
               <button class="act-btn edit" @click="openLlmEdit(s)">编辑</button>
-              <button class="act-btn del" @click="delLlmSkill(s)">删除</button>
+              <button class="act-btn del" @click="openDelSkill(s)">删除</button>
             </div>
           </div>
         </div>
@@ -207,7 +240,7 @@ async function handleSeedUniversal() {
             <div class="tpl-actions">
               <UiSwitch :model-value="t.enable===1" size="sm" @update:model-value="toggleTpl(t)" />
               <button class="act-btn edit" @click="openTplEdit(t)">编辑</button>
-              <button class="act-btn del" @click="delTpl(t)">删除</button>
+              <button class="act-btn del" @click="openDelTpl(t)">删除</button>
             </div>
           </div>
         </div>
@@ -253,7 +286,7 @@ async function handleSeedUniversal() {
               <td class="rule-actions">
                 <div class="row-actions">
                   <button class="action-btn edit" @click="openEdit(rule)">修改</button>
-                  <button class="action-btn delete" @click="handleDelete(rule.id)">删除</button>
+                  <button class="action-btn delete" @click="openDelRule(rule.id)">删除</button>
                 </div>
               </td>
             </tr>
@@ -308,6 +341,45 @@ async function handleSeedUniversal() {
       @close="showRuleDialog = false"
       @submit="saveRule"
     />
+
+    <!-- 删除技能确认弹窗 -->
+    <UiModal
+      v-model="showDelSkillDialog"
+      title="删除技能"
+      subtitle="删除后不可恢复，请谨慎操作"
+      icon="ri-delete-bin-line"
+      :width="480"
+      confirm-text="确认删除"
+      @confirm="confirmDelSkill"
+    >
+      <p class="confirm-text">确定删除技能「{{ deletingSkill?.skill_name }}」？</p>
+    </UiModal>
+
+    <!-- 删除模板确认弹窗 -->
+    <UiModal
+      v-model="showDelTplDialog"
+      title="删除模板"
+      subtitle="删除后不可恢复，请谨慎操作"
+      icon="ri-delete-bin-line"
+      :width="480"
+      confirm-text="确认删除"
+      @confirm="confirmDelTpl"
+    >
+      <p class="confirm-text">确定删除模板「{{ deletingTpl?.name }}」？</p>
+    </UiModal>
+
+    <!-- 删除规则确认弹窗 -->
+    <UiModal
+      v-model="showDelRuleDialog"
+      title="删除规则"
+      subtitle="删除后不可恢复，请谨慎操作"
+      icon="ri-delete-bin-line"
+      :width="480"
+      confirm-text="确认删除"
+      @confirm="confirmDelRule"
+    >
+      <p class="confirm-text">确定删除此规则？</p>
+    </UiModal>
   </div>
 </template>
 
@@ -396,6 +468,15 @@ async function handleSeedUniversal() {
 
 /* ── Form controls ── */
 .fg { display:flex; flex-direction:column; gap:5px; margin-bottom:12px; }
+
+/* 确认类弹窗正文 */
+.confirm-text {
+  font-size: 15px;
+  color: var(--color-text-body, #3A3A3A);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  margin: 0;
+  line-height: 1.7;
+}
 .fl { font-size:13px; color:var(--color-text-body,#3A3A3A); font-weight:500; font-family:"SourceHanSans-Regular",var(--font-family-cn); }
 .fl .req { color:var(--color-primary,#C0392B); }
 .fta { width:100%; padding:10px; border:1px solid var(--color-border,#E5DFD3); border-radius:8px; background:var(--color-bg-white,#fff); font-size:13px; color:var(--color-text-body,#3A3A3A); font-family:monospace; resize:vertical; outline:none; line-height:1.6; }

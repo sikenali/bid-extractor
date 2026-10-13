@@ -64,7 +64,9 @@ export async function uploadFile(file: File, skillId?: string): Promise<UploadRe
     formData.append('skill_id', skillId);
   }
   const response = await apiClient.post<UploadResult>('/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+    headers: { 'Content-Type': 'multipart/form-data' },
+    // 大文件同步解析 + LLM 增强耗时较长，单独放宽超时（全局默认 60s）
+    timeout: 180000,
   });
   return response.data;
 }

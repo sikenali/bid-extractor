@@ -46,10 +46,6 @@
 import { ref, computed, watch } from 'vue';
 import ThemeSettingsView from '@/views/settings/ThemeSettingsView.vue';
 import TemplateSettingsView from '@/views/settings/TemplateSettingsView.vue';
-import SkillSettingsView from '@/views/settings/SkillSettingsView.vue';
-import RulesSettingsView from '@/views/settings/RulesSettingsView.vue';
-import LlmPromptSettingsView from '@/views/settings/LlmPromptSettingsView.vue';
-import BaseAssetsSettingsView from '@/views/settings/BaseAssetsSettingsView.vue';
 import ApiKeySettingsView from '@/views/settings/ApiKeySettingsView.vue';
 import ExportSettingsView from '@/views/settings/ExportSettingsView.vue';
 import TaskSettingsView from '@/views/settings/TaskSettingsView.vue';
@@ -72,10 +68,6 @@ function close() {
 const menuItems = [
   { key: 'theme', label: '主题管理', icon: 'ri-palette-line', component: ThemeSettingsView },
   { key: 'template', label: '模板管理', icon: 'ri-file-list-2-line', component: TemplateSettingsView },
-  { key: 'skill', label: '技能管理', icon: 'ri-git-branch-line', component: SkillSettingsView },
-  { key: 'rules', label: '规则管理', icon: 'ri-list-settings-line', component: RulesSettingsView },
-  { key: 'prompts', label: '提示词管理', icon: 'ri-chat-3-line', component: LlmPromptSettingsView },
-  { key: 'assets', label: '基础资产', icon: 'ri-archive-line', component: BaseAssetsSettingsView },
   { key: 'model', label: '模型管理', icon: 'ri-cpu-line', component: ApiKeySettingsView },
   { key: 'export', label: '导出管理', icon: 'ri-download-2-line', component: ExportSettingsView },
   { key: 'tasks', label: '抽取任务', icon: 'ri-task-line', component: TaskSettingsView },

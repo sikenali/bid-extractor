@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import apiClient from '@/api/client';
 import { deleteApiKey, toggleApiKey, testApiKey } from '@/api/settings';
-import { UiSelect, UiInput, UiSelectCard, UiTip, type UiSelectOption } from '@/components/ui';
+import { UiSelect, UiInput, UiSelectCard, UiTip, UiModal, type UiSelectOption } from '@/components/ui';
 
 const configTab = ref<'provider' | 'custom'>('provider');
 const keyInput = ref('');
@@ -71,6 +71,10 @@ const testingKey = ref<string | null>(null);
 const testSuccess = ref<Record<string, boolean>>({});
 const testFailed = ref<Record<string, boolean>>({});
 const testError = ref<Record<string, string>>({});
+// 正在编辑的密钥 id（空表示新增）
+const editingId = ref('');
+const showDeleteDialog = ref(false);
+const deletingId = ref('');
 
 async function loadKeys() {
   try {
@@ -89,20 +93,26 @@ async function loadKeys() {
 
 async function handleSave() {
   const key = keyInput.value.trim();
-  if (!key) { ElMessage.warning('请输入 API Key'); return; }
   if (configTab.value === 'custom') {
     if (!customEndpoint.value.trim() || !customModelId.value.trim()) {
       ElMessage.warning('请填写自定义地址和模型 ID');
       return;
     }
+    const payload: any = {
+      provider: customApiFormat.value === 'anthropic' ? 'Anthropic (自定义)' : 'OpenAI (自定义)',
+      model: customModelId.value.trim(),
+      base_url: customEndpoint.value.trim(),
+    };
+    if (key) payload.api_key = key;
     try {
-      await apiClient.post('/settings/apikeys', {
-        provider: customApiFormat.value === 'anthropic' ? 'Anthropic (自定义)' : 'OpenAI (自定义)',
-        model: customModelId.value.trim(),
-        api_key: key,
-        base_url: customEndpoint.value.trim(),
-      });
-      ElMessage.success('自定义配置已保存');
+      if (editingId.value) {
+        await apiClient.put(`/settings/apikeys/${editingId.value}`, payload);
+        ElMessage.success('自定义配置已更新');
+      } else {
+        if (!key) { ElMessage.warning('请输入 API Key'); return; }
+        await apiClient.post('/settings/apikeys', payload);
+        ElMessage.success('自定义配置已保存');
+      }
       resetForm();
       await loadKeys();
     } catch (err: any) {
@@ -113,13 +123,20 @@ async function handleSave() {
       ElMessage.warning('请选择服务商和模型');
       return;
     }
+    const payload: any = {
+      provider: selectedProvider.value,
+      model: selectedModelName.value,
+    };
+    if (key) payload.api_key = key;
     try {
-      await apiClient.post('/settings/apikeys', {
-        provider: selectedProvider.value,
-        model: selectedModelName.value,
-        api_key: key,
-      });
-      ElMessage.success(`「${selectedProvider.value}」API Key 已保存`);
+      if (editingId.value) {
+        await apiClient.put(`/settings/apikeys/${editingId.value}`, payload);
+        ElMessage.success(`「${selectedProvider.value}」配置已更新`);
+      } else {
+        if (!key) { ElMessage.warning('请输入 API Key'); return; }
+        await apiClient.post('/settings/apikeys', payload);
+        ElMessage.success(`「${selectedProvider.value}」API Key 已保存`);
+      }
       resetForm();
       await loadKeys();
     } catch (err: any) {
@@ -135,12 +152,21 @@ function resetForm() {
   selectedModelName.value = '';
   customEndpoint.value = '';
   customModelId.value = '';
+  editingId.value = '';
 }
 
-async function handleDelete(id: string) {
+function openDelete(id: string) {
+  deletingId.value = id;
+  showDeleteDialog.value = true;
+}
+
+async function confirmDelete() {
+  if (!deletingId.value) return;
   try {
-    await deleteApiKey(id);
+    await deleteApiKey(deletingId.value);
+    showDeleteDialog.value = false;
     ElMessage.success('已删除');
+    if (editingId.value === deletingId.value) resetForm();
     await loadKeys();
   } catch { ElMessage.error('删除失败'); }
 }
@@ -176,6 +202,7 @@ async function handleTest(key: SavedKey) {
 }
 
 function startEdit(key: SavedKey) {
+  editingId.value = key.id;
   if (key.baseUrl) {
     configTab.value = 'custom';
     customApiFormat.value = (key.format as any) || 'openai';
@@ -212,7 +239,7 @@ onMounted(loadKeys);
         </div>
         <button class="reset-button" @click="resetForm">
           <span class="icon ri-restart-line"></span>
-          恢复默认
+          清空表单
         </button>
       </div>
     </div>
@@ -271,7 +298,7 @@ onMounted(loadKeys);
             <UiInput
               v-model="keyInput"
               :type="keyVisible ? 'text' : 'password'"
-              placeholder="sk-..."
+              :placeholder="editingId ? '留空则保留原密钥，输入则更换' : 'sk-...'"
             >
               <template #suffix>
                 <button class="form-key-toggle" @click="keyVisible = !keyVisible">
@@ -284,7 +311,7 @@ onMounted(loadKeys);
       </div>
 
       <div class="form-actions">
-        <button class="btn-save" @click="handleSave">保存配置</button>
+        <button class="btn-save" @click="handleSave">{{ editingId ? '更新配置' : '保存配置' }}</button>
       </div>
 
       <!-- 已保存密钥 -->
@@ -309,7 +336,7 @@ onMounted(loadKeys);
               </button>
             </UiTip>
             <UiTip text="删除">
-              <button class="saved-key-delete" @click="handleDelete(key.id)">
+              <button class="saved-key-delete" @click="openDelete(key.id)">
                 <span class="icon ri-delete-bin-line"></span>
               </button>
             </UiTip>
@@ -321,6 +348,19 @@ onMounted(loadKeys);
         </div>
       </div>
     </div>
+
+    <!-- 删除密钥确认弹窗 -->
+    <UiModal
+      v-model="showDeleteDialog"
+      title="删除密钥"
+      subtitle="删除后使用该密钥的抽取将不可用"
+      icon="ri-delete-bin-line"
+      :width="480"
+      confirm-text="确认删除"
+      @confirm="confirmDelete"
+    >
+      <p class="confirm-text">确定删除该 API 密钥配置？</p>
+    </UiModal>
   </div>
 </template>
 
@@ -535,6 +575,15 @@ onMounted(loadKeys);
   font-size: 12px;
   color: var(--color-error, #E74C3C);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+
+/* 确认类弹窗正文 */
+.confirm-text {
+  font-size: 15px;
+  color: var(--color-text-body, #3A3A3A);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  margin: 0;
+  line-height: 1.7;
 }
 
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
