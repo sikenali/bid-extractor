@@ -24,9 +24,9 @@ const props = withDefaults(defineProps<{
   title?: string;
 }>(), {
   steps: () => [
-    { key: 0, label: '解析文件' },
-    { key: 1, label: '转换释义' },
-    { key: 2, label: '提取字段' },
+    { key: 0, label: '文档解析' },
+    { key: 1, label: '规则抽取' },
+    { key: 2, label: '智能增强' },
   ],
 });
 
