@@ -20,12 +20,14 @@ export interface Chapter {
   title: string;
   content: string[];
   page: number;
+  path?: string[];
 }
 
 export interface ParagraphMeta {
   text: string;
   paraId: number;
   chapter: string;
+  chapterPath: string[];
   level: number;
   page: number;
 }
@@ -121,6 +123,8 @@ interface FlatParagraph {
   text: string;
   chapter: string;
   level: number;
+  /** 完整章节路径（从根到当前） */
+  chapterPath: string[];
   /** 表格占位符序号（与 collectTables 顺序一致），用于表格锚定到最近上文段落 */
   tableIndex?: number;
 }
@@ -153,7 +157,7 @@ function nodeText(n: any): string {
 
 function flattenContent(nodes: any[]): FlatParagraph[] {
   const out: FlatParagraph[] = [];
-  let chapter = '';
+  let chapterStack: string[] = [];
   let tableCount = 0;
   const walk = (list: any[]) => {
     for (const n of list) {
@@ -161,14 +165,34 @@ function flattenContent(nodes: any[]): FlatParagraph[] {
       if (n.type === 'heading') {
         const level = n.metadata?.level ?? 1;
         const title = nodeText(n).trim();
-        if (title) chapter = title;
-        out.push({ text: title, chapter, level });
+        if (title) {
+          // 根据层级截断栈：level 2 的标题会截断 level 3+ 的子章节
+          chapterStack = chapterStack.slice(0, level - 1);
+          chapterStack.push(title);
+        }
+        out.push({
+          text: title,
+          chapter: title,
+          chapterPath: [...chapterStack],
+          level,
+        });
       } else if (n.type === 'paragraph') {
         const t = nodeText(n).trim();
-        if (t) out.push({ text: t, chapter, level: 0 });
+        if (t) out.push({
+          text: t,
+          chapter: chapterStack[chapterStack.length - 1] || '',
+          chapterPath: [...chapterStack],
+          level: 0,
+        });
       } else if (n.type === 'table') {
         // 表格占位：保留位置信息供表格锚定，文本为空不参与检索
-        out.push({ text: '', chapter, level: -1, tableIndex: tableCount++ });
+        out.push({
+          text: '',
+          chapter: chapterStack[chapterStack.length - 1] || '',
+          chapterPath: [...chapterStack],
+          level: -1,
+          tableIndex: tableCount++,
+        });
       } else if (n.children && n.children.length) {
         walk(n.children);
       }
@@ -209,6 +233,7 @@ function buildParagraphsMeta(paras: FlatParagraph[], paraToPage: number[]): Para
     text: p.text,
     paraId: i,
     chapter: p.chapter,
+    chapterPath: p.chapterPath,
     level: p.level,
     page: i < paraToPage.length ? paraToPage[i] : 1,
   }));
@@ -219,8 +244,13 @@ function buildChapters(paras: FlatParagraph[], paraToPage: number[]): Chapter[] 
   for (let i = 0; i < paras.length; i++) {
     const p = paras[i];
     if (p.level === -1) continue; // 表格占位符不参与章节划分
-    if (p.level > 0 || isSectionStart(p.text)) {
-      chapters.push({ title: p.text, content: [], page: i < paraToPage.length ? paraToPage[i] : 1 });
+    if (p.level > 0) {
+      chapters.push({
+        title: p.text,
+        content: [],
+        page: i < paraToPage.length ? paraToPage[i] : 1,
+        path: p.chapterPath,
+      });
     } else if (chapters.length > 0) {
       chapters[chapters.length - 1].content.push(p.text);
     }
@@ -1012,7 +1042,7 @@ export async function parseDocument(filePath: string, options?: { skillId?: stri
     if (ext === '.txt') {
       const text = fs.readFileSync(filePath, 'utf-8');
       flatParas = text.split(/\r?\n/).map(t => t.trim()).filter(Boolean)
-        .map(t => ({ text: t, chapter: '', level: 0 }));
+        .map(t => ({ text: t, chapter: '', chapterPath: [] as string[], level: 0 }));
       tableRows = [];
     } else {
       const buffer = fs.readFileSync(filePath);
@@ -1272,6 +1302,18 @@ function classifyChapter(title: string, content: string[]): string {
   if (/密封|封装|正本|副本|递交|封标/.test(combined)) return 'seal';
   if (/★|▲|●|◆|※|废标|否决投标|强制性/.test(combined)) return 'star';
   if (/项目|招标|采购|编号|预算|截止|开标|地点|采购人|代理/.test(combined)) return 'info';
+  return 'other';
+}
+
+function classifyChapterByPath(chapterPath: string[]): string {
+  for (const path of chapterPath) {
+    if (/评分|分值|评标|得分|权重|满分/.test(path)) return 'score';
+    if (/技术|参数|规格|配置|性能|验收|指标/.test(path)) return 'tech';
+    if (/商务|付款|质保|履约|保证金|合同/.test(path)) return 'business';
+    if (/密封|封装|正本|副本|递交|封标/.test(path)) return 'seal';
+    if (/★|▲|●|◆|※|废标|否决投标|强制性/.test(path)) return 'star';
+    if (/项目|招标|采购|编号|预算|截止|开标|地点|采购人|代理/.test(path)) return 'info';
+  }
   return 'other';
 }
 
