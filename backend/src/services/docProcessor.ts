@@ -1409,6 +1409,25 @@ async function runLLMExtraction(
   lowHitGroups: string[] = [],
 ): Promise<Record<string, string>> {
   const bizType = (skill as any).biz_type || 'info';
+
+  // profile_settings.llm_model_id 作为全局模型覆盖，优先级高于 skill.llm_api_config_id
+  let effectiveApiConfigId = skill.llm_api_config_id || '';
+  try {
+    const override = db.prepare(
+      'SELECT llm_model_id FROM profile_settings WHERE id = 1'
+    ).get() as any;
+    if (override?.llm_model_id) effectiveApiConfigId = override.llm_model_id;
+  } catch (e) {
+    console.warn('[docProcessor] Failed to read profile_settings.llm_model_id:', e);
+  }
+  const apiConfig = effectiveApiConfigId
+    ? db.prepare('SELECT * FROM api_configs WHERE id = ? AND enabled = 1').get(effectiveApiConfigId)
+    : null;
+  if (!apiConfig) {
+    console.warn('[docProcessor] No API config found for skill', skill.id, 'override=', effectiveApiConfigId || '(none)');
+    return {};
+  }
+
   // 绑定的提示词模板优先：提示词标签的维护真正参与提取
   let effectivePrompt = skill.prompt_template;
   const bindId = (skill as any).bind_prompt_template_id || '';
@@ -1476,15 +1495,6 @@ async function runLLMExtraction(
       .replace(/\{\{preExtract\}\}/g, preExtractJson)
       .replace(/\{\{fieldSchema\}\}/g, fieldSchemaList)
       .replace(/\{\{fewShotExamples\}\}/g, fewShotExamples);
-
-    const apiConfig = skill.llm_api_config_id
-      ? db.prepare('SELECT * FROM api_configs WHERE id = ? AND enabled = 1').get(skill.llm_api_config_id)
-      : null;
-
-    if (!apiConfig) {
-      console.warn('[docProcessor] No API config found for skill', skill.id);
-      continue;
-    }
 
     try {
       const raw = await callLLM(apiConfig, filled, skill.temperature, skill.top_p, skill.max_tokens);

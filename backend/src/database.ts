@@ -184,12 +184,6 @@ export function initializeDatabase() {
       updated_at TEXT DEFAULT (datetime('now'))
     )`);
   }
-  if (tableExists('llm_prompt_templates')) {
-    const cols = db.prepare(`PRAGMA table_info(llm_prompt_templates)`).all() as any[];
-    if (!cols.some(c => c.name === 'field_schema')) {
-      db.exec(`ALTER TABLE llm_prompt_templates ADD COLUMN field_schema TEXT DEFAULT '[]'`);
-    }
-  }
   // Migration: extraction_tasks table
   if (!tableExists('extraction_tasks')) {
     db.exec(`CREATE TABLE extraction_tasks (
@@ -328,7 +322,10 @@ export function initializeDatabase() {
       id INTEGER PRIMARY KEY CHECK (id = 1),
       auto_redirect_after_extract INTEGER DEFAULT 1,
       default_skill_id TEXT DEFAULT '',
-      extract_preview_mode TEXT DEFAULT 'list'
+      extract_preview_mode TEXT DEFAULT 'list',
+      llm_enhance_enabled INTEGER DEFAULT 1,
+      llm_hit_rate_threshold REAL DEFAULT 0.6,
+      llm_model_id TEXT DEFAULT ''
     )`);
   } else {
     // 新增 LLM 增强配置字段
