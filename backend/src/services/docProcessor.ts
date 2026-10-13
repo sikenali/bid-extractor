@@ -1069,7 +1069,7 @@ function businessValidate(extracts: Record<string, FieldExtract>): {
  * 计算命中率低于阈值的字段分组列表。
  * 分组内 hit 率 = 有值的字段数 / 该组总字段数；低于 threshold 的组需要 LLM 增强。
  */
-function shouldCallLlm(
+function getLowHitGroups(
   extracts: Record<string, FieldExtract>,
   threshold = 0.6,
 ): string[] {
@@ -1201,11 +1201,11 @@ export async function parseDocument(filePath: string, options?: { skillId?: stri
         'SELECT llm_enhance_enabled, llm_hit_rate_threshold FROM profile_settings WHERE id = 1'
       ).get() as any;
       const llmEnabled = llmSettings?.llm_enhance_enabled !== 0;
-      const threshold = llmSettings?.llm_hit_rate_threshold || 0.6;
+      const threshold = llmSettings?.llm_hit_rate_threshold ?? 0.6;
 
       if (llmEnabled && skill && skill.enable_llm && hasPrompt) {
         try {
-          const lowHitGroups = shouldCallLlm(extracts, threshold);
+          const lowHitGroups = getLowHitGroups(extracts, threshold);
           if (lowHitGroups.length > 0) {
             llmResult = await runLLMExtraction(skill, flatParas, chapters, extracts, lowHitGroups);
             const merged = mergeLLMResult(extracts, groups, fieldGroups, llmResult, skill.biz_type || 'info');
@@ -1355,9 +1355,19 @@ async function runLLMExtraction(
     chunksByType['all'] = paras.map(p => p.text).join('\n');
   }
   // 命中率阈值过滤：仅处理命中组
-  const effectiveChunks: Record<string, string> = lowHitGroups.length > 0
+  let effectiveChunks: Record<string, string> = lowHitGroups.length > 0
     ? Object.fromEntries(Object.entries(chunksByType).filter(([k]) => lowHitGroups.includes(k)))
     : chunksByType;
+
+  // 回退：lowHitGroups 来自 extract.group，chunksByType key 来自 classifyChapter，
+  // 命名空间可能不匹配导致静默为空，此时退回全量 chunks 以避免 LLM 完全被跳过。
+  if (lowHitGroups.length > 0 && Object.keys(effectiveChunks).length === 0) {
+    console.warn(
+      `[docProcessor] effectiveChunks empty due to group/chunk namespace mismatch ` +
+      `(lowHitGroups=${JSON.stringify(lowHitGroups)}, chunksByType=${JSON.stringify(Object.keys(chunksByType))}), fallback to all chunks`,
+    );
+    effectiveChunks = chunksByType;
+  }
 
   const allResults: Record<string, string> = {};
   // 规则预抽取结果仅与 skill 相关，chunk 无关，提升到循环外序列化一次
