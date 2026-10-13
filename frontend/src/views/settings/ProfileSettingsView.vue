@@ -19,7 +19,7 @@ const TABS = [
 ];
 
 // ── Tab 1: 通用设置 ─────────────────────────────────────────────
-const profileSettings = ref<ProfileSettings | null>(null);
+const profileSettings = ref<ProfileSettings>({ id: 0, auto_redirect_after_extract: 0, default_skill_id: '', extract_preview_mode: 'table' });
 
 async function loadProfileSettings() {
   try { profileSettings.value = await getProfileSettings(); } catch { /* use defaults */ }
@@ -155,7 +155,7 @@ onMounted(() => {
   loadTemplates();
 });
 
-// ── Tab 3: 规则管理 ─────────────────────────────────────────────
+// ── Tab 4: 规则管理 ─────────────────────────────────────────────
 interface RuleItem { id: string; fieldName: string; pattern: string; groupName: string; aliasFor: string; category: string; }
 const rules = ref<RuleItem[]>([]);
 const rLoading = ref(false);
@@ -272,7 +272,8 @@ async function handleSeedUniversal() {
             <div class="threshold-control">
               <input type="range" min="0" max="100" step="10"
                      :value="llmEnhanceConfig.hitRateThreshold * 100"
-                     @input="llmEnhanceConfig.hitRateThreshold = ($event as any).target.value / 100" />
+                      @input="llmEnhanceConfig.hitRateThreshold = ($event as any).target.value / 100"
+                      @change="saveLlmEnhanceConfig" />
               <span class="threshold-value">{{ Math.round(llmEnhanceConfig.hitRateThreshold * 100) }}%</span>
             </div>
           </div>
@@ -345,7 +346,7 @@ async function handleSeedUniversal() {
     </template>
 
     <!-- ═══════════════════════════════════════════════════════════ -->
-    <!-- Tab 3: 规则管理                                              -->
+    <!-- Tab 4: 规则管理                                              -->
     <!-- ═══════════════════════════════════════════════════════════ -->
     <template v-else>
       <div class="rule-toolbar">
