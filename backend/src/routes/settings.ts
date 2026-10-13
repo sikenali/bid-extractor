@@ -375,15 +375,25 @@ router.get('/llm-enhance', (_req, res) => {
 router.put('/llm-enhance', (req, res) => {
   const { enabled, hitRateThreshold, modelId } = req.body;
 
-  db.prepare(`UPDATE profile_settings SET
-    llm_enhance_enabled = ?,
-    llm_hit_rate_threshold = ?,
-    llm_model_id = ?
+  const existing = db.prepare('SELECT id FROM profile_settings WHERE id = 1').get() as any;
+  if (existing) {
+    db.prepare(`UPDATE profile_settings SET
+      llm_enhance_enabled = COALESCE(?, llm_enhance_enabled),
+      llm_hit_rate_threshold = COALESCE(?, llm_hit_rate_threshold),
+      llm_model_id = COALESCE(?, llm_model_id)
     WHERE id = 1`).run(
-    enabled ? 1 : 0,
-    hitRateThreshold || 0.6,
-    modelId || '',
-  );
+      enabled != null ? (enabled ? 1 : 0) : null,
+      hitRateThreshold ?? null,
+      modelId ?? null,
+    );
+  } else {
+    db.prepare(`INSERT OR IGNORE INTO profile_settings (id, llm_enhance_enabled, llm_hit_rate_threshold, llm_model_id)
+      VALUES (1, ?, ?, ?)`).run(
+      enabled != null ? (enabled ? 1 : 0) : 1,
+      hitRateThreshold ?? 0.6,
+      modelId ?? '',
+    );
+  }
 
   res.json({ success: true });
 });
