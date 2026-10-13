@@ -24,6 +24,8 @@ interface JobEntry {
   result: ExtractOutput;
   createdAt: number;
   skillId?: string;
+  progress: number;
+  progressText: string;
 }
 
 const JOB_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -110,6 +112,8 @@ router.post('/', upload.single('file'), async (req, res) => {
       result,
       createdAt: Date.now(),
       skillId,
+      progress: 3,
+      progressText: '已完成',
     });
 
     // 持久化到 doc_results 表
@@ -159,7 +163,9 @@ router.get('/:id/status', (req, res) => {
       progress: 100,
       filename: job.filename,
       fileSize: fileStat?.size || job.size,
-      result: job.result
+      result: job.result,
+      progressStage: job.progress,
+      progressText: job.progressText,
     });
     return;
   }
