@@ -49,6 +49,8 @@ export interface FieldExtract {
   sourceText?: string;
   paraIds: number[];
   score?: number;
+  confidence?: number;
+  source?: 'regex' | 'keyword' | 'llm' | 'title_fallback';
 }
 
 /** V1.3 最终输出结构 */
@@ -447,6 +449,24 @@ function locateWildcardLabel(text: string, name: string): { ns: number; ne: numb
   return best;
 }
 
+function calculateConfidence(
+  matchType: 'regex' | 'keyword',
+  atStart: boolean,
+  followedColon: boolean,
+  textLength: number,
+): number {
+  let confidence = 5;
+  if (matchType === 'regex') {
+    confidence = 7;
+    if (atStart) confidence += 2;
+    if (followedColon) confidence += 1;
+  } else {
+    if (followedColon) confidence += 1;
+  }
+  if (textLength > 200) confidence -= 1;
+  return Math.min(10, Math.max(1, confidence));
+}
+
 function truncateAtOtherFields(value: string, nameRe: RegExp | null, self: string): string {
   if (!nameRe) return value;
   // 与旧逻辑等价：取所有字段名在 value 中的最小出现位置（self 除外），切断并去尾随引导符
@@ -470,9 +490,10 @@ function extractFromUnit(
   grids: Map<string, string[][]>,
   rule: FieldRule,
   nameRe: RegExp | null,
-): { value: string; paraId: number; sourceText: string; score: number } | null {
+): { value: string; paraId: number; sourceText: string; score: number; confidence: number; source: 'regex' | 'keyword' } | null {
   const text = unit.text;
   const trimmedStart = text.length - text.trimStart().length;
+  const textLength = [...text].length;
 
   // 0. 正则优先（精度最高）
   //    DOCX 文本常被拆分成多段，仅在当段以冒号/引导符结尾时才与下一段合并
@@ -484,13 +505,22 @@ function extractFromUnit(
       if (m) {
         const v = cleanValue((m[1] || m[0]) || '', nameRe, rule.fieldName);
         if (v) {
-          let score = 2;
-          if (m.index !== undefined && m.index <= trimmedStart) score += 3;
+          const regexAtStart = m.index !== undefined && m.index <= trimmedStart;
           const afterRe = m.index !== undefined ? text[m.index + m[0].length] : '';
-          if (afterRe === '：' || afterRe === ':') score += 2;
+          const regexFollowedColon = afterRe === '：' || afterRe === ':';
+          let score = 2;
+          if (regexAtStart) score += 3;
+          if (regexFollowedColon) score += 2;
           if ([...text].length < 60) score += 1;
           if (/[目录章节篇表格式一览]$/.test(v.trim())) score -= 5;
-          return { value: v, paraId: unit.paraId, sourceText: text, score };
+          return {
+            value: v,
+            paraId: unit.paraId,
+            sourceText: text,
+            score,
+            confidence: calculateConfidence('regex', regexAtStart, regexFollowedColon, textLength),
+            source: 'regex',
+          };
         }
       }
       // 仅当当前段以冒号/引导符结尾时才尝试合并下一段（避免跨段误匹配）
@@ -507,7 +537,14 @@ function extractFromUnit(
             if (v) {
               let score = 2;
               if (/[目录章节篇表格式一览]$/.test(v.trim())) score -= 5;
-              return { value: v, paraId: unit.paraId, sourceText: merged, score };
+              return {
+                value: v,
+                paraId: unit.paraId,
+                sourceText: merged,
+                score,
+                confidence: 6,
+                source: 'regex',
+              };
             }
           }
         }
@@ -539,6 +576,8 @@ function extractFromUnit(
   // 单字规则（如 ★ ▲ *）只匹配行首
   if ([...rule.fieldName].length === 1 && text.trimStart().indexOf(rule.fieldName) !== 0) return null;
 
+  const confidence = calculateConfidence('keyword', atStart, followedColon, textLength);
+
   const scoreOf = (base: number, val: string): number => {
     let s = base;
     if (atStart) s += 3;
@@ -553,7 +592,7 @@ function extractFromUnit(
 
   // 1. 后：同行关键字之后
   let v = cleanValue(text.slice(kidx + rule.fieldName.length), nameRe, rule.fieldName);
-  if (v) return { value: v, paraId: unit.paraId, sourceText: text, score: scoreOf(1, v) };
+  if (v) return { value: v, paraId: unit.paraId, sourceText: text, score: scoreOf(1, v), confidence, source: 'keyword' };
 
   // 2. 右 / 下：表格相邻格（裸标签邻格由守卫过滤）
   if (unit.tableId != null) {
@@ -563,14 +602,14 @@ function extractFromUnit(
       if (right.trim() && !HAS_LABEL.test(right)) {
         v = cleanValue(right, nameRe, rule.fieldName);
         if (v && isBareLabelLike(v)) v = null;
-        if (v) return { value: v, paraId: unit.paraId, sourceText: `${text} ${right.trim()}`, score: scoreOf(2, v) };
+        if (v) return { value: v, paraId: unit.paraId, sourceText: `${text} ${right.trim()}`, score: scoreOf(2, v), confidence, source: 'keyword' };
       }
       const belowRow = grid[unit.row + 1];
       const below = (belowRow || [])[unit.col] || '';
       if (below.trim() && !HAS_LABEL.test(below)) {
         v = cleanValue(below, nameRe, rule.fieldName);
         if (v && isBareLabelLike(v)) v = null;
-        if (v) return { value: v, paraId: unit.paraId, sourceText: `${text} ${below.trim()}`, score: scoreOf(2, v) };
+        if (v) return { value: v, paraId: unit.paraId, sourceText: `${text} ${below.trim()}`, score: scoreOf(2, v), confidence, source: 'keyword' };
       }
     }
     return null;
@@ -582,7 +621,7 @@ function extractFromUnit(
     v = cleanValue(before, nameRe, rule.fieldName);
     // 去"（以下简称…"后缀取正主
     if (v) v = v.split(/[（(]/)[0].trim() || null;
-    if (v) return { value: v, paraId: unit.paraId, sourceText: text, score: scoreOf(2, v) };
+    if (v) return { value: v, paraId: unit.paraId, sourceText: text, score: scoreOf(2, v), confidence, source: 'keyword' };
   }
 
   // 4. 下：下一段（跳过空行；遇标题或目录行止步）
@@ -595,7 +634,7 @@ function extractFromUnit(
     if (HAS_LABEL.test(nu.text)) break;
     v = cleanValue(nu.text, nameRe, rule.fieldName);
     if (v && isBareLabelLike(v)) break;
-    if (v) return { value: v, paraId: nu.paraId, sourceText: `${text}\n${nu.text}`, score: scoreOf(-1, v) };
+    if (v) return { value: v, paraId: nu.paraId, sourceText: `${text}\n${nu.text}`, score: scoreOf(-1, v), confidence, source: 'keyword' };
     break;
   }
 
@@ -612,7 +651,7 @@ function extractFromUnit(
     if (v && isBareLabelLike(v)) break;
     // 上位值多为日期/金额/长名称：无数字又短的不采信
     if (v && !/[0-9]/.test(v) && [...v].length < 10) break;
-    if (v) return { value: v, paraId: pu.paraId, sourceText: `${pu.text}\n${text}`, score: scoreOf(-1, v) };
+    if (v) return { value: v, paraId: pu.paraId, sourceText: `${pu.text}\n${text}`, score: scoreOf(-1, v), confidence, source: 'keyword' };
     break;
   }
   return null;
@@ -759,7 +798,7 @@ function applyRuleExtraction(
     (rule.aliasFor && rule.aliasFor !== rule.fieldName) ? rule.aliasFor : rule.fieldName;
   const isAlias = (r: FieldRule) => keyOf(r) !== r.fieldName;
 
-  const bestByKey: Record<string, { value: string; paraId: number; sourceText: string; score: number; page: number; chapter: string; group: string; fromAlias: boolean } | null> = {};
+  const bestByKey: Record<string, { value: string; paraId: number; sourceText: string; score: number; page: number; chapter: string; group: string; fromAlias: boolean; confidence?: number; source?: 'regex' | 'keyword' | 'title_fallback' } | null> = {};
 
   const processRule = (rule: FieldRule) => {
     const key = keyOf(rule);
@@ -770,18 +809,28 @@ function applyRuleExtraction(
     // 通配符规则：可命中多个不同名称（如 *编号 → 招标编号/项目编号），按实际命中名产出
     if (isWildcardName(rule.fieldName)) {
       const seenHit = new Set<string>();
+      const wTextLen = (i: number) => [...units[i].text].length;
       for (let i = 0; i < units.length; i++) {
         const hit = extractWildcardFromUnit(units[i], units, i, grids, rule, nameRe);
         if (!hit || !hit.matchedName) continue;
         const hitKey = hit.matchedName;
         if (seenHit.has(hitKey)) continue;
         seenHit.add(hitKey);
+        // 通配符标签视作关键字命中，用命中位置信息打分
+        const text = units[i].text;
+        const trimmedStart = text.length - text.trimStart().length;
+        const ns = text.indexOf(hit.matchedName);
+        const ne = ns >= 0 ? ns + hit.matchedName.length : -1;
+        const wAtStart = ns >= 0 && ns <= trimmedStart;
+        const wColon = ne >= 0 && (text[ne] === '：' || text[ne] === ':');
+        const wConfidence = calculateConfidence('keyword', wAtStart, wColon, wTextLen(i));
         const cur = bestByKey[hitKey];
         if (!cur || hit.score > cur.score) {
           bestByKey[hitKey] = {
             value: hit.value, paraId: hit.paraId, sourceText: hit.sourceText,
             score: hit.score, page: units[i].page, chapter: units[i].chapter,
             group: rule.group, fromAlias: false,
+            confidence: wConfidence, source: 'keyword',
           };
         }
       }
@@ -822,6 +871,8 @@ function applyRuleExtraction(
         chapter: '',
         group: rule.group,
         fromAlias: false,
+        confidence: 3,
+        source: 'title_fallback',
       };
     }
   }
@@ -837,6 +888,8 @@ function applyRuleExtraction(
       sourceText: b.sourceText,
       paraIds: b.paraId >= 0 ? [b.paraId] : [],
       score: b.score,
+      confidence: b.confidence,
+      source: b.source,
     };
     groups[key] = b.group;
     fieldGroups[key] = b.group;
@@ -1202,6 +1255,7 @@ function mergeLLMResult(
       group: prev?.group || fallbackGroup,
       sourceText: 'LLM增强',
       paraIds: prev?.paraIds || [],
+      source: 'llm',
     };
     groups[field] = extracts[field].group;
     fieldGroups[field] = extracts[field].group;
