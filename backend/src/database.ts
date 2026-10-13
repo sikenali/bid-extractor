@@ -184,6 +184,12 @@ export function initializeDatabase() {
       updated_at TEXT DEFAULT (datetime('now'))
     )`);
   }
+  if (tableExists('llm_prompt_templates')) {
+    const cols = db.prepare(`PRAGMA table_info(llm_prompt_templates)`).all() as any[];
+    if (!cols.some(c => c.name === 'field_schema')) {
+      db.exec(`ALTER TABLE llm_prompt_templates ADD COLUMN field_schema TEXT DEFAULT '[]'`);
+    }
+  }
   // Migration: extraction_tasks table
   if (!tableExists('extraction_tasks')) {
     db.exec(`CREATE TABLE extraction_tasks (
@@ -324,6 +330,18 @@ export function initializeDatabase() {
       default_skill_id TEXT DEFAULT '',
       extract_preview_mode TEXT DEFAULT 'list'
     )`);
+  } else {
+    // 新增 LLM 增强配置字段
+    const cols = db.prepare(`PRAGMA table_info(profile_settings)`).all() as any[];
+    if (!cols.some(c => c.name === 'llm_enhance_enabled')) {
+      db.exec(`ALTER TABLE profile_settings ADD COLUMN llm_enhance_enabled INTEGER DEFAULT 1`);
+    }
+    if (!cols.some(c => c.name === 'llm_hit_rate_threshold')) {
+      db.exec(`ALTER TABLE profile_settings ADD COLUMN llm_hit_rate_threshold REAL DEFAULT 0.6`);
+    }
+    if (!cols.some(c => c.name === 'llm_model_id')) {
+      db.exec(`ALTER TABLE profile_settings ADD COLUMN llm_model_id TEXT DEFAULT ''`);
+    }
   }
 
   // Seed default records
