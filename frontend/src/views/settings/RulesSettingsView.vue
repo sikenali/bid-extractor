@@ -461,6 +461,8 @@ async function handleRuleSubmit(data: { fieldName: string; pattern: string; cate
 }
 .empty-row .empty-cell {
   text-align: center;
+  vertical-align: middle;
+  height: auto;
   padding: 40px 0;
   color: var(--color-text-muted, #8A8578);
   font-size: 14px;

@@ -55,6 +55,7 @@
       "frontend/dist/**/*",
       "backend/dist/**/*",
       "backend/package.json",
+      "backend/seed-skills/**/*",
       "electron/**/*",
       "package.json"
     ],

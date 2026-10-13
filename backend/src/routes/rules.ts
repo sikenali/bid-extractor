@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import crypto from 'node:crypto';
 import multer from 'multer';
 import { load } from 'js-yaml';
 import path from 'path';
@@ -18,6 +19,8 @@ interface SkillMeta {
   content?: string;
   importedAt: string;
   enabled?: boolean;
+  // 本技能实际插入的 extraction_rules.id（导入/同步时记录），删除时精确清理，避免误删同名核心规则
+  ruleIds?: string[];
 }
 
 function readSkills(): SkillMeta[] {
@@ -36,6 +39,30 @@ function writeSkills(skills: SkillMeta[]) {
 }
 
 const localSkillsDir = path.join(__dirname, '..', '..', 'data', 'skills');
+// 随包发布的种子技能目录（低代码技能文件载体）；启动时同步到 data/skills
+const seedSkillsDir = path.join(__dirname, '..', '..', 'seed-skills');
+
+function isSkillFile(f: string): boolean {
+  return /\.(md|yaml|yml)$/i.test(f);
+}
+
+// 启动时确保本地技能目录可用；为空则从种子目录复制示例技能（由 index.ts 调用）
+export function bootEnsureSeedSkills(): number {
+  try {
+    if (!fs.existsSync(localSkillsDir)) fs.mkdirSync(localSkillsDir, { recursive: true });
+    if (!fs.existsSync(seedSkillsDir)) return 0;
+    const existing = fs.readdirSync(localSkillsDir).filter(isSkillFile);
+    if (existing.length > 0) return 0;
+    const seeds = fs.readdirSync(seedSkillsDir).filter(isSkillFile);
+    for (const f of seeds) {
+      fs.copyFileSync(path.join(seedSkillsDir, f), path.join(localSkillsDir, f));
+    }
+    return seeds.length;
+  } catch (err) {
+    console.error('[boot] ensure seed skills failed:', err);
+    return 0;
+  }
+}
 
 interface SkillParseResult {
   name: string;
@@ -45,6 +72,7 @@ interface SkillParseResult {
   fields: string[];
   content?: string;
   inserted: number;
+  insertedIds: string[];
   skipped: string[];
 }
 
@@ -62,6 +90,7 @@ function parseSkillContent(content: string, filename: string): SkillParseResult 
       fields: [],
       content,
       inserted: 0,
+      insertedIds: [],
       skipped: [],
     };
   }
@@ -78,6 +107,7 @@ function parseSkillContent(content: string, filename: string): SkillParseResult 
       fields: [],
       content: content.replace(/^---[\s\S]*?---\n*/, ''),
       inserted: 0,
+      insertedIds: [],
       skipped: [],
     };
   }
@@ -89,6 +119,7 @@ function parseSkillContent(content: string, filename: string): SkillParseResult 
 
   const allFields: string[] = [];
   const skipped: string[] = [];
+  const insertedIds: string[] = [];
   let inserted = 0;
 
   for (const rule of fm.rules) {
@@ -104,9 +135,11 @@ function parseSkillContent(content: string, filename: string): SkillParseResult 
       continue;
     }
 
+    const id = crypto.randomUUID();
     db.prepare(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, ?, ?, ?)`)
-      .run(crypto.randomUUID(), rule.field, pattern, category, group);
+      .run(id, rule.field, pattern, category, group);
     inserted++;
+    insertedIds.push(id);
     existingSet.add(key);
   }
 
@@ -117,19 +150,34 @@ function parseSkillContent(content: string, filename: string): SkillParseResult 
     type: 'rules',
     fields: allFields,
     inserted,
+    insertedIds,
     skipped,
   };
 }
 
-function saveSkillMeta(meta: SkillMeta) {
+function saveSkillMeta(meta: SkillMeta): boolean {
   const skills = readSkills();
   const existing = skills.findIndex(s => s.name === meta.name);
-  if (existing >= 0) {
+  const isUpdate = existing >= 0;
+  if (isUpdate) {
+    // 同名覆盖时合并 ruleIds：重复同步不再插入，但首轮插入的规则归属不能丢
+    const prevIds = skills[existing].ruleIds || [];
+    meta.ruleIds = [...new Set([...prevIds, ...(meta.ruleIds || [])])];
     skills[existing] = meta;
   } else {
     skills.push(meta);
   }
   writeSkills(skills);
+  return isUpdate;
+}
+
+function deleteSkillRules(skill: SkillMeta): void {
+  // 只删除本技能实际插入的规则（ruleIds），绝不按组+字段匹配删除——
+  // 后者会误删与技能同名的核心规则（已验证的线上事故位）。
+  // 老版本元数据无 ruleIds：仅清理元数据，不碰规则。
+  if (!skill.ruleIds || skill.ruleIds.length === 0) return;
+  db.prepare('DELETE FROM extraction_rules WHERE id IN (' +
+    skill.ruleIds.map(() => '?').join(',') + ')').run(...skill.ruleIds);
 }
 
 const router = Router();
@@ -440,8 +488,7 @@ router.delete('/skills/:name', (req, res) => {
     return;
   }
   const skill = skills[idx];
-  db.prepare('DELETE FROM extraction_rules WHERE group_name = ? AND field_name IN (' +
-    skill.fields.map(() => '?').join(',') + ')').run(skill.group, ...skill.fields);
+  deleteSkillRules(skill);
   skills.splice(idx, 1);
   writeSkills(skills);
   res.json({ deleted: true });
@@ -463,9 +510,10 @@ router.post('/import-skill', upload.single('file'), (req, res) => {
       type: result.type,
       fields: result.fields,
       content: result.content,
+      ruleIds: result.insertedIds,
       importedAt: new Date().toISOString(),
     };
-    saveSkillMeta(meta);
+    const isUpdate = saveSkillMeta(meta);
     res.json({
       name: meta.name,
       description: meta.description,
@@ -474,6 +522,7 @@ router.post('/import-skill', upload.single('file'), (req, res) => {
       inserted: result.inserted,
       skipped: result.skipped,
       count: result.inserted,
+      isUpdate,
     });
   } catch (err: any) {
     res.status(400).json({ error: `Failed to parse skill file: ${err.message}` });
@@ -484,10 +533,14 @@ router.post('/import-skill', upload.single('file'), (req, res) => {
 router.post('/sync-skills', (_req, res) => {
   try {
     if (!fs.existsSync(localSkillsDir)) {
-      res.json({ synced: 0, skills: [], message: '本地技能目录不存在' });
+      fs.mkdirSync(localSkillsDir, { recursive: true });
+    }
+    bootEnsureSeedSkills();
+    const files = fs.readdirSync(localSkillsDir).filter(isSkillFile);
+    if (files.length === 0) {
+      res.json({ synced: 0, skills: [], message: '本地没有可同步的技能文件，可先使用「导入技能」上传 .md / .yaml 文件' });
       return;
     }
-    const files = fs.readdirSync(localSkillsDir).filter(f => /\.(md|yaml|yml)$/i.test(f));
     const results: any[] = [];
     for (const file of files) {
       const content = fs.readFileSync(path.join(localSkillsDir, file), 'utf-8');
@@ -499,6 +552,7 @@ router.post('/sync-skills', (_req, res) => {
         type: result.type,
         fields: result.fields,
         content: result.content,
+        ruleIds: result.insertedIds,
         importedAt: new Date().toISOString(),
       };
       saveSkillMeta(meta);
@@ -811,19 +865,184 @@ router.post('/reset', (_req, res) => {
   res.json({ ok: true, added });
 });
 
-// 启动时自动补齐既有规则的正则表达式
-applyRegexPatterns();
+// 启动时自动补齐既有规则的正则表达式（由 index.ts 在 initializeDatabase() 后调用）
+export function bootApplyRegexPatterns(): number {
+  return applyRegexPatterns();
+}
 
-// Reset skills to empty (user-imported skills only)
+// Reset skills to empty (user-imported skills only, including their rules)
 router.post('/reset-skills', (_req, res) => {
+  const skills = readSkills();
+  for (const skill of skills) deleteSkillRules(skill);
   writeSkills([]);
   res.json({ ok: true });
+});
+
+// Seed universal extraction rules (works across all document types)
+const UNIVERSAL_RULES: Array<[string, string, string, string, string]> = [
+  // ── 日期时间 ─────────────────────────────────────────────────────
+  ['univ_date_1', '日期', '^(\\d{4}[年-/]\\d{1,2}[月-/]\\d{1,2})', 'regex', 'info'],
+  ['univ_date_2', '日期', '^(\\d{4}[-.]\\d{1,2}[-.]\\d{1,2})', 'regex', 'info'],
+  ['univ_datetime', '时间', '^(\\d{1,2}[:：]\\d{2}(?:[:：]\\d{2})?)', 'regex', 'info'],
+  ['univ_period', '期限/周期', '(\\d{1,3}\\s*(?:年|月|日|天|个?工作日|周))', 'regex', 'info'],
+  // ── 金额/数量 ────────────────────────────────────────────────────
+  ['univ_amount', '金额', '[¥￥\\s]*(\\d[\\d,\\.]*\\s*(?:万|亿|元|块|圆|美元|USD|EUR)?)', 'regex', 'info'],
+  ['univ_number', '数量/份数', '(\\d{1,3}(?:,\\d{3})*\\s*(?:份|套|本|册|台|件|项|个|人|套))', 'regex', 'info'],
+  ['univ_percentage', '比例/百分比', '(\\d{1,3}(?:\\.\\d+)?\\s*%)', 'regex', 'info'],
+  // ── 编号/编码 ────────────────────────────────────────────────────
+  ['univ_code_id', '编号/代码', '([A-Z]{2,8}-?\\d[\\w-]{4,30}|\\d{8,}(?:[-_/]\\d+)*)', 'regex', 'info'],
+  ['univ_doc_no', '文号/单号', '(?:文号|单号|编号|No\\.?|号)[：:]\\s*([A-Za-z0-9-_/．.]{3,40})', 'regex', 'info'],
+  // ── 联系人/电话 ──────────────────────────────────────────────────
+  ['univ_phone', '电话/手机', '((?:手机|电话|热线|传真|邮箱)?[：:]\\s*(?:1[3-9]\\d{9}|\\d{3,4}[-_]?\\d{7,8}))', 'regex', 'info'],
+  ['univ_mobile', '手机', '1[3-9]\\d{9}', 'regex', 'info'],
+  ['univ_landline', '固定电话', '\\d{3,4}[-_]?\\d{7,8}', 'regex', 'info'],
+  // ── 地址 ─────────────────────────────────────────────────────────
+  ['univ_address', '地址', '([^\n，。；;]{5,100}(?:省|市|区|县|路|街|号|栋|楼|室|层))', 'regex', 'info'],
+  ['univ_postcode', '邮编', '\\d{6}', 'regex', 'info'],
+  // ── 公司/组织 ────────────────────────────────────────────────────
+  ['univ_company', '公司名称', '([^\n，。；;]{4,40}(?:公司|集团|有限|股份|院|所|中心|局|委员会|协会|联盟))', 'regex', 'info'],
+  ['univ_credit_code', '统一社会信用代码', '[0-9A-HJ-NPQRTUWXY]{2}\\d{6}[0-9A-HJ-NPQRTUWXY]{10}', 'regex', 'info'],
+  ['univ_tax_no', '税号', '[0-9A-Z]{15,20}', 'regex', 'info'],
+  // ── 证件/资质 ────────────────────────────────────────────────────
+  ['univ_id_card', '身份证号', '\\d{17}[\\dXx]', 'regex', 'info'],
+  ['univ_license_no', '许可证/执照号', '([A-Z]{2,4}[-_]\\d{6,20}|\\d{12,20})', 'regex', 'info'],
+  // ── 电子邮箱 ─────────────────────────────────────────────────────
+  ['univ_email', '邮箱', '([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})', 'regex', 'info'],
+  // ── 网址 ─────────────────────────────────────────────────────────
+  ['univ_url', '网址/链接', '(https?://[^\\s<>"\']+|www\\.[^\\s<>"\']+)', 'regex', 'info'],
+];
+
+router.post('/universal', (_req, res) => {
+  const stmt = db.prepare(
+    'INSERT OR IGNORE INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, ?, ?, ?)'
+  );
+  let added = 0;
+  for (const r of UNIVERSAL_RULES) {
+    const result = stmt.run(r[0], r[1], r[2], r[3], r[4]);
+    if (result.changes > 0) added++;
+  }
+  const total = (db.prepare('SELECT COUNT(*) as c FROM extraction_rules').get() as any).c;
+  res.json({ ok: true, added, total });
+});
+
+// Reset LLM skills to defaults (seeds if empty)
+router.post('/llm-skills/reset', (_req, res) => {
+  const seedSkills = [
+    ['extract_project_info', '项目信息抽取技能', 'info', '你是招标文件抽取专家，下面是招标文件章节原文。\n只抽取【项目信息】的字段，严格遵守下面约束：\n1. 所有条款内容优先保留原文，不要改写、总结，禁止编造不存在信息；没有该字段则填空字符串""；\n2. 如果文本不属于目标章节，则返回空数组；\n3. 输出只能是JSON，禁止额外解释文字；\n4. 标星★条款标记isKey=true；\n\n原文chunk：\n{{chunkText}}', 0.1, 0.9, 2048],
+    ['extract_business_clause', '商务条款抽取技能', 'business', '你是招标文件抽取专家，下面是招标文件章节原文。\n只抽取【商务条款】的字段，严格遵守下面约束：\n1. 所有条款内容优先保留原文，不要改写、总结，禁止编造不存在信息；\n2. 否决投标（废标）条款逐条拆分，一条为一项；\n3. 输出只能是JSON，禁止额外解释文字；\n\n原文chunk：\n{{chunkText}}', 0.1, 0.9, 2048],
+    ['extract_tech_clause', '技术条款抽取技能', 'tech', '你是招标文件抽取专家，下面是招标文件章节原文。\n只抽取【技术条款】的字段，严格遵守下面约束：\n1. 所有条款内容优先保留原文，不要改写、总结，禁止编造不存在信息；\n2. 输出只能是JSON，禁止额外解释文字；\n\n原文chunk：\n{{chunkText}}', 0.1, 0.9, 2048],
+    ['extract_score_standard', '评分标准抽取技能', 'score', '你是招标文件抽取专家，下面是招标文件章节原文。\n只抽取【评分标准】的字段，严格遵守下面约束：\n1. 所有条款内容优先保留原文，不要改写、总结；\n2. 分值数值必须准确；总分校验；\n3. 输出只能是JSON，禁止额外解释文字；\n\n原文chunk：\n{{chunkText}}', 0.1, 0.9, 2048],
+    ['extract_seal_info', '封标信息抽取技能', 'seal', '你是招标文件抽取专家，下面是招标文件章节原文。\n只抽取【封标信息】的字段，严格遵守下面约束：\n1. 正副本份数、密封要求、标记要求逐条提取；\n2. 保留原文，不要改写；\n3. 输出只能是JSON，禁止额外解释文字；\n\n原文chunk：\n{{chunkText}}', 0.1, 0.9, 2048],
+    ['extract_star_clause', '标星条款抽取技能', 'star', '你是招标文件抽取专家，下面是招标文件章节原文。\n只抽取【标星条款★】的字段，严格遵守下面约束：\n1. 带★标记的强制关键条款，漏召回是重大风险；\n2. 保留原文，逐条拆分；\n3. 输出只能是JSON，禁止额外解释文字；\n\n原文chunk：\n{{chunkText}}', 0.1, 0.9, 2048],
+  ];
+  const stmt = db.prepare('INSERT OR IGNORE INTO tender_llm_skill (skill_code, skill_name, biz_type, prompt_template, temperature, top_p, max_tokens, enable) VALUES (?, ?, ?, ?, ?, ?, ?, 1)');
+  let added = 0;
+  for (const s of seedSkills) {
+    const r = stmt.run(...s);
+    if (r.changes > 0) added++;
+  }
+  const rows = db.prepare('SELECT * FROM tender_llm_skill ORDER BY create_time').all();
+  res.json({ ok: true, added, total: rows.length });
 });
 
 // List correction history
 router.get('/corrections', (req, res) => {
   const corrections = db.prepare('SELECT * FROM correction_history ORDER BY created_at DESC LIMIT 100').all();
   res.json(corrections);
+});
+
+// ═══════════════════════════════════════════════════════════
+// LLM 技能管理（tender_llm_skill 表，V1.4）
+// ═══════════════════════════════════════════════════════════
+
+// List all LLM skills
+router.get('/llm-skills', (_req, res) => {
+  const rows = db.prepare(
+    'SELECT id, skill_name, skill_code, biz_type, prompt_template, temperature, top_p, max_tokens, enable, enable_llm, bind_prompt_template_id, bind_rules_json, llm_api_config_id, version, create_time, update_time FROM tender_llm_skill ORDER BY create_time DESC'
+  ).all() as Array<any>;
+  res.json(rows.map(r => ({
+    ...r,
+    enable_llm: !!r.enable_llm,
+    bind_rules_json: r.bind_rules_json || '[]',
+    bind_prompt_template_id: r.bind_prompt_template_id || '',
+    llm_api_config_id: r.llm_api_config_id || '',
+  })));
+});
+
+// Create LLM skill
+router.post('/llm-skills', (req, res) => {
+  const { skill_name, skill_code, biz_type, prompt_template, temperature, top_p, max_tokens, enable_llm, bind_prompt_template_id, bind_rules_json, llm_api_config_id } = req.body;
+  if (!skill_name || !skill_code || !prompt_template) {
+    res.status(400).json({ error: 'skill_name, skill_code, prompt_template required' });
+    return;
+  }
+  const result = db.prepare(
+    `INSERT INTO tender_llm_skill (skill_name, skill_code, biz_type, prompt_template, temperature, top_p, max_tokens, enable, enable_llm, bind_prompt_template_id, bind_rules_json, llm_api_config_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`
+  ).run(
+    skill_name, skill_code, biz_type || 'info', prompt_template,
+    temperature ?? 0.1, top_p ?? 0.9, max_tokens ?? 2048,
+    enable_llm ? 1 : 0,
+    bind_prompt_template_id || '',
+    bind_rules_json || '[]',
+    llm_api_config_id || '',
+  );
+  const row = db.prepare('SELECT * FROM tender_llm_skill WHERE id = ?').get(result.lastInsertRowid);
+  res.status(201).json(row);
+});
+
+// Update LLM skill
+router.put('/llm-skills/:id', (req, res) => {
+  const existing = db.prepare('SELECT id FROM tender_llm_skill WHERE id = ?').get(req.params.id) as any;
+  if (!existing) { res.status(404).json({ error: 'Not found' }); return; }
+  const { skill_name, biz_type, prompt_template, temperature, top_p, max_tokens, enable, enable_llm, bind_prompt_template_id, bind_rules_json, llm_api_config_id } = req.body;
+  db.prepare(`UPDATE tender_llm_skill SET
+    skill_name = COALESCE(?, skill_name),
+    biz_type = COALESCE(?, biz_type),
+    prompt_template = COALESCE(?, prompt_template),
+    temperature = COALESCE(?, temperature),
+    top_p = COALESCE(?, top_p),
+    max_tokens = COALESCE(?, max_tokens),
+    enable = COALESCE(?, enable),
+    enable_llm = COALESCE(?, enable_llm),
+    bind_prompt_template_id = COALESCE(?, bind_prompt_template_id),
+    bind_rules_json = COALESCE(?, bind_rules_json),
+    llm_api_config_id = COALESCE(?, llm_api_config_id),
+    version = version + 1,
+    update_time = datetime('now')
+  WHERE id = ?`).run(
+    skill_name, biz_type, prompt_template,
+    temperature, top_p, max_tokens,
+    enable !== undefined ? enable : undefined,
+    enable_llm !== undefined ? (enable_llm ? 1 : 0) : undefined,
+    bind_prompt_template_id, bind_rules_json, llm_api_config_id,
+    req.params.id,
+  );
+  const row = db.prepare('SELECT * FROM tender_llm_skill WHERE id = ?').get(req.params.id);
+  res.json(row);
+});
+
+// Delete LLM skill
+router.delete('/llm-skills/:id', (req, res) => {
+  const result = db.prepare('DELETE FROM tender_llm_skill WHERE id = ?').run(req.params.id);
+  if (result.changes === 0) { res.status(404).json({ error: 'Not found' }); return; }
+  res.json({ deleted: true });
+});
+
+// Get available prompt templates for binding
+router.get('/llm-prompts', (_req, res) => {
+  const rows = db.prepare(
+    'SELECT id, name, description, biz_type, template_text, enable FROM llm_prompt_templates ORDER BY name'
+  ).all();
+  res.json(rows);
+});
+
+// Get available API configs for binding
+router.get('/llm-api-configs', (_req, res) => {
+  const rows = db.prepare(
+    'SELECT id, provider, model, region, base_url, enabled FROM api_configs WHERE enabled = 1 ORDER BY provider'
+  ).all();
+  res.json(rows);
 });
 
 export default router;

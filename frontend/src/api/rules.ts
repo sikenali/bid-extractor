@@ -31,4 +31,9 @@ export async function deleteRule(id: string): Promise<{ deleted: boolean }> {
   return response.data;
 }
 
+export async function seedUniversalRules(): Promise<{ ok: boolean; added: number; total: number }> {
+  const response = await apiClient.post<{ ok: boolean; added: number; total: number }>('/rules/universal');
+  return response.data;
+}
+
 

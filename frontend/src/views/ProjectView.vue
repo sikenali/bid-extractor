@@ -1028,6 +1028,7 @@ function triggerDownload(blob: Blob, filename: string) {
   height: auto;
   padding: 48px 0;
   text-align: center;
+  vertical-align: middle;
   color: var(--color-text-muted, #8A8578);
   font-size: 13px;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);

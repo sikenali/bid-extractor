@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import apiClient from '@/api/client';
 import { UiInput, UiSwitch, UiModal, UiTip } from '@/components/ui';
 
@@ -58,7 +58,7 @@ async function confirmEdit() {
     return;
   }
   try {
-    const res = await apiClient.put(`/rules/skills/${encodeURIComponent(editingSkill.value.name)}`, {
+    await apiClient.put(`/rules/skills/${encodeURIComponent(editingSkill.value.name)}`, {
       name: editName.value.trim(),
       description: editDesc.value.trim(),
     });
@@ -79,15 +79,6 @@ const groupLabels: Record<string, string> = {
   star: '标星信息',
 };
 
-const templateIcons: Record<string, string> = {
-  info: '',
-  business: '',
-  tech: '',
-  score: '',
-  seal: '',
-  star: '',
-};
-
 const filteredSkills = ref<SkillItem[]>([]);
 
 watch([skills, searchTerm], ([s, t]) => {
@@ -102,99 +93,18 @@ watch([skills, searchTerm], ([s, t]) => {
   );
 });
 
-const MOCK_SKILLS: SkillItem[] = [
-  {
-    id: '1',
-    name: '招标文件要点提取',
-    description: '自动抽取资质门槛、工期与评分办法',
-    group: 'info',
-    type: 'rules',
-    fields: ['项目名称', '招标编号', '投标截止时间'],
-    enabled: true,
-    importedAt: new Date().toISOString(),
-    rules: [
-      { id: 'r1', fieldName: '项目名称', pattern: '项目名称[：:]\\s*(.+)', enabled: true, category: 'regex', groupName: 'info' },
-      { id: 'r2', fieldName: '招标编号', pattern: '招标编号', enabled: true, category: 'keyword', groupName: 'info' },
-      { id: 'r3', fieldName: '投标截止时间', pattern: '投标截止.*?(\\d{4}[年-/]\\d{1,2}[月-/]\\d{1,2})', enabled: true, category: 'regex', groupName: 'info' },
-    ],
-  },
-  {
-    id: '2',
-    name: '废标条款风险识别',
-    description: '比对废标红线，输出风险清单与预警',
-    group: 'business',
-    type: 'rules',
-    fields: ['废标条款', '风险等级'],
-    enabled: true,
-    importedAt: new Date().toISOString(),
-    rules: [
-      { id: 'r4', fieldName: '废标条款', pattern: '废标|否决投标|无效标', enabled: true, category: 'keyword', groupName: 'business' },
-      { id: 'r5', fieldName: '风险等级', pattern: '重大偏差|实质性偏离', enabled: true, category: 'regex', groupName: 'business' },
-    ],
-  },
-  {
-    id: '3',
-    name: '工程量清单核对',
-    description: '比对编码、单位与数量口径差异',
-    group: 'tech',
-    type: 'rules',
-    fields: ['清单编码', '工程量', '单位'],
-    enabled: true,
-    importedAt: new Date().toISOString(),
-    rules: [
-      { id: 'r6', fieldName: '清单编码', pattern: '[A-Z]{2,4}-\\d{3,6}', enabled: true, category: 'regex', groupName: 'tech' },
-      { id: 'r7', fieldName: '工程量', pattern: '工程量[:：]\\s*([\\d,\\.]+)', enabled: true, category: 'regex', groupName: 'tech' },
-    ],
-  },
-  {
-    id: '4',
-    name: '报价合理性分析',
-    description: '结合市场价区间识别异常报价项',
-    group: 'score',
-    type: 'rules',
-    fields: ['报价', '市场价'],
-    enabled: false,
-    importedAt: new Date().toISOString(),
-    rules: [
-      { id: 'r8', fieldName: '报价', pattern: '报价[:：]\\s*([\\d,\\.]+)\\s*万元', enabled: true, category: 'regex', groupName: 'score' },
-    ],
-  },
-  {
-    id: '5',
-    name: '方案相似度检测',
-    description: '检测自有方案与外部素材重合片段',
-    group: 'info',
-    type: 'rules',
-    fields: ['相似度', '重合片段'],
-    enabled: false,
-    importedAt: new Date().toISOString(),
-    rules: [
-      { id: 'r9', fieldName: '相似度', pattern: '相似度[:：]\\s*([\\d.]+)%', enabled: true, category: 'regex', groupName: 'info' },
-    ],
-  },
-  {
-    id: '6',
-    name: '公文红头自动套用',
-    description: '按 GB/T 9704 一键套合红头与版记',
-    group: 'tech',
-    type: 'prompt',
-    fields: ['公文格式'],
-    content: '请按照GB/T 9704-2012标准，对文档进行红头、版记和页码格式化。',
-    enabled: true,
-    importedAt: new Date().toISOString(),
-    rules: [],
-  },
-];
+const showResetDialog = ref(false);
 
-async function handleResetSkills() {
+async function confirmResetSkills() {
   try {
-    await ElMessageBox.confirm('确定恢复默认技能？已导入的自定义技能将被清除。', '确认恢复默认');
     await apiClient.post('/rules/reset-skills');
-    skills.value = MOCK_SKILLS;
-    filteredSkills.value = MOCK_SKILLS;
     expandedSkill.value = null;
+    await loadSkills();
+    showResetDialog.value = false;
     ElMessage.success('已恢复默认技能');
-  } catch { /* cancelled */ }
+  } catch {
+    ElMessage.error('恢复默认失败');
+  }
 }
 
 async function handleSyncSkills() {
@@ -223,18 +133,19 @@ async function loadSkills() {
       ...s,
       enabled: s.enabled ?? true,
     }));
-    if (data.length > 0) {
-      skills.value = data;
-    } else {
-      skills.value = MOCK_SKILLS;
-    }
+    skills.value = data;
     filteredSkills.value = skills.value;
   } catch {
-    skills.value = MOCK_SKILLS;
-    filteredSkills.value = MOCK_SKILLS;
+    skills.value = [];
+    filteredSkills.value = [];
+    ElMessage.error('技能加载失败，请检查后端服务');
   } finally {
     loading.value = false;
   }
+}
+
+function toggleExpand(skill: SkillItem) {
+  expandedSkill.value = expandedSkill.value === skill.name ? null : skill.name;
 }
 
 async function doImport(file: File) {
@@ -246,7 +157,9 @@ async function doImport(file: File) {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     const result = res.data;
-    ElMessage.success(`导入技能「${result.name}」成功：${result.count} 条规则`);
+    const skipped = (result.skipped || []).length;
+    const detail = skipped > 0 ? `，${skipped} 条已存在已跳过` : '';
+    ElMessage.success(`${result.isUpdate ? '更新' : '导入'}技能「${result.name}」成功：新增 ${result.count} 条规则${detail}`);
     selectedFileName.value = '';
     await loadSkills();
   } catch (err: any) {
@@ -281,20 +194,25 @@ async function toggleEnabled(skill: SkillItem) {
   }
 }
 
-async function handleDelete(skill: SkillItem) {
-  try {
-    await ElMessageBox.confirm(`确定删除技能「${skill.name}」及其 ${skill.rules.length} 条规则？`, '确认删除');
-    await apiClient.delete(`/rules/skills/${encodeURIComponent(skill.name)}`);
-    ElMessage.success('已删除');
-    if (expandedSkill.value === skill.name) expandedSkill.value = null;
-    await loadSkills();
-  } catch {
-    // cancelled
-  }
+const showDeleteDialog = ref(false);
+const deletingSkill = ref<SkillItem | null>(null);
+
+function openDelete(skill: SkillItem) {
+  deletingSkill.value = skill;
+  showDeleteDialog.value = true;
 }
 
-function toggleExpand(name: string) {
-  expandedSkill.value = expandedSkill.value === name ? null : name;
+async function confirmDelete() {
+  if (!deletingSkill.value) return;
+  try {
+    await apiClient.delete(`/rules/skills/${encodeURIComponent(deletingSkill.value.name)}`);
+    if (expandedSkill.value === deletingSkill.value.name) expandedSkill.value = null;
+    showDeleteDialog.value = false;
+    ElMessage.success('已删除');
+    await loadSkills();
+  } catch {
+    ElMessage.error('删除失败');
+  }
 }
 
 onMounted(loadSkills);
@@ -318,7 +236,7 @@ onMounted(loadSkills);
             <p>导入或同步能力插件，控制各技能在创作流程中的启用状态</p>
           </div>
         </div>
-        <button class="reset-button" @click="handleResetSkills">
+        <button class="reset-button" @click="showResetDialog = true">
           <span class="icon ri-restart-line"></span>
           恢复默认
         </button>
@@ -390,6 +308,7 @@ onMounted(loadSkills);
             :key="skill.name"
             class="list-row"
             :class="{ expanded: expandedSkill === skill.name }"
+            @click="toggleExpand(skill)"
           >
             <div class="col-name">
               <span class="row-name">{{ skill.name }}</span>
@@ -401,7 +320,7 @@ onMounted(loadSkills);
             <div class="col-actions">
               <div class="row-actions">
               <button class="action-btn edit" @click.stop="openEdit(skill)">修改</button>
-              <button class="action-btn delete" @click.stop="handleDelete(skill)">删除</button>
+              <button class="action-btn delete" @click.stop="openDelete(skill)">删除</button>
               <UiSwitch :model-value="skill.enabled" size="sm" @click.stop="toggleEnabled(skill)" />
               </div>
             </div>
@@ -409,6 +328,11 @@ onMounted(loadSkills);
           <!-- 表尾统计 -->
           <div class="list-footer">
             <span>共 {{ filteredSkills.length }} 个技能 · 已开启 {{ filteredSkills.filter(s => s.enabled).length }} · 当前显示 1-{{ filteredSkills.length }}</span>
+          </div>
+          <!-- 空状态 -->
+          <div v-if="filteredSkills.length === 0" class="empty-state">
+            <span class="icon ri-inbox-line"></span>
+            <p>暂无技能，可通过「导入技能」上传文件，或点击「同步技能」从本地技能目录载入</p>
           </div>
         </div>
 
@@ -460,7 +384,11 @@ onMounted(loadSkills);
 
       <!-- 卡片视图 -->
       <div v-else class="grid-container">
-        <div class="grid-cards">
+        <div v-if="filteredSkills.length === 0" class="empty-state">
+          <span class="icon ri-inbox-line"></span>
+          <p>暂无技能，可通过「导入技能」上传文件，或点击「同步技能」从本地技能目录载入</p>
+        </div>
+        <div v-else class="grid-cards">
           <div
             v-for="skill in filteredSkills"
             :key="skill.name"
@@ -474,7 +402,7 @@ onMounted(loadSkills);
             <div class="grid-card-footer">
               <div class="grid-card-actions">
                 <button class="action-btn edit" @click="openEdit(skill)">修改</button>
-                <button class="action-btn delete" @click="handleDelete(skill)">删除</button>
+                <button class="action-btn delete" @click="openDelete(skill)">删除</button>
                 <UiSwitch :model-value="skill.enabled" size="sm" @click.stop="toggleEnabled(skill)" />
               </div>
             </div>
@@ -513,6 +441,32 @@ onMounted(loadSkills);
         <label class="form-label">技能描述</label>
         <UiInput v-model="editDesc" multiline :rows="3" placeholder="请输入技能描述（可选）" />
       </div>
+    </UiModal>
+
+    <!-- 删除技能确认弹窗 -->
+    <UiModal
+      v-model="showDeleteDialog"
+      title="删除技能"
+      subtitle="关联的导入规则将一并清除，该操作不可恢复"
+      icon="ri-delete-bin-line"
+      :width="480"
+      confirm-text="确认删除"
+      @confirm="confirmDelete"
+    >
+      <p class="confirm-text">确定删除技能「{{ deletingSkill?.name }}」及其 {{ deletingSkill?.rules.length }} 条规则？</p>
+    </UiModal>
+
+    <!-- 恢复默认确认弹窗 -->
+    <UiModal
+      v-model="showResetDialog"
+      title="恢复默认技能"
+      subtitle="已导入的自定义技能将被清除"
+      icon="ri-restart-line"
+      :width="480"
+      confirm-text="确认恢复"
+      @confirm="confirmResetSkills"
+    >
+      <p class="confirm-text">确定恢复默认技能？已导入的自定义技能将被清除。</p>
     </UiModal>
   </div>
 </template>
@@ -716,6 +670,37 @@ onMounted(loadSkills);
   to { transform: rotate(360deg); }
 }
 
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 56px 20px;
+  background: var(--color-bg-white, #fff);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
+  border-radius: 16px;
+  color: var(--color-text-faint, #A7A296);
+  font-size: 14px;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+.empty-state .icon {
+  font-family: "remixicon", sans-serif;
+  font-style: normal;
+  font-size: 36px;
+}
+.empty-state p {
+  margin: 0;
+}
+.grid-container .empty-state {
+  border-radius: 14px;
+}
+.list-table .empty-state {
+  border: none;
+  border-top: 0.7px solid var(--color-border-soft, #EDE9E0);
+  border-radius: 0;
+}
+
 /* 列表视图 */
 .list-container {
   display: flex;
@@ -763,6 +748,7 @@ onMounted(loadSkills);
   padding: 0 40px;
   border-bottom: 1px solid var(--color-border-soft, #EDE9E0);
   transition: background 0.15s;
+  cursor: pointer;
 }
 .list-row:last-child {
   border-bottom: none;
@@ -1014,6 +1000,15 @@ onMounted(loadSkills);
 .form-group .ui-input { width: 100%; }
 .form-label { font-size: 14px; color: var(--color-text-body, #3A3A3A); font-weight: 500; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
 .form-label .required { color: var(--color-primary, #C0392B); }
+
+/* 确认类弹窗正文 */
+.confirm-text {
+  font-size: 15px;
+  color: var(--color-text-body, #3A3A3A);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  margin: 0;
+  line-height: 1.7;
+}
 @media (max-width: 768px) {
   .grid-cards { grid-template-columns: 1fr; }
 }

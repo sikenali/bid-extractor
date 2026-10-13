@@ -5,8 +5,10 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { initializeDatabase } from './database.js';
 import uploadRouter from './routes/upload.js';
-import rulesRouter from './routes/rules.js';
-import settingsRouter from './routes/settings.js';
+import rulesRouter, { bootApplyRegexPatterns, bootEnsureSeedSkills } from './routes/rules.js';
+import settingsRouter, { bootSeedTemplates } from './routes/settings.js';
+import llmPromptsRouter from './routes/llmPrompts.js';
+import tasksRouter from './routes/tasks.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -18,10 +20,15 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 initializeDatabase();
+bootEnsureSeedSkills();
+bootApplyRegexPatterns();
+bootSeedTemplates();
 
 app.use('/api/upload', uploadRouter);
 app.use('/api/rules', rulesRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/llm-prompts', llmPromptsRouter);
+app.use('/api/tasks', tasksRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

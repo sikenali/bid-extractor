@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import crypto from 'node:crypto';
 import { db, encrypt, decrypt } from '../database.js';
 import https from 'node:https';
 import http from 'node:http';
@@ -273,7 +274,8 @@ function seedTemplates() {
     for (const t of DEFAULT_TEMPLATES) stmt.run(t.id, t.name, t.description, t.category, t.type);
   } catch { /* templates table not yet created */ }
 }
-seedTemplates();
+// 由 index.ts 在 initializeDatabase() 后调用
+export function bootSeedTemplates() { seedTemplates(); }
 
 router.get('/templates', (_req, res) => {
   const rows = db.prepare('SELECT * FROM templates ORDER BY created_at DESC').all();
@@ -315,6 +317,37 @@ router.post('/templates/reset', (_req, res) => {
   const stmt = db.prepare('INSERT OR IGNORE INTO templates (id, name, description, category, type, enabled) VALUES (?, ?, ?, ?, ?, 1)');
   for (const t of DEFAULT_TEMPLATES) stmt.run(t.id, t.name, t.description, t.category, t.type);
   res.json({ templates: db.prepare('SELECT * FROM templates ORDER BY created_at DESC').all() });
+});
+
+// ── Profile Settings ────────────────────────────────────────────
+router.get('/profile', (_req, res) => {
+  const row = db.prepare('SELECT * FROM profile_settings WHERE id = 1').get() as any;
+  res.json(row || { id: 1, auto_redirect_after_extract: 1, default_skill_id: '', extract_preview_mode: 'list' });
+});
+
+router.put('/profile', (req, res) => {
+  const { auto_redirect_after_extract, default_skill_id, extract_preview_mode } = req.body;
+  const existing = db.prepare('SELECT id FROM profile_settings WHERE id = 1').get() as any;
+  if (existing) {
+    db.prepare(`UPDATE profile_settings SET
+      auto_redirect_after_extract = COALESCE(?, auto_redirect_after_extract),
+      default_skill_id = COALESCE(?, default_skill_id),
+      extract_preview_mode = COALESCE(?, extract_preview_mode)
+    WHERE id = 1`).run(
+      auto_redirect_after_extract !== undefined ? auto_redirect_after_extract : undefined,
+      default_skill_id,
+      extract_preview_mode,
+    );
+  } else {
+    db.prepare(`INSERT INTO profile_settings (id, auto_redirect_after_extract, default_skill_id, extract_preview_mode)
+      VALUES (1, COALESCE(?, 1), COALESCE(?, ''), COALESCE(?, 'list'))`).run(
+      auto_redirect_after_extract !== undefined ? auto_redirect_after_extract : 1,
+      default_skill_id,
+      extract_preview_mode,
+    );
+  }
+  const row = db.prepare('SELECT * FROM profile_settings WHERE id = 1').get();
+  res.json(row);
 });
 
 export default router;

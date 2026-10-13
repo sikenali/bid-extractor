@@ -85,3 +85,21 @@ export async function testApiKey(data: { id?: string; provider?: string; model?:
   return res.data;
 }
 
+// ── Profile settings ────────────────────────────────────────────
+export interface ProfileSettings {
+  id: number;
+  auto_redirect_after_extract: number;
+  default_skill_id: string;
+  extract_preview_mode: string;
+}
+
+export async function getProfileSettings(): Promise<ProfileSettings> {
+  const res = await apiClient.get('/settings/profile');
+  return res.data;
+}
+
+export async function setProfileSettings(data: Partial<ProfileSettings>): Promise<ProfileSettings> {
+  const res = await apiClient.put<ProfileSettings>('/settings/profile', data);
+  return res.data;
+}
+

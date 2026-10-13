@@ -57,9 +57,12 @@ export interface ParseStatus {
   };
 }
 
-export async function uploadFile(file: File): Promise<UploadResult> {
+export async function uploadFile(file: File, skillId?: string): Promise<UploadResult> {
   const formData = new FormData();
   formData.append('file', file);
+  if (skillId) {
+    formData.append('skill_id', skillId);
+  }
   const response = await apiClient.post<UploadResult>('/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });

@@ -11,6 +11,15 @@ const RULE_GROUPS = [
   { value: 'star', label: '标星条款' },
 ];
 
+const FIELD_HINTS: Record<string, Record<string, string>> = {
+  info: { regex: '如：项目名称、项目编号、投标截止时间、开标地点、预算金额', keyword: '如：采购人、代理机构、资质要求' },
+  business: { regex: '如：付款方式、质保期、履约保证金、违约责任', keyword: '如：废标、否决投标、实质性偏离' },
+  tech: { regex: '如：技术参数、性能指标、验收标准、配置清单', keyword: '如：技术要求、售后服务、培训方案' },
+  score: { regex: '如：价格评分、技术评分、商务评分、满分值', keyword: '如：得分、评分细则、扣分项' },
+  seal: { regex: '如：正本份数、副本份数、密封要求、电子标书', keyword: '如：密封、盖章、签字、封装' },
+  star: { regex: '如：★关键条款、强制性要求、一票否决项', keyword: '如：★、必须、强制、禁止' },
+};
+
 const props = defineProps<{
   visible: boolean;
   mode: 'regex' | 'keyword';
@@ -21,11 +30,13 @@ const emit = defineEmits<{
   close: []
   submit: [data: { fieldName: string; pattern: string; category: string; groupName: string; aliasFor: string }]
 }>();
+
 const dialogVisible = ref(false);
 const fieldName = ref('');
 const pattern = ref('');
 const groupName = ref('info');
 const aliasFor = ref('');
+const showAlias = ref(false);
 
 const dialogTitle = computed(() => {
   const action = props.editRule ? '编辑' : '添加';
@@ -40,11 +51,13 @@ watch(() => props.visible, (val) => {
       pattern.value = props.editRule.pattern;
       groupName.value = props.editRule.groupName || 'info';
       aliasFor.value = props.editRule.aliasFor || '';
+      showAlias.value = !!props.editRule.aliasFor;
     } else {
       fieldName.value = '';
       pattern.value = '';
       groupName.value = 'info';
       aliasFor.value = '';
+      showAlias.value = false;
     }
   }
 });
@@ -53,14 +66,18 @@ watch(dialogVisible, (val) => {
   if (!val) emit('close');
 });
 
+watch([groupName, () => props.mode], () => {
+  if (!props.editRule) pattern.value = '';
+});
+
 function handleSubmit() {
-  if (!fieldName.value.trim()) return;
+  if (!fieldName.value.trim() && !pattern.value.trim()) return;
   emit('submit', {
-    fieldName: fieldName.value.trim(),
+    fieldName: fieldName.value.trim() || '未知字段',
     pattern: pattern.value.trim(),
     category: props.mode,
     groupName: groupName.value,
-    aliasFor: aliasFor.value.trim() === fieldName.value.trim() ? '' : aliasFor.value.trim(),
+    aliasFor: aliasFor.value.trim(),
   });
   dialogVisible.value = false;
 }
@@ -81,19 +98,23 @@ function handleSubmit() {
       <UiRadioGroup v-model="groupName" :options="RULE_GROUPS" />
     </div>
     <div class="form-group">
-      <label class="form-label">字段名称</label>
+      <label class="form-label">字段名称 <span class="required">*</span></label>
       <UiInput
         v-model="fieldName"
-        :placeholder="props.mode === 'regex' ? '例如：项目编号' : '例如：废标'"
+        :placeholder="FIELD_HINTS[groupName]?.[props.mode] || '请输入字段名称'"
         clearable
         @enter="handleSubmit"
       />
     </div>
     <div class="form-group">
-      <label class="form-label">合并到字段<span class="form-hint">（别名归因，空=独立字段，如：项目名称）</span></label>
+      <label class="form-label">
+        <input type="checkbox" v-model="showAlias" />
+        合并到字段（别名归因）
+      </label>
       <UiInput
+        v-if="showAlias"
         v-model="aliasFor"
-        placeholder="例如：项目名称，留空则独立成行"
+        placeholder="合并到已有字段，如：项目名称，留空则独立成行"
         clearable
         @enter="handleSubmit"
       />
@@ -102,7 +123,7 @@ function handleSubmit() {
       <label class="form-label">正则表达式</label>
       <UiInput
         v-model="pattern"
-        placeholder="请输入正则表达式"
+        placeholder="输入正则表达式（可为空，自动补全）"
         clearable
         @enter="handleSubmit"
       />
@@ -114,13 +135,19 @@ function handleSubmit() {
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 .form-label {
   font-size: 14px;
   font-weight: 500;
   color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Regular", var(--font-family-cn), sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.required {
+  color: var(--color-primary, #C0392B);
 }
 .form-hint {
   font-weight: 400;
@@ -129,3 +156,4 @@ function handleSubmit() {
 }
 .form-group .ui-input { width: 100%; }
 </style>
+

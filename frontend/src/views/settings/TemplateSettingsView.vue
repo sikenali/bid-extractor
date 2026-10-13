@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import apiClient from '@/api/client';
 import { UiInput, UiSwitch, UiModal, UiTip } from '@/components/ui';
 
@@ -37,21 +37,11 @@ async function loadTemplates() {
       enabled: t.enabled ?? true,
     }));
   } catch {
-    templates.value = getPlaceholderTemplates();
+    templates.value = [];
+    ElMessage.error('模板加载失败，请检查后端服务');
   } finally {
     loading.value = false;
   }
-}
-
-function getPlaceholderTemplates(): TemplateItem[] {
-  return [
-    { id: 'tpl-1', name: '商务标 · 通用章节模板', description: '含投标函、授权委托书、工程量清单等 12 个章节', category: '商务标', type: 'bidding', enabled: true },
-    { id: 'tpl-2', name: '技术标 · 施工组织设计模板', description: '覆盖施工方案、进度计划、质量与安全保障措施', category: '技术标', type: 'bidding', enabled: true },
-    { id: 'tpl-3', name: '资格标 · 资质业绩模板', description: '营业执照、资质证书、类似项目业绩汇总表', category: '资格标', type: 'bidding', enabled: true },
-    { id: 'tpl-4', name: '报价标 · 清单报价模板', description: '分部分项、措施项目、规费税金标准表式', category: '报价标', type: 'bidding', enabled: true },
-    { id: 'tpl-5', name: '封面目录 · 标书装帧模板', description: '统一封面、目录、页眉页脚与装订顺序', category: '排版', type: 'custom', enabled: true },
-    { id: 'tpl-6', name: '承诺函 · 合规声明模板', description: '廉政承诺、质保承诺、售后服务承诺标准文案', category: '合规', type: 'custom', enabled: true },
-  ];
 }
 
 const filteredTemplates = ref<TemplateItem[]>([]);
@@ -77,14 +67,25 @@ async function toggleEnabled(tpl: TemplateItem) {
   }
 }
 
-async function handleDelete(tpl: TemplateItem) {
+const showDeleteDialog = ref(false);
+const deletingTpl = ref<TemplateItem | null>(null);
+
+function openDelete(tpl: TemplateItem) {
+  deletingTpl.value = tpl;
+  showDeleteDialog.value = true;
+}
+
+async function confirmDelete() {
+  if (!deletingTpl.value) return;
   try {
-    await ElMessageBox.confirm(`确定删除模板「${tpl.name}」？`, '确认删除');
-    await apiClient.delete(`/settings/templates/${tpl.id}`);
-    templates.value = templates.value.filter(t => t.id !== tpl.id);
+    await apiClient.delete(`/settings/templates/${deletingTpl.value.id}`);
+    templates.value = templates.value.filter(t => t.id !== deletingTpl.value?.id);
     applyFilter();
+    showDeleteDialog.value = false;
     ElMessage.success('已删除');
-  } catch { /* cancelled */ }
+  } catch {
+    ElMessage.error('删除失败');
+  }
 }
 
 async function handleAdd() {
@@ -110,17 +111,21 @@ async function handleAdd() {
   }
 }
 
-async function handleReset() {
+const showResetDialog = ref(false);
+
+async function confirmReset() {
   try {
-    await ElMessageBox.confirm('确定恢复默认模板？自定义模板将被清除。', '确认恢复默认');
     const res: any = await apiClient.post('/settings/templates/reset');
     templates.value = ((res.data?.templates || []) as any[]).map((t: any) => ({
       ...t,
       enabled: t.enabled ?? true,
     }));
     applyFilter();
+    showResetDialog.value = false;
     ElMessage.success('已恢复默认模板');
-  } catch { /* cancelled */ }
+  } catch {
+    ElMessage.error('恢复默认失败');
+  }
 }
 
 const showEditDialog = ref(false);
@@ -181,7 +186,7 @@ onMounted(() => {
             <p>维护标书章节模板与排版模板，可在编辑文书时一键套用</p>
           </div>
         </div>
-        <button class="reset-button" @click="handleReset">
+        <button class="reset-button" @click="showResetDialog = true">
           <span class="icon ri-restart-line"></span>
           恢复默认
         </button>
@@ -243,7 +248,7 @@ onMounted(() => {
               <td class="col-action">
                 <div class="row-actions">
                   <button class="action-btn edit" @click="openEdit(tpl)">修改</button>
-                  <button class="action-btn delete" @click="handleDelete(tpl)">删除</button>
+                  <button class="action-btn delete" @click="openDelete(tpl)">删除</button>
                   <UiSwitch :model-value="tpl.enabled" size="sm" @update:model-value="toggleEnabled(tpl)" />
                 </div>
               </td>
@@ -275,7 +280,7 @@ onMounted(() => {
           <div class="grid-card-footer">
             <div class="grid-card-actions">
               <button class="action-btn edit" @click="openEdit(tpl)">修改</button>
-              <button class="action-btn delete" @click="handleDelete(tpl)">删除</button>
+              <button class="action-btn delete" @click="openDelete(tpl)">删除</button>
               <UiSwitch :model-value="tpl.enabled" size="sm" @update:model-value="toggleEnabled(tpl)" />
             </div>
           </div>
@@ -327,6 +332,31 @@ onMounted(() => {
         <label class="form-label">所属分类</label>
         <UiInput v-model="editCategory" placeholder="例如：商务标、技术标" />
       </div>
+    </UiModal>
+    <!-- 删除模板确认弹窗 -->
+    <UiModal
+      v-model="showDeleteDialog"
+      title="删除模板"
+      subtitle="删除后不可恢复，请谨慎操作"
+      icon="ri-delete-bin-line"
+      :width="480"
+      confirm-text="确认删除"
+      @confirm="confirmDelete"
+    >
+      <p class="confirm-text">确定删除模板「{{ deletingTpl?.name }}」？</p>
+    </UiModal>
+
+    <!-- 恢复默认确认弹窗 -->
+    <UiModal
+      v-model="showResetDialog"
+      title="恢复默认模板"
+      subtitle="自定义模板将被清除"
+      icon="ri-restart-line"
+      :width="480"
+      confirm-text="确认恢复"
+      @confirm="confirmReset"
+    >
+      <p class="confirm-text">确定恢复默认模板？自定义模板将被清除。</p>
     </UiModal>
   </div>
 </template>
@@ -446,7 +476,7 @@ onMounted(() => {
 }
 
 /* 开关已统一为 UiSwitch，样式见 components/ui */
-.empty-row td { text-align: center; color: var(--color-text-faint, #A7A296); font-size: 14px; padding: 40px; }
+.empty-row td { text-align: center; vertical-align: middle; color: var(--color-text-faint, #A7A296); font-size: 14px; padding: 40px; }
 .table-footer {
   padding: 0 40px; height: 54px; display: flex; align-items: center;
   font-size: 14px; color: var(--color-text-faint, #A7A296); font-family: "SourceHanSans-Regular", var(--font-family-cn);
@@ -489,4 +519,13 @@ onMounted(() => {
 .form-label { font-size: 14px; color: var(--color-text-body, #3A3A3A); font-weight: 500; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
 .form-label .required { color: var(--color-primary, #C0392B); }
 .form-group .ui-input { width: 100%; }
+
+/* 确认类弹窗正文 */
+.confirm-text {
+  font-size: 15px;
+  color: var(--color-text-body, #3A3A3A);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  margin: 0;
+  line-height: 1.7;
+}
 </style>

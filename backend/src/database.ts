@@ -150,6 +150,68 @@ export function initializeDatabase() {
       FOREIGN KEY (skill_id) REFERENCES tender_llm_skill(id)
     )`);
   }
+  // Migration: tender_llm_skill enable_llm + bind_prompt + bind_rules columns
+  try {
+    const skillCols = db.prepare(`PRAGMA table_info(tender_llm_skill)`).all() as any[];
+    if (!skillCols.some(c => c.name === 'enable_llm')) {
+      db.exec(`ALTER TABLE tender_llm_skill ADD COLUMN enable_llm INTEGER DEFAULT 0`);
+    }
+    if (!skillCols.some(c => c.name === 'bind_prompt_template_id')) {
+      db.exec(`ALTER TABLE tender_llm_skill ADD COLUMN bind_prompt_template_id TEXT DEFAULT ''`);
+    }
+    if (!skillCols.some(c => c.name === 'bind_rules_json')) {
+      db.exec(`ALTER TABLE tender_llm_skill ADD COLUMN bind_rules_json TEXT DEFAULT '[]'`);
+    }
+    if (!skillCols.some(c => c.name === 'llm_api_config_id')) {
+      db.exec(`ALTER TABLE tender_llm_skill ADD COLUMN llm_api_config_id TEXT DEFAULT ''`);
+    }
+    // Backfill: set enable_llm = 1 for all existing seed skills
+    db.exec(`UPDATE tender_llm_skill SET enable_llm = 1 WHERE enable_llm IS NULL`);
+  } catch { /* ignore */ }
+
+  // Migration: llm_prompt_templates table (V1.4 — independent from tender_llm_skill)
+  if (!tableExists('llm_prompt_templates')) {
+    db.exec(`CREATE TABLE llm_prompt_templates (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      biz_type TEXT NOT NULL DEFAULT 'info',
+      template_text TEXT NOT NULL,
+      variables TEXT DEFAULT '[]',
+      enable INTEGER DEFAULT 1,
+      version INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )`);
+  }
+  // Migration: extraction_tasks table
+  if (!tableExists('extraction_tasks')) {
+    db.exec(`CREATE TABLE extraction_tasks (
+      id TEXT PRIMARY KEY,
+      filename TEXT NOT NULL,
+      file_size INTEGER DEFAULT 0,
+      skill_id TEXT DEFAULT '',
+      skill_name TEXT DEFAULT '',
+      status TEXT DEFAULT 'running',
+      extract_mode TEXT DEFAULT 'rule_only',
+      result_json TEXT,
+      error_msg TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      completed_at TEXT
+    )`);
+  }
+  // Migration: llm_api_providers table (V1.4)
+  if (!tableExists('llm_api_providers')) {
+    db.exec(`CREATE TABLE llm_api_providers (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      base_url TEXT NOT NULL,
+      api_key TEXT NOT NULL,
+      model TEXT DEFAULT 'qwen-turbo',
+      enable INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`);
+  }
   // Seed default LLM skills (only if empty)
   try {
     const skillCount = (db.prepare('SELECT COUNT(*) as c FROM tender_llm_skill').get() as any).c;
@@ -253,6 +315,16 @@ export function initializeDatabase() {
       db.exec(`ALTER TABLE templates ADD COLUMN enabled INTEGER DEFAULT 1`);
     }
   } catch { /* ignore */ }
+
+  // Migration: profile_settings table (V1.5)
+  if (!tableExists('profile_settings')) {
+    db.exec(`CREATE TABLE profile_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      auto_redirect_after_extract INTEGER DEFAULT 1,
+      default_skill_id TEXT DEFAULT '',
+      extract_preview_mode TEXT DEFAULT 'list'
+    )`);
+  }
 
   // Seed default records
   const existingExport = db.prepare('SELECT id FROM export_settings WHERE id = 1').get() as { id: number } | undefined;

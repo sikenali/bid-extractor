@@ -1,13 +1,22 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { uploadFile } from '@/api/upload';
 import StepStrip from '@/components/StepStrip.vue';
 import { UiTip } from '@/components/ui';
+import apiClient from '@/api/client';
 
 interface Step {
   key: number;
   label: string;
+}
+
+interface LlmSkill {
+  id: string;
+  skill_name: string;
+  skill_code: string;
+  biz_type: string;
+  enable_llm: number;
 }
 
 const props = withDefaults(defineProps<{
@@ -29,6 +38,15 @@ const emit = defineEmits<{
 const uploading = ref(false);
 const isDragging = ref(false);
 const selectedFile = ref<File | null>(null);
+const selectedSkill = ref<string>('');
+const skills = ref<LlmSkill[]>([]);
+
+onMounted(async () => {
+  try {
+    const res = await apiClient.get<any[]>('/rules/llm-skills');
+    skills.value = (res.data || []).filter((s: any) => s.enable_llm === 1);
+  } catch {}
+});
 
 function getExt(file: File): string {
   const name = file.name.toLowerCase();
@@ -92,7 +110,7 @@ function startUpload(file: File) {
   if (!selectedFile.value || uploading.value) return;
   uploading.value = true;
 
-  uploadFile(file).then((uploadResult) => {
+  uploadFile(file, selectedSkill.value).then((uploadResult) => {
     setTimeout(() => {
       emit('success', uploadResult.id);
     }, 500);
@@ -199,6 +217,20 @@ function handleExtract() {
       />
     </div>
 
+    <!-- 技能选择器 -->
+    <div class="skill-selector" v-if="skills.length > 0 && !uploading">
+      <label class="skill-label">
+        <span class="icon ri-brain-line"></span>
+        选择抽取技能：
+      </label>
+      <select v-model="selectedSkill" class="skill-select">
+        <option value="">默认技能（纯规则抽取）</option>
+        <option v-for="skill in skills" :key="skill.id" :value="skill.id">
+          {{ skill.skill_name }}
+        </option>
+      </select>
+    </div>
+
     <StepStrip
       :steps="steps"
       :loading="uploading"
@@ -234,7 +266,7 @@ function handleExtract() {
   overflow: hidden;
   gap: 20px;
   padding: 40px 32px;
-  margin-bottom: 48px;
+  margin-bottom: 24px;
 }
 .upload-card.dragging {
   border-color: var(--color-primary, #C0392B);
@@ -371,4 +403,52 @@ function handleExtract() {
 }
 
 .file-input-hidden { display: none; }
+
+/* ── 技能选择器 ── */
+.skill-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 20px;
+  background: var(--color-bg-white, #fff);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
+  border-radius: 10px;
+  width: 875px;
+}
+
+.skill-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--color-text-secondary, #6E6A60);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  white-space: nowrap;
+}
+
+.skill-label .icon {
+  font-family: "remixicon", sans-serif;
+  font-style: normal;
+  font-size: 16px;
+  color: var(--color-info, #4A72A8);
+}
+
+.skill-select {
+  flex: 1;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border, #E5DFD3);
+  border-radius: 8px;
+  background: var(--color-bg-white, #fff);
+  font-size: 14px;
+  color: var(--color-text-body, #3A3A3A);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  outline: none;
+  cursor: pointer;
+}
+
+.skill-select:focus {
+  border-color: var(--color-primary, #C0392B);
+}
 </style>
