@@ -181,6 +181,8 @@ router.get('/:id/status', (req, res) => {
         filename: row.filename,
         fileSize: fileStat?.size || row.file_size,
         result: JSON.parse(row.result_json),
+        progressStage: 3,
+        progressText: '已完成',
       });
       return;
     }
