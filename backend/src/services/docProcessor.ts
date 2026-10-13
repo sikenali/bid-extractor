@@ -344,6 +344,14 @@ function cleanValue(raw: string, nameRe: RegExp | null, self: string): string | 
   if (!v) return null;
   // 编号条目开头（(2)/5.2/3、…）是目录/条款序号，不是取值
   if (/^[(（]?\d+[、．.·)）]/.test(v)) return null;
+  // 拒绝网址/URL（投标地点等字段不应匹配到网址）
+  if (/^(?:https?:\/\/|www\.)/.test(v)) return null;
+  // 拒绝网页操作提示（项目名称等字段不应匹配到"查询"、"点击"等）
+  if (/^(查询|点击|我要参与|登录|注册|搜索)/.test(v)) return null;
+  // 拒绝以"名称："开头的值（采购人等字段应只取名称部分）
+  v = v.replace(/^名称[：:]\s*/, '').trim();
+  // 拒绝以"人民币"开头的金额（预算金额等字段应只取数字）
+  v = v.replace(/^人民币\s*/, '').trim();
   const end = v.match(/[。；;\n]/);
   if (end && end.index !== undefined && end.index < 200) v = v.slice(0, end.index);
   else if (v.length > 200) v = v.slice(0, 200);
