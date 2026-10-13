@@ -244,7 +244,7 @@ function buildChapters(paras: FlatParagraph[], paraToPage: number[]): Chapter[] 
   for (let i = 0; i < paras.length; i++) {
     const p = paras[i];
     if (p.level === -1) continue; // 表格占位符不参与章节划分
-    if (p.level > 0) {
+    if (p.level > 0 || isSectionStart(p.text)) {
       chapters.push({
         title: p.text,
         content: [],
