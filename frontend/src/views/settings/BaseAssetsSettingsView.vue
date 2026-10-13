@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import apiClient from '@/api/client';
 import { getRules, addRule, updateRule, deleteRule } from '@/api/rules';
-import { getLlmPrompts, createLlmSkill as _unused, updateLlmSkill as _u2 } from '@/api/llm';
+import { getLlmPrompts } from '@/api/llm';
 import { UiInput, UiSwitch, UiModal } from '@/components/ui';
 
 // ── Sub-tab state ────────────────────────────────────────────────
@@ -51,7 +51,9 @@ const filteredRules = computed(() => {
 });
 
 function openAdd(mode: 'regex' | 'keyword') {
-  rDialogMode.value = mode; editingRule.value = null; showRuleDialog.value = true;
+  rDialogMode.value = mode;
+  editingRule.value = { id: '', fieldName: '', pattern: '', groupName: rGroup.value || 'info', aliasFor: '' };
+  showRuleDialog.value = true;
 }
 function openEdit(r: RuleItem) {
   rDialogMode.value = 'regex';
@@ -62,7 +64,7 @@ async function saveRule() {
   if (!editingRule.value || !editingRule.value.fieldName.trim()) { ElMessage.warning('请填写字段名称'); return; }
   try {
     if (editingRule.value.id) {
-      await updateRule(editingRule.value.id, { fieldName: editingRule.value.fieldName, pattern: editingRule.value.pattern, groupName: editingRule.value.groupName });
+      await updateRule(editingRule.value.id, { fieldName: editingRule.value.fieldName, pattern: editingRule.value.pattern, category: rDialogMode.value, groupName: editingRule.value.groupName, aliasFor: editingRule.value.aliasFor });
     } else {
       await addRule({ fieldName: editingRule.value.fieldName, pattern: editingRule.value.pattern, category: rDialogMode.value, groupName: editingRule.value.groupName, enabled: true });
     }

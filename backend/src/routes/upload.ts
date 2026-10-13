@@ -152,22 +152,39 @@ router.post('/', upload.single('file'), async (req, res) => {
 
 router.get('/:id/status', (req, res) => {
   const job = jobStore.get(req.params.id);
-  if (!job) {
-    return res.status(404).json({ error: 'Job not found' });
-  }
-
   const filePath = path.join(UPLOAD_DIR, req.params.id);
   const fileStat = fs.existsSync(filePath) ? fs.statSync(filePath) : null;
 
-  res.json({
-    id: req.params.id,
-    taskId: job.skillId ? undefined : undefined,
-    status: 'parsed',
-    progress: 100,
-    filename: job.filename,
-    fileSize: fileStat?.size || job.size,
-    result: job.result
-  });
+  if (job) {
+    res.json({
+      id: req.params.id,
+      taskId: undefined,
+      status: 'parsed',
+      progress: 100,
+      filename: job.filename,
+      fileSize: fileStat?.size || job.size,
+      result: job.result
+    });
+    return;
+  }
+
+  // 回落：内存过期/服务重启后，从 doc_results 恢复结果
+  try {
+    const row = db.prepare('SELECT result_json, filename, file_size FROM doc_results WHERE id = ?').get(req.params.id) as any;
+    if (row) {
+      res.json({
+        id: req.params.id,
+        taskId: undefined,
+        status: 'parsed',
+        progress: 100,
+        filename: row.filename,
+        fileSize: fileStat?.size || row.file_size,
+        result: JSON.parse(row.result_json),
+      });
+      return;
+    }
+  } catch {}
+  res.status(404).json({ error: 'Job not found' });
 });
 
 router.delete('/:id', (req, res) => {

@@ -124,11 +124,11 @@ async function loadRules() {
 }
 function openAdd(mode: 'regex' | 'keyword') { rDialogMode.value = mode; editingRule.value = null; showRuleDialog.value = true; }
 function openEdit(r: RuleItem) { rDialogMode.value = 'regex'; editingRule.value = { id: r.id, fieldName: r.fieldName, pattern: r.pattern, groupName: r.groupName, aliasFor: r.aliasFor }; showRuleDialog.value = true; }
-async function saveRule(_data?: any) {
-  if (!editingRule.value || !editingRule.value.fieldName.trim()) { ElMessage.warning('请填写字段名称'); return; }
+async function saveRule(data: { fieldName: string; pattern: string; category: string; groupName: string; aliasFor?: string }) {
+  if (!data || !data.fieldName.trim()) { ElMessage.warning('请填写字段名称'); return; }
   try {
-    if (editingRule.value.id) { await updateRule(editingRule.value.id, { fieldName: editingRule.value.fieldName, pattern: editingRule.value.pattern, groupName: editingRule.value.groupName }); }
-    else { await addRule({ fieldName: editingRule.value.fieldName, pattern: editingRule.value.pattern, category: rDialogMode.value, groupName: editingRule.value.groupName, enabled: true }); }
+    if (editingRule.value?.id) { await updateRule(editingRule.value.id, { fieldName: data.fieldName, pattern: data.pattern, category: data.category, groupName: data.groupName, aliasFor: data.aliasFor }); }
+    else { await addRule({ fieldName: data.fieldName, pattern: data.pattern, category: data.category || rDialogMode.value, groupName: data.groupName, aliasFor: data.aliasFor, enabled: true }); }
     ElMessage.success('已保存'); showRuleDialog.value = false; await loadRules();
   } catch { ElMessage.error('保存失败'); }
 }
