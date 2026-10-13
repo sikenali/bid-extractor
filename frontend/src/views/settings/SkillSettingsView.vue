@@ -800,8 +800,10 @@ onMounted(loadSkills);
   gap: 24px;
 }
 
-/* 操作按钮 */
-.action-btn {
+/* 操作按钮（与模板管理对齐） */
+.row-actions .action-btn {
+  display: inline-flex;
+  align-items: center;
   font-size: 15px;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
   background: none;
@@ -810,13 +812,13 @@ onMounted(loadSkills);
   padding: 0;
   transition: opacity 0.2s;
 }
-.action-btn.edit {
+.row-actions .action-btn.edit {
   color: var(--color-info, #4A72A8);
 }
-.action-btn.delete {
+.row-actions .action-btn.delete {
   color: var(--color-error, #E74C3C);
 }
-.action-btn:hover {
+.row-actions .action-btn:hover {
   opacity: 0.7;
 }
 
