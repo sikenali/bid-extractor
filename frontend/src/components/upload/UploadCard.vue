@@ -107,7 +107,7 @@ function selectFile(file: File) {
 }
 
 function startUpload(file: File) {
-  if (!selectedFile.value || uploading.value) return;
+  if (!file || uploading.value) return;
   uploading.value = true;
 
   uploadFile(file, selectedSkill.value).then((uploadResult) => {
