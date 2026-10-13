@@ -2,7 +2,6 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import crypto from 'node:crypto';
 import { fileURLToPath } from 'url';
 import { parseDocument } from '../services/docProcessor.js';
 import type { ExtractOutput } from '../services/docProcessor.js';
@@ -25,7 +24,6 @@ interface JobEntry {
   result: ExtractOutput;
   createdAt: number;
   skillId?: string;
-  taskId?: string;
 }
 
 const JOB_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -97,10 +95,9 @@ router.post('/', upload.single('file'), async (req, res) => {
   }
 
   const skillId = req.body?.skill_id as string | undefined;
-  const taskId = crypto.randomUUID();
 
   try {
-    const result = await parseDocument(req.file.path, { skillId, taskId });
+    const result = await parseDocument(req.file.path, { skillId });
     const warnings = result.fileMeta?.warningList || [];
     const hasErrors = warnings.some(w => w.includes('失败') || w.includes('不支持') || w.includes('不存在'));
 
@@ -113,7 +110,6 @@ router.post('/', upload.single('file'), async (req, res) => {
       result,
       createdAt: Date.now(),
       skillId,
-      taskId,
     });
 
     // 持久化到 doc_results 表
@@ -137,7 +133,6 @@ router.post('/', upload.single('file'), async (req, res) => {
 
     res.status(201).json({
       id: jobId,
-      taskId,
       filename: originalName,
       size: req.file.size,
       status: hasErrors ? 'error' : 'parsed',
@@ -160,7 +155,6 @@ router.get('/:id/status', (req, res) => {
   if (job) {
     res.json({
       id: req.params.id,
-      taskId: job.taskId,
       status: 'parsed',
       progress: 100,
       filename: job.filename,
@@ -176,7 +170,6 @@ router.get('/:id/status', (req, res) => {
     if (row) {
       res.json({
         id: req.params.id,
-        taskId: undefined,
         status: 'parsed',
         progress: 100,
         filename: row.filename,

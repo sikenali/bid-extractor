@@ -1,11 +1,42 @@
 import { Router } from 'express';
 import crypto from 'node:crypto';
+import multer from 'multer';
+import { load } from 'js-yaml';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { db } from '../database.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const skillsPath = path.join(__dirname, '..', '..', 'data', 'skills.json');
+
+interface SkillMeta {
+  name: string;
+  description: string;
+  group: string;
+  type: 'rules' | 'prompt';
+  fields: string[];
+  content?: string;
+  importedAt: string;
+  enabled?: boolean;
+  // 本技能实际插入的 extraction_rules.id（导入/同步时记录），删除时精确清理，避免误删同名核心规则
+  ruleIds?: string[];
+}
+
+function readSkills(): SkillMeta[] {
+  try {
+    if (fs.existsSync(skillsPath)) {
+      return JSON.parse(fs.readFileSync(skillsPath, 'utf-8'));
+    }
+  } catch { /* ignore */ }
+  return [];
+}
+
+function writeSkills(skills: SkillMeta[]) {
+  const dir = path.dirname(skillsPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(skillsPath, JSON.stringify(skills, null, 2));
+}
 
 const localSkillsDir = path.join(__dirname, '..', '..', 'data', 'skills');
 // 随包发布的种子技能目录（低代码技能文件载体）；启动时同步到 data/skills
@@ -34,8 +65,126 @@ export function bootEnsureSeedSkills(): number {
 }
 
 
+interface SkillParseResult {
+  name: string;
+  description: string;
+  group: string;
+  type: 'rules' | 'prompt';
+  fields: string[];
+  content?: string;
+  inserted: number;
+  insertedIds: string[];
+  skipped: string[];
+}
+
+function parseSkillContent(content: string, filename: string): SkillParseResult {
+  const nameFromFile = filename.replace(/\.(md|yaml|yml)$/i, '');
+  const fmMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+
+  // Plain markdown prompt — store as prompt skill
+  if (!fmMatch) {
+    return {
+      name: nameFromFile,
+      description: content.split('\n')[0]?.replace(/^#\s*/, '') || nameFromFile,
+      group: 'info',
+      type: 'prompt',
+      fields: [],
+      content,
+      inserted: 0,
+      insertedIds: [],
+      skipped: [],
+    };
+  }
+
+  const fm = load(fmMatch[1]) as any;
+
+  // YAML but no rules array — also store as prompt
+  if (!fm || !Array.isArray(fm.rules)) {
+    return {
+      name: nameFromFile,
+      description: fm?.description || nameFromFile,
+      group: fm?.group || 'info',
+      type: 'prompt',
+      fields: [],
+      content: content.replace(/^---[\s\S]*?---\n*/, ''),
+      inserted: 0,
+      insertedIds: [],
+      skipped: [],
+    };
+  }
+
+  const name = fm.name || nameFromFile;
+  const defaultGroup = fm.group || 'info';
+  const existing = db.prepare('SELECT field_name, group_name FROM extraction_rules').all() as any[];
+  const existingSet = new Set(existing.map((r: any) => `${r.field_name}|${r.group_name}`));
+
+  const allFields: string[] = [];
+  const skipped: string[] = [];
+  const insertedIds: string[] = [];
+  let inserted = 0;
+
+  for (const rule of fm.rules) {
+    if (!rule.field) continue;
+    const group = rule.group || defaultGroup;
+    const category = rule.type === 'regex' ? 'regex' : 'keyword';
+    const pattern = rule.pattern || '';
+    const key = `${rule.field}|${group}`;
+    allFields.push(rule.field);
+
+    if (existingSet.has(key)) {
+      skipped.push(rule.field);
+      continue;
+    }
+
+    const id = crypto.randomUUID();
+    db.prepare(`INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, ?, ?, ?, ?)`)
+      .run(id, rule.field, pattern, category, group);
+    inserted++;
+    insertedIds.push(id);
+    existingSet.add(key);
+  }
+
+  return {
+    name,
+    description: fm.description || '',
+    group: defaultGroup,
+    type: 'rules',
+    fields: allFields,
+    inserted,
+    insertedIds,
+    skipped,
+  };
+}
+
+function saveSkillMeta(meta: SkillMeta): boolean {
+  const skills = readSkills();
+  const existing = skills.findIndex(s => s.name === meta.name);
+  const isUpdate = existing >= 0;
+  if (isUpdate) {
+    // 同名覆盖时合并 ruleIds：重复同步不再插入，但首轮插入的规则归属不能丢
+    const prevIds = skills[existing].ruleIds || [];
+    meta.ruleIds = [...new Set([...prevIds, ...(meta.ruleIds || [])])];
+    skills[existing] = meta;
+  } else {
+    skills.push(meta);
+  }
+  writeSkills(skills);
+  return isUpdate;
+}
+
+function deleteSkillRules(skill: SkillMeta): void {
+  // 只删除本技能实际插入的规则（ruleIds），绝不按组+字段匹配删除——
+  // 后者会误删与技能同名的核心规则（已验证的线上事故位）。
+  // 老版本元数据无 ruleIds：仅清理元数据，不碰规则。
+  if (!skill.ruleIds || skill.ruleIds.length === 0) return;
+  db.prepare('DELETE FROM extraction_rules WHERE id IN (' +
+    skill.ruleIds.map(() => '?').join(',') + ')').run(...skill.ruleIds);
+}
+
 const router = Router();
 
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 1 * 1024 * 1024 } });
 
 function mapRule(r: any) {
   return {
@@ -82,6 +231,127 @@ router.delete('/:id', (req, res) => {
   res.json({ deleted: true });
 });
 
+
+// List all imported skills with their rules
+router.get('/skills', (req, res) => {
+  const skills = readSkills();
+  const allRules = db.prepare('SELECT * FROM extraction_rules').all() as any[];
+  const result = skills.map(skill => {
+    if (skill.type === 'prompt') {
+      return { ...skill, rules: [] };
+    }
+    const rules = allRules
+      .filter(r => skill.fields.includes(r.field_name) && r.group_name === skill.group)
+      .map(mapRule);
+    return { ...skill, rules };
+  });
+  res.json(result);
+});
+
+// Update a skill (toggle enabled / rename / edit description)
+router.put('/skills/:name', (req, res) => {
+  const skills = readSkills();
+  const idx = skills.findIndex(s => s.name === req.params.name);
+  if (idx < 0) { res.status(404).json({ error: 'Skill not found' }); return; }
+  const { enabled, name, description } = req.body;
+  if (typeof enabled === 'boolean') skills[idx].enabled = enabled;
+  else if (enabled === 0 || enabled === 1) skills[idx].enabled = enabled === 1;
+  if (typeof name === 'string' && name.trim()) skills[idx].name = name.trim();
+  if (typeof description === 'string') skills[idx].description = description;
+  writeSkills(skills);
+  res.json(skills[idx]);
+});
+
+// Delete a skill and its rules
+router.delete('/skills/:name', (req, res) => {
+  const skills = readSkills();
+  const idx = skills.findIndex(s => s.name === req.params.name);
+  if (idx < 0) {
+    res.status(404).json({ error: 'Skill not found' });
+    return;
+  }
+  const skill = skills[idx];
+  deleteSkillRules(skill);
+  skills.splice(idx, 1);
+  writeSkills(skills);
+  res.json({ deleted: true });
+});
+
+// Import rules from a skill.md file (YAML frontmatter) or plain markdown prompt
+router.post('/import-skill', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: 'No file uploaded' });
+      return;
+    }
+    const content = req.file.buffer.toString('utf-8');
+    const result = parseSkillContent(content, req.file.originalname);
+    const meta: SkillMeta = {
+      name: result.name,
+      description: result.description,
+      group: result.group,
+      type: result.type,
+      fields: result.fields,
+      content: result.content,
+      ruleIds: result.insertedIds,
+      importedAt: new Date().toISOString(),
+    };
+    const isUpdate = saveSkillMeta(meta);
+    res.json({
+      name: meta.name,
+      description: meta.description,
+      group: meta.group,
+      type: meta.type,
+      inserted: result.inserted,
+      skipped: result.skipped,
+      count: result.inserted,
+      isUpdate,
+    });
+  } catch (err: any) {
+    res.status(400).json({ error: `Failed to parse skill file: ${err.message}` });
+  }
+});
+
+// Sync skills from local directory (backend/data/skills/*.md)
+router.post('/sync-skills', (_req, res) => {
+  try {
+    if (!fs.existsSync(localSkillsDir)) {
+      fs.mkdirSync(localSkillsDir, { recursive: true });
+    }
+    bootEnsureSeedSkills();
+    const files = fs.readdirSync(localSkillsDir).filter(isSkillFile);
+    if (files.length === 0) {
+      res.json({ synced: 0, skills: [], message: '本地没有可同步的技能文件，可先使用「导入技能」上传 .md / .yaml 文件' });
+      return;
+    }
+    const results: any[] = [];
+    for (const file of files) {
+      const content = fs.readFileSync(path.join(localSkillsDir, file), 'utf-8');
+      const result = parseSkillContent(content, file);
+      const meta: SkillMeta = {
+        name: result.name,
+        description: result.description,
+        group: result.group,
+        type: result.type,
+        fields: result.fields,
+        content: result.content,
+        ruleIds: result.insertedIds,
+        importedAt: new Date().toISOString(),
+      };
+      saveSkillMeta(meta);
+      results.push({
+        file,
+        name: result.name,
+        type: result.type,
+        inserted: result.inserted,
+        skipped: result.skipped.length,
+      });
+    }
+    res.json({ synced: results.length, skills: results });
+  } catch (err: any) {
+    res.status(400).json({ error: `Failed to sync skills: ${err.message}` });
+  }
+});
 
 // Save a correction and auto-generate a rule
 router.post('/corrections', (req, res) => {
@@ -356,6 +626,14 @@ router.post('/reset', (_req, res) => {
 export function bootApplyRegexPatterns(): number {
   return applyRegexPatterns();
 }
+
+// Reset skills to empty (user-imported skills only, including their rules)
+router.post('/reset-skills', (_req, res) => {
+  const skills = readSkills();
+  for (const skill of skills) deleteSkillRules(skill);
+  writeSkills([]);
+  res.json({ ok: true });
+});
 
 // Seed universal extraction rules (works across all document types)
 const UNIVERSAL_RULES: Array<[string, string, string, string, string]> = [

@@ -121,6 +121,22 @@ interface FlatParagraph {
   text: string;
   chapter: string;
   level: number;
+  /** 表格占位符序号（与 collectTables 顺序一致），用于表格锚定到最近上文段落 */
+  tableIndex?: number;
+}
+
+/** 正则编译缓存：同一 pattern 全文只编译一次（规则数×段落数级调用，省去重复编译） */
+const regexCache = new Map<string, RegExp | null>();
+function cachedRegExp(pattern: string): RegExp | null {
+  if (regexCache.has(pattern)) return regexCache.get(pattern)!;
+  try {
+    const re = new RegExp(pattern);
+    regexCache.set(pattern, re);
+    return re;
+  } catch {
+    regexCache.set(pattern, null);
+    return null;
+  }
 }
 
 /** officeparser 节点文本可能在 n.text，也可能嵌在 children 里 */
@@ -138,6 +154,7 @@ function nodeText(n: any): string {
 function flattenContent(nodes: any[]): FlatParagraph[] {
   const out: FlatParagraph[] = [];
   let chapter = '';
+  let tableCount = 0;
   const walk = (list: any[]) => {
     for (const n of list) {
       if (!n) continue;
@@ -150,7 +167,8 @@ function flattenContent(nodes: any[]): FlatParagraph[] {
         const t = nodeText(n).trim();
         if (t) out.push({ text: t, chapter, level: 0 });
       } else if (n.type === 'table') {
-        // tables collected separately
+        // 表格占位：保留位置信息供表格锚定，文本为空不参与检索
+        out.push({ text: '', chapter, level: -1, tableIndex: tableCount++ });
       } else if (n.children && n.children.length) {
         walk(n.children);
       }
@@ -200,6 +218,7 @@ function buildChapters(paras: FlatParagraph[], paraToPage: number[]): Chapter[] 
   const chapters: Chapter[] = [];
   for (let i = 0; i < paras.length; i++) {
     const p = paras[i];
+    if (p.level === -1) continue; // 表格占位符不参与章节划分
     if (p.level > 0 || isSectionStart(p.text)) {
       chapters.push({ title: p.text, content: [], page: i < paraToPage.length ? paraToPage[i] : 1 });
     } else if (chapters.length > 0) {
@@ -288,7 +307,7 @@ export interface SearchUnit {
 }
 
 /** 清洗候选取值：去引导符号、截断句长、遇到其他字段名截断 */
-function cleanValue(raw: string, allNames: string[], self: string): string | null {
+function cleanValue(raw: string, nameRe: RegExp | null, self: string): string | null {
   let v = (raw || '').trim().replace(/^[：:、,，；;\s]+/, '').trim();
   if (!v) return null;
   // 编号条目开头（(2)/5.2/3、…）是目录/条款序号，不是取值
@@ -296,7 +315,7 @@ function cleanValue(raw: string, allNames: string[], self: string): string | nul
   const end = v.match(/[。；;\n]/);
   if (end && end.index !== undefined && end.index < 200) v = v.slice(0, end.index);
   else if (v.length > 200) v = v.slice(0, 200);
-  v = truncateAtOtherFields(v, allNames, self);
+  v = truncateAtOtherFields(v, nameRe, self);
   v = v.replace(/(\s*的\s*)+$/, '').trim();
   return v.trim() || null;
 }
@@ -318,15 +337,97 @@ function isBareLabelLike(v: string): boolean {
   return LABEL_SUFFIXES.some(s => t.endsWith(s));
 }
 
-function truncateAtOtherFields(value: string, fieldNames: string[], self: string): string {
-  let cut = -1;
-  for (const f of fieldNames) {
-    if (!f || f === self || [...f].length < 2) continue;
-    const at = value.indexOf(f);
-    if (at >= 0 && (cut < 0 || at < cut)) cut = at;
+/**
+ * 全角冒号标签剥离：中文文档表格/段落常用"标签：取值"写法，
+ * 全角"："后基本是取值；半角":"多为时间/比例（如 9:00），予以保留不拦截。
+ */
+function stripFullwidthLabel(s: string): string {
+  const t = (s || '').trim();
+  const ci = t.indexOf('：');
+  if (ci >= 0) return t.slice(ci + 1).trim();
+  return t;
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * 把全部字段名预编译为单个正则（最长优先），一次扫描替代逐字段 indexOf。
+ * 在 applyRuleExtraction 内构建一次，逐候选复用。
+ */
+function buildFieldNamePattern(names: string[]): RegExp | null {
+  const uniq = [...new Set(names.filter(n => n && [...n].length >= 2))]
+    .sort((a, b) => [...b].length - [...a].length);
+  if (uniq.length === 0) return null;
+  return new RegExp(uniq.map(escapeRegExp).join('|'), 'g');
+}
+
+// ── 通配符字段名（如 *编号 / 编号* / *编号*）──────────────────────
+// 仅当名称含 * 且还有其它字符才视为通配符；纯 "*"（标星符号）保持字面匹配
+function isWildcardName(name: string): boolean {
+  return name.includes('*') && name.replace(/\*/g, '').length > 0;
+}
+
+/** 取通配符名中最长的字面子串作为锚点（如 *编号 → 编号） */
+function wildcardLiteralCore(name: string): string {
+  let best = '';
+  for (const seg of name.split('*')) {
+    if (seg.length > best.length) best = seg;
   }
-  if (cut < 0) return value;
-  return value.slice(0, cut).replace(/[：:、,，；;\s]+$/, '').trim();
+  return best;
+}
+
+const LABEL_CHAR = /[\u4e00-\u9fff0-9A-Za-z_]/;
+const LABEL_STOP = new Set('的了之在与和及或是为于本次此该各所有其他以及或者例如比如其这那');
+
+/**
+ * 在 text 中定位通配符标签：以字面锚点（如"编号"）为核心，
+ * 向两侧按标签字符扩展（上限 前6/后3，遇标点/连接词即停），
+ * 返回长度最短的一次命中——保证 *编号 得"标识编号"而非"求分配唯一的标识编号"。
+ */
+function locateWildcardLabel(text: string, name: string): { ns: number; ne: number; name: string } | null {
+  const core = wildcardLiteralCore(name);
+  if (!core) return null;
+  let best: { ns: number; ne: number; name: string } | null = null;
+  let searchFrom = 0;
+  for (;;) {
+    const at = text.indexOf(core, searchFrom);
+    if (at < 0) break;
+    const ce = at + core.length;
+    let s = at;
+    let left = 0;
+    while (s > 0 && left < 6 && LABEL_CHAR.test(text[s - 1]) && !LABEL_STOP.has(text[s - 1])) {
+      s--;
+      left++;
+    }
+    let e = ce;
+    let right = 0;
+    while (e < text.length && right < 3 && LABEL_CHAR.test(text[e]) && !LABEL_STOP.has(text[e])) {
+      e++;
+      right++;
+    }
+    const matchedName = text.slice(s, e).trim();
+    if (matchedName && (!best || [...matchedName].length < [...best.name].length)) {
+      best = { ns: s, ne: e, name: matchedName };
+      if ([...matchedName].length <= 2) break;
+    }
+    searchFrom = at + core.length;
+  }
+  return best;
+}
+
+function truncateAtOtherFields(value: string, nameRe: RegExp | null, self: string): string {
+  if (!nameRe) return value;
+  // 与旧逻辑等价：取所有字段名在 value 中的最小出现位置（self 除外），切断并去尾随引导符
+  nameRe.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = nameRe.exec(value)) !== null) {
+    if (m[0] === '') { nameRe.lastIndex++; continue; }
+    if (m[0] === self || [...m[0]].length < 2) continue;
+    return value.slice(0, m.index).replace(/[：:、,，；;\s]+$/, '').trim();
+  }
+  return value;
 }
 
 /**
@@ -338,19 +439,20 @@ function extractFromUnit(
   idx: number,
   grids: Map<string, string[][]>,
   rule: FieldRule,
-  allNames: string[],
+  nameRe: RegExp | null,
 ): { value: string; paraId: number; sourceText: string; score: number } | null {
   const text = unit.text;
   const trimmedStart = text.length - text.trimStart().length;
 
   // 0. 正则优先（精度最高）
   //    DOCX 文本常被拆分成多段，仅在当段以冒号/引导符结尾时才与下一段合并
+  //    捕获值统一走 cleanValue：截断其他字段名/超长/句末，保证与关键字路径一致的干净取值
   if (rule.category === 'regex' && rule.pattern) {
-    try {
-      const re = new RegExp(rule.pattern);
+    const re = cachedRegExp(rule.pattern);
+    if (re) {
       const m = text.match(re);
       if (m) {
-        const v = ((m[1] || m[0]) || '').trim();
+        const v = cleanValue((m[1] || m[0]) || '', nameRe, rule.fieldName);
         if (v) {
           let score = 2;
           if (m.index !== undefined && m.index <= trimmedStart) score += 3;
@@ -371,7 +473,7 @@ function extractFromUnit(
           const merged = text + nu.text;
           const mm = merged.match(re);
           if (mm) {
-            const v = ((mm[1] || mm[0]) || '').trim();
+            const v = cleanValue((mm[1] || mm[0]) || '', nameRe, rule.fieldName);
             if (v) {
               let score = 2;
               if (/[目录章节篇表格式一览]$/.test(v.trim())) score -= 5;
@@ -380,7 +482,7 @@ function extractFromUnit(
           }
         }
       }
-    } catch { /* 非法正则回落关键字 */ }
+    }
   }
 
   // 关键字在本段内逐个出现位置尝试：跳过"复合长词标签"
@@ -420,7 +522,7 @@ function extractFromUnit(
   };
 
   // 1. 后：同行关键字之后
-  let v = cleanValue(text.slice(kidx + rule.fieldName.length), allNames, rule.fieldName);
+  let v = cleanValue(text.slice(kidx + rule.fieldName.length), nameRe, rule.fieldName);
   if (v) return { value: v, paraId: unit.paraId, sourceText: text, score: scoreOf(1, v) };
 
   // 2. 右 / 下：表格相邻格（裸标签邻格由守卫过滤）
@@ -429,14 +531,14 @@ function extractFromUnit(
     if (grid && unit.row !== undefined && unit.col !== undefined) {
       const right = (grid[unit.row] || [])[unit.col + 1] || '';
       if (right.trim() && !HAS_LABEL.test(right)) {
-        v = cleanValue(right, allNames, rule.fieldName);
+        v = cleanValue(right, nameRe, rule.fieldName);
         if (v && isBareLabelLike(v)) v = null;
         if (v) return { value: v, paraId: unit.paraId, sourceText: `${text} ${right.trim()}`, score: scoreOf(2, v) };
       }
       const belowRow = grid[unit.row + 1];
       const below = (belowRow || [])[unit.col] || '';
       if (below.trim() && !HAS_LABEL.test(below)) {
-        v = cleanValue(below, allNames, rule.fieldName);
+        v = cleanValue(below, nameRe, rule.fieldName);
         if (v && isBareLabelLike(v)) v = null;
         if (v) return { value: v, paraId: unit.paraId, sourceText: `${text} ${below.trim()}`, score: scoreOf(2, v) };
       }
@@ -447,7 +549,7 @@ function extractFromUnit(
   // 3. 前：同行关键字之前（同行证据较强）
   const before = text.slice(0, kidx);
   if (before.trim() && [...before].length <= 100) {
-    v = cleanValue(before, allNames, rule.fieldName);
+    v = cleanValue(before, nameRe, rule.fieldName);
     // 去"（以下简称…"后缀取正主
     if (v) v = v.split(/[（(]/)[0].trim() || null;
     if (v) return { value: v, paraId: unit.paraId, sourceText: text, score: scoreOf(2, v) };
@@ -461,7 +563,7 @@ function extractFromUnit(
     if (nu.level > 0) break;
     if (/^\d+[\s.、．·]/.test(nu.text.trim())) break;
     if (HAS_LABEL.test(nu.text)) break;
-    v = cleanValue(nu.text, allNames, rule.fieldName);
+    v = cleanValue(nu.text, nameRe, rule.fieldName);
     if (v && isBareLabelLike(v)) break;
     if (v) return { value: v, paraId: nu.paraId, sourceText: `${text}\n${nu.text}`, score: scoreOf(-1, v) };
     break;
@@ -476,11 +578,113 @@ function extractFromUnit(
     if (/^\d+[\s.、．·]/.test(pu.text.trim())) break;
     if (HAS_LABEL.test(pu.text)) break;
     if ([...pu.text].length > 100) break;
-    v = cleanValue(pu.text, allNames, rule.fieldName);
+    v = cleanValue(pu.text, nameRe, rule.fieldName);
     if (v && isBareLabelLike(v)) break;
     // 上位值多为日期/金额/长名称：无数字又短的不采信
     if (v && !/[0-9]/.test(v) && [...v].length < 10) break;
     if (v) return { value: v, paraId: pu.paraId, sourceText: `${pu.text}\n${text}`, score: scoreOf(-1, v) };
+    break;
+  }
+  return null;
+}
+
+/**
+ * 通配符字段名提取：规则字段名含 *（如 *编号 / 编号* / *编号*）时，
+ * 编译为惰性正则全文扫描；命中片段扩展为完整词作为实际命中的字段名，
+ * 取值沿用五方向逻辑（优先"自动名称后"即关键字之后，其次下一段/上一段）。
+ */
+function extractWildcardFromUnit(
+  unit: SearchUnit,
+  units: SearchUnit[],
+  idx: number,
+  grids: Map<string, string[][]>,
+  rule: FieldRule,
+  nameRe: RegExp | null,
+): { value: string; paraId: number; sourceText: string; score: number; matchedName: string } | null {
+  const text = unit.text;
+  const trimmedStart = text.length - text.trimStart().length;
+
+  // 定位最短通配符标签（如 *编号 → "标识编号" 而非整句）
+  const loc = locateWildcardLabel(text, rule.fieldName);
+  if (!loc) return null;
+  const matchedName = loc.name;
+  const ns = loc.ns;
+  const ne = loc.ne;
+
+  const atStart = ns <= trimmedStart;
+  const followedColon = text[ne] === '：' || text[ne] === ':';
+
+  const scoreOf = (base: number, val: string): number => {
+    let s = base;
+    if (atStart) s += 3;
+    if (followedColon) s += 2;
+    if ([...text].length < 60) s += 1;
+    const len = [...val].length;
+    if (len >= 2 && len <= 100) s += 1;
+    else if (len < 2) s -= 3;
+    if (/[目录章节篇表格式一览]$/.test(val.trim())) s -= 5;
+    return s;
+  };
+
+  // 1. 后：自动名称之后（第一段文字）
+  let v = cleanValue(text.slice(ne), nameRe, matchedName);
+  if (v) return { value: v, paraId: unit.paraId, sourceText: text, score: scoreOf(1, v), matchedName };
+
+  // 2. 右 / 下：表格相邻格
+  if (unit.tableId != null) {
+    const grid = grids.get(unit.tableId);
+    if (grid && unit.row !== undefined && unit.col !== undefined) {
+      const right = stripFullwidthLabel((grid[unit.row] || [])[unit.col + 1] || '');
+      if (right && !/[：]/.test(right)) {
+        v = cleanValue(right, nameRe, matchedName);
+        if (v && isBareLabelLike(v)) v = null;
+        if (v) return { value: v, paraId: unit.paraId, sourceText: `${text} ${right.trim()}`, score: scoreOf(2, v), matchedName };
+      }
+      const below = stripFullwidthLabel((grid[unit.row + 1] || [])[unit.col] || '');
+      if (below && !/[：]/.test(below)) {
+        v = cleanValue(below, nameRe, matchedName);
+        if (v && isBareLabelLike(v)) v = null;
+        if (v) return { value: v, paraId: unit.paraId, sourceText: `${text} ${below.trim()}`, score: scoreOf(2, v), matchedName };
+      }
+    }
+    return null;
+  }
+
+  // 3. 前：自动名称之前（同行证据较强）
+  const before = text.slice(0, ns);
+  if (before.trim() && [...before].length <= 100) {
+    v = cleanValue(before, nameRe, matchedName);
+    if (v) v = v.split(/[（(]/)[0].trim() || null;
+    if (v) return { value: v, paraId: unit.paraId, sourceText: text, score: scoreOf(2, v), matchedName };
+  }
+
+  // 4. 下：自动名称后的下一段
+  for (let j = idx + 1; j < units.length; j++) {
+    const nu = units[j];
+    if (nu.tableId != null) continue;
+    if (!nu.text.trim()) continue;
+    if (nu.level > 0) break;
+    if (/^\d+[\s.、．·]/.test(nu.text.trim())) break;
+    if (HAS_LABEL.test(nu.text)) break;
+    v = cleanValue(nu.text, nameRe, matchedName);
+    if (v && isBareLabelLike(v)) break;
+    if (v) return { value: v, paraId: nu.paraId, sourceText: `${text}\n${nu.text}`, score: scoreOf(-1, v), matchedName };
+    break;
+  }
+
+  // 5. 上：上一段
+  for (let j = idx - 1; j >= 0; j--) {
+    const pu = units[j];
+    if (pu.tableId != null) continue;
+    if (!pu.text.trim()) continue;
+    if (pu.level > 0 || isSectionStart(pu.text)) break;
+    if (/^\d+[\s.、．·]/.test(pu.text.trim())) break;
+    if (HAS_LABEL.test(pu.text)) break;
+    if ([...pu.text].length > 100) break;
+    v = cleanValue(pu.text, nameRe, matchedName);
+    if (v && isBareLabelLike(v)) break;
+    if (v && !/[0-9]/.test(v) && [...v].length < 10) break;
+    if (v) return { value: v, paraId: pu.paraId, sourceText: `${pu.text}\n${text}`, score: scoreOf(-1, v), matchedName };
     break;
   }
   return null;
@@ -519,7 +723,7 @@ function applyRuleExtraction(
   const groups: Record<string, string> = {};
   const fieldParaMap: Record<string, number> = {};
   const fieldGroups: Record<string, string> = {};
-  const allNames = rules.map(r => r.fieldName);
+  const nameRe = buildFieldNamePattern(rules.map(r => r.fieldName));
 
   const keyOf = (rule: FieldRule) =>
     (rule.aliasFor && rule.aliasFor !== rule.fieldName) ? rule.aliasFor : rule.fieldName;
@@ -533,10 +737,31 @@ function applyRuleExtraction(
     // title_first 类型：跳过，最后统一处理（避免标题行误中覆盖 regex 结果）
     if (rule.category === 'title_first') return;
 
+    // 通配符规则：可命中多个不同名称（如 *编号 → 招标编号/项目编号），按实际命中名产出
+    if (isWildcardName(rule.fieldName)) {
+      const seenHit = new Set<string>();
+      for (let i = 0; i < units.length; i++) {
+        const hit = extractWildcardFromUnit(units[i], units, i, grids, rule, nameRe);
+        if (!hit || !hit.matchedName) continue;
+        const hitKey = hit.matchedName;
+        if (seenHit.has(hitKey)) continue;
+        seenHit.add(hitKey);
+        const cur = bestByKey[hitKey];
+        if (!cur || hit.score > cur.score) {
+          bestByKey[hitKey] = {
+            value: hit.value, paraId: hit.paraId, sourceText: hit.sourceText,
+            score: hit.score, page: units[i].page, chapter: units[i].chapter,
+            group: rule.group, fromAlias: false,
+          };
+        }
+      }
+      return;
+    }
+
     // 全文候选打分取最优
     let best: { value: string; paraId: number; sourceText: string; score: number; page: number; chapter: string } | null = null;
     for (let i = 0; i < units.length; i++) {
-      const hit = extractFromUnit(units[i], units, i, grids, rule, allNames);
+      const hit = extractFromUnit(units[i], units, i, grids, rule, nameRe);
       if (hit && (!best || hit.score > best.score)) {
         best = { ...hit, page: units[i].page, chapter: units[i].chapter };
       }
@@ -588,9 +813,10 @@ function applyRuleExtraction(
     fieldParaMap[key] = b.paraId;
   }
 
-  // 未命中补 null 占位
+  // 未命中补 null 占位（通配符规则名称未知，不做占位）
   const seenKeys = new Set<string>();
   for (const rule of rules) {
+    if (isWildcardName(rule.fieldName)) continue;
     const key = keyOf(rule);
     if (seenKeys.has(key)) continue;
     seenKeys.add(key);
@@ -755,7 +981,7 @@ function businessValidate(extracts: Record<string, FieldExtract>): {
 // 主入口
 // ═══════════════════════════════════════════════════════════
 
-export async function parseDocument(filePath: string, options?: { skillId?: string; taskId?: string }): Promise<ExtractOutput> {
+export async function parseDocument(filePath: string, options?: { skillId?: string }): Promise<ExtractOutput> {
   const ext = path.extname(filePath).toLowerCase();
 
   if (!SUPPORTED_EXT.includes(ext)) {
@@ -873,43 +1099,6 @@ export async function parseDocument(filePath: string, options?: { skillId?: stri
           extractMode = 'rule_only';
         }
       }
-    }
-
-    // Persist task record if taskId provided
-    if (options?.taskId) {
-      try {
-        const skillName = (db.prepare('SELECT skill_name FROM tender_llm_skill WHERE id = ?').get(options.skillId) as any)?.skill_name || '';
-        db.prepare(`INSERT INTO extraction_tasks (
-          id, filename, file_size, skill_id, skill_name, status, extract_mode,
-          result_json, created_at, completed_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
-        ).run(
-          options.taskId,
-          path.basename(filePath),
-          fs.statSync(filePath).size,
-          options.skillId || '',
-          skillName,
-          'completed',
-          extractMode,
-          JSON.stringify({
-            fileMeta: {
-              fileName: path.basename(filePath),
-              fileMd5,
-              parseTime: new Date().toISOString(),
-              parser: 'officeparser',
-              warningList: validateResult.checkItems.filter((c: any) => c.status !== 'ok').map((c: any) => c.msg),
-            },
-            documentStructure: chapters,
-      extractResult: extracts as ExtractOutput['extractResult'],
-            validateResult,
-            extractMode,
-            markedItems,
-            tables: tablesMeta,
-            paragraphsMeta,
-            pageCount,
-          }),
-        );
-      } catch { /* ignore persistence errors */ }
     }
 
     return {
@@ -1043,11 +1232,13 @@ async function runLLMExtraction(
   }
 
   const allResults: Record<string, string> = {};
+  // 规则预抽取结果仅与 skill 相关，chunk 无关，提升到循环外序列化一次
+  const preExtractJson = JSON.stringify(ruleResult);
 
   for (const [chunkKey, chunkText] of Object.entries(chunksByType)) {
     const filled = effectivePrompt
       .replace(/\{\{chunkText\}\}/g, chunkText.slice(0, 3000))
-      .replace(/\{\{preExtract\}\}/g, JSON.stringify(ruleResult));
+      .replace(/\{\{preExtract\}\}/g, preExtractJson);
 
     const apiConfig = skill.llm_api_config_id
       ? db.prepare('SELECT * FROM api_configs WHERE id = ? AND enabled = 1').get(skill.llm_api_config_id)

@@ -46,9 +46,9 @@
 import { ref, computed, watch } from 'vue';
 import ThemeSettingsView from '@/views/settings/ThemeSettingsView.vue';
 import TemplateSettingsView from '@/views/settings/TemplateSettingsView.vue';
+import SkillSettingsView from '@/views/settings/SkillSettingsView.vue';
 import ApiKeySettingsView from '@/views/settings/ApiKeySettingsView.vue';
 import ExportSettingsView from '@/views/settings/ExportSettingsView.vue';
-import TaskSettingsView from '@/views/settings/TaskSettingsView.vue';
 import ProfileSettingsView from '@/views/settings/ProfileSettingsView.vue';
 import AboutSettingsView from '@/views/settings/AboutSettingsView.vue';
 
@@ -68,9 +68,9 @@ function close() {
 const menuItems = [
   { key: 'theme', label: '主题管理', icon: 'ri-palette-line', component: ThemeSettingsView },
   { key: 'template', label: '模板管理', icon: 'ri-file-list-2-line', component: TemplateSettingsView },
+  { key: 'skill', label: '技能管理', icon: 'ri-git-branch-line', component: SkillSettingsView },
   { key: 'model', label: '模型管理', icon: 'ri-cpu-line', component: ApiKeySettingsView },
   { key: 'export', label: '导出管理', icon: 'ri-download-2-line', component: ExportSettingsView },
-  { key: 'tasks', label: '抽取任务', icon: 'ri-task-line', component: TaskSettingsView },
   { key: 'profile', label: '个性设置', icon: 'ri-vip-crown-line', component: ProfileSettingsView },
   { key: 'about', label: '关于', icon: 'ri-information-line', component: AboutSettingsView },
 ];

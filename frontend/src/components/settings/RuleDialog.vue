@@ -105,6 +105,7 @@ function handleSubmit() {
         clearable
         @enter="handleSubmit"
       />
+      <p class="form-hint">支持通配符 *：如 <code>*编号</code> 可命中 招标编号 / 项目编号 / 标识编号，结果字段名显示实际命中的名称</p>
     </div>
     <div class="form-group">
       <label class="form-label">
@@ -153,6 +154,12 @@ function handleSubmit() {
   font-weight: 400;
   font-size: 12px;
   color: var(--color-text-muted, #8A8578);
+}
+.form-hint code {
+  background: rgba(245,239,227,0.5);
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-size: 11px;
 }
 .form-group .ui-input { width: 100%; }
 </style>

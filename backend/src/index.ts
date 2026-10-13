@@ -8,7 +8,6 @@ import uploadRouter from './routes/upload.js';
 import rulesRouter, { bootApplyRegexPatterns, bootEnsureSeedSkills } from './routes/rules.js';
 import settingsRouter, { bootSeedTemplates } from './routes/settings.js';
 import llmPromptsRouter from './routes/llmPrompts.js';
-import tasksRouter from './routes/tasks.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -28,7 +27,6 @@ app.use('/api/upload', uploadRouter);
 app.use('/api/rules', rulesRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/llm-prompts', llmPromptsRouter);
-app.use('/api/tasks', tasksRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
