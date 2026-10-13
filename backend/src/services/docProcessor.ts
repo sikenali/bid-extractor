@@ -1314,10 +1314,80 @@ interface LLMSkillRow {
   llm_api_config_id?: string;
 }
 
+// ── 字段 Schema（注入 LLM prompt，帮助模型理解字段类型/必填）────────
+interface FieldSchema {
+  name: string;
+  type: 'string' | 'date' | 'amount' | 'number';
+  description: string;
+  required: boolean;
+}
+
+function inferFieldType(fieldName: string): 'string' | 'date' | 'amount' | 'number' {
+  if (/时间|日期|截止|开标|发售|发布/.test(fieldName)) return 'date';
+  if (/金额|预算|保证金|费用|价格|限价/.test(fieldName)) return 'amount';
+  if (/数量|份数|比例|百分|权重/.test(fieldName)) return 'number';
+  return 'string';
+}
+
+function isRequiredField(fieldName: string): boolean {
+  const requiredFields = [
+    '项目名称', '项目编号', '投标截止时间', '开标时间', '投标地点',
+    '采购人', '代理机构', '预算金额',
+  ];
+  return requiredFields.includes(fieldName);
+}
+
+function buildFieldSchema(rules: FieldRule[]): FieldSchema[] {
+  return rules.map(r => ({
+    name: r.fieldName,
+    type: inferFieldType(r.fieldName),
+    description: r.fieldName,
+    required: isRequiredField(r.fieldName),
+  }));
+}
+
+function renderFieldSchemaList(schemas: FieldSchema[]): string {
+  return schemas.map(s => {
+    const typeLabel = s.type === 'date' ? '日期'
+                   : s.type === 'amount' ? '金额'
+                   : s.type === 'number' ? '数字'
+                   : '文本';
+    const reqLabel = s.required ? '必填' : '选填';
+    return `- ${s.name} (${typeLabel}, ${reqLabel}): ${s.description}`;
+  }).join('\n');
+}
+
+// ── Few-shot 示例（基于 correction_history 表）──────────────────────
+function getCorrectionHistory(db: any, bizType: string) {
+  try {
+    return db.prepare(
+      'SELECT * FROM correction_history WHERE group_name = ? ORDER BY created_at DESC LIMIT 10'
+    ).all(bizType);
+  } catch {
+    return [];
+  }
+}
+
+function buildFewShotExamples(correctionHistory: any[], bizType: string): string {
+  const recent = correctionHistory
+    .filter(c => c.group_name === bizType)
+    .slice(-3);
+  if (recent.length === 0) return '';
+  return `\n示例：\n${recent.map(c =>
+    `原文: ${c.paragraph_text || ''}\n正确值: ${c.corrected_value || ''}`
+  ).join('\n')}`;
+}
+
 /**
  * 将文档章节按 biz_type 分块，调用 LLM 进行结构化抽取。
  * lowHitGroups 为空时保持原有全量行为；非空时仅抽取命中组内 chunk。
  * 返回 { fieldName: extractedText } 映射，用于合并到 extractResult。
+ *
+ * Prompt 增强：
+ *   - {{fieldSchema}}     字段 Schema 列表（类型/必填标注）
+ *   - {{fewShotExamples}} 基于 correction_history 的最近纠错示例
+ *   - {{preExtract}}      规则预抽取结果
+ *   - {{chunkText}}       章节分块文本
  */
 async function runLLMExtraction(
   skill: LLMSkillRow,
@@ -1341,13 +1411,28 @@ async function runLLMExtraction(
       console.warn('[docProcessor] Failed to load bound prompt template, fallback to skill prompt:', e);
     }
   }
-  // 按章节分组文本
+
+  // 加载字段 Schema（按 bizType 过滤规则），供 prompt 注入
+  let fieldSchemaList = '';
+  try {
+    const rules = loadFieldRules().filter(r => r.bizType === bizType || r.group === bizType);
+    if (rules.length > 0) fieldSchemaList = renderFieldSchemaList(buildFieldSchema(rules));
+  } catch (e) {
+    console.warn('[docProcessor] Failed to build field schema:', e);
+  }
+
+  // 加载 Few-shot 示例（最近纠错历史）
+  const correctionHistory = getCorrectionHistory(db, bizType);
+  const fewShotExamples = buildFewShotExamples(correctionHistory, bizType);
+
+  // 按章节分组文本：优先使用 path 分类（更精确），回退到 title+content 分类
   const chunksByType: Record<string, string> = {};
   for (const ch of chapters) {
     const text = ch.content.join('\n').trim();
     if (!text) continue;
-    // 简单按标题关键词分类到对应 biz_type 块
-    const key = classifyChapter(ch.title, ch.content);
+    const key = ch.path && ch.path.length > 0
+      ? classifyChapterByPath(ch.path)
+      : classifyChapter(ch.title, ch.content);
     chunksByType[key] = (chunksByType[key] || '') + '\n' + text;
   }
   // 若无分类结果，把所有段落合并为一个 chunk
@@ -1376,7 +1461,9 @@ async function runLLMExtraction(
   for (const [chunkKey, chunkText] of Object.entries(effectiveChunks)) {
     const filled = effectivePrompt
       .replace(/\{\{chunkText\}\}/g, chunkText.slice(0, 3000))
-      .replace(/\{\{preExtract\}\}/g, preExtractJson);
+      .replace(/\{\{preExtract\}\}/g, preExtractJson)
+      .replace(/\{\{fieldSchema\}\}/g, fieldSchemaList)
+      .replace(/\{\{fewShotExamples\}\}/g, fewShotExamples);
 
     const apiConfig = skill.llm_api_config_id
       ? db.prepare('SELECT * FROM api_configs WHERE id = ? AND enabled = 1').get(skill.llm_api_config_id)
@@ -1491,12 +1578,28 @@ async function callLLM(
 }
 
 function extractJSONFromResponse(text: string): string | null {
-  // Try to find JSON block in the response
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (jsonMatch) return jsonMatch[0];
-  // Try array
+  // 1. 尝试从 ```json 代码块提取（LLM 常用格式）
+  const codeBlockMatch = text.match(/```json\s*([\s\S]*?)```/);
+  if (codeBlockMatch) return codeBlockMatch[1];
+
+  // 2. 尝试从普通 ``` 代码块提取
+  const codeBlockGenericMatch = text.match(/```\s*([\s\S]*?)```/);
+  if (codeBlockGenericMatch) {
+    const inner = codeBlockGenericMatch[1].trim();
+    if (inner.startsWith('{') || inner.startsWith('[')) return inner;
+  }
+
+  // 3. 尝试提取第一个 { 到最后一个 }（覆盖散文+JSON 混合场景）
+  const firstBrace = text.indexOf('{');
+  const lastBrace = text.lastIndexOf('}');
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    return text.slice(firstBrace, lastBrace + 1);
+  }
+
+  // 4. 尝试提取数组
   const arrMatch = text.match(/\[[\s\S]*\]/);
   if (arrMatch) return arrMatch[0];
+
   return null;
 }
 
