@@ -1208,8 +1208,11 @@ export async function parseDocument(filePath: string, options?: { skillId?: stri
           const lowHitGroups = getLowHitGroups(extracts, threshold);
           if (lowHitGroups.length > 0) {
             llmResult = await runLLMExtraction(skill, flatParas, chapters, extracts, lowHitGroups);
-            const merged = mergeLLMResult(extracts, groups, fieldGroups, llmResult, skill.biz_type || 'info');
-            if (merged > 0) extractMode = 'llm_enhanced';
+            const merged = Object.values(llmResult || {}).filter(v => typeof v === 'string' && v.trim() !== '').length;
+            if (merged > 0) {
+              mergeWithConfidence(extracts, llmResult!);
+              extractMode = 'llm_enhanced';
+            }
             else console.warn('[docProcessor] LLM returned no usable fields, keep rule_only:', options.skillId);
           } else {
             console.log('[docProcessor] All groups meet hit rate threshold, skip LLM:', threshold);
@@ -1268,38 +1271,45 @@ function cryptoCreateHash(filePath: string): string {
 // ═══════════════════════════════════════════════════════════
 
 /**
- * 把 LLM 返回的 { field: value } 合并回规则抽取结果。
- * LLM 覆盖/补全新值并标记来源；空值不覆盖已有规则值。
- * 返回实际合并的字段数（为 0 时调用方保持 rule_only）。
+ * 基于置信度的 LLM 合并策略：
+ *  - 规则置信度 >= 7：保留规则值，标注 LLM 确认
+ *  - 规则置信度 < 5（或规则缺失）：LLM 覆盖
+ *  - 规则置信度 5-6：保留规则值，标注 LLM 建议
  */
-function mergeLLMResult(
-  extracts: Record<string, FieldExtract>,
-  groups: Record<string, string>,
-  fieldGroups: Record<string, string>,
-  llmResult: Record<string, string> | undefined,
-  fallbackGroup: string,
-): number {
-  if (!llmResult) return 0;
-  let merged = 0;
-  for (const [field, raw] of Object.entries(llmResult)) {
-    const value = typeof raw === 'string' ? raw.trim() : raw as any;
-    if (value === undefined || value === null || value === '') continue;
-    const prev = extracts[field];
-    extracts[field] = {
-      value: value as string,
-      page: prev?.page ?? null,
-      chapter: prev?.chapter || 'LLM',
-      group: prev?.group || fallbackGroup,
-      sourceText: 'LLM增强',
-      paraIds: prev?.paraIds || [],
-      confidence: 5,
-      source: 'llm',
-    };
-    groups[field] = extracts[field].group;
-    fieldGroups[field] = extracts[field].group;
-    merged++;
+function mergeWithConfidence(
+  ruleExtracts: Record<string, FieldExtract>,
+  llmExtracts: Record<string, string>,
+): Record<string, FieldExtract> {
+  for (const [field, llmValue] of Object.entries(llmExtracts)) {
+    if (!llmValue) continue;
+
+    const ruleExtract = ruleExtracts[field];
+
+    // 规则置信度 >= 7 时，LLM 不覆盖
+    if (ruleExtract && (ruleExtract.confidence ?? 0) >= 7) {
+      ruleExtract.sourceText = (ruleExtract.sourceText || '') + ' | LLM确认';
+      continue;
+    }
+
+    // 规则置信度 < 5 且 LLM 有值时，LLM 覆盖
+    if (!ruleExtract || (ruleExtract.confidence ?? 5) < 5) {
+      ruleExtracts[field] = {
+        value: llmValue,
+        confidence: 7,
+        source: 'llm',
+        page: ruleExtract?.page ?? null,
+        chapter: ruleExtract?.chapter || 'LLM',
+        group: ruleExtract?.group || '',
+        sourceText: `LLM抽取: ${llmValue.slice(0, 50)}`,
+        paraIds: ruleExtract?.paraIds || [],
+      };
+    }
+    // 中间置信度（5-6）时，保留规则值，标注 LLM 建议
+    else {
+      ruleExtract.sourceText = (ruleExtract.sourceText || '') + ` | LLM建议: ${llmValue.slice(0, 30)}`;
+    }
   }
-  return merged;
+  return ruleExtracts;
 }
 
 interface LLMSkillRow {
