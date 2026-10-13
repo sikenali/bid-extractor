@@ -669,7 +669,7 @@ function extractWildcardFromUnit(
   grids: Map<string, string[][]>,
   rule: FieldRule,
   nameRe: RegExp | null,
-): { value: string; paraId: number; sourceText: string; score: number; matchedName: string } | null {
+): { value: string; paraId: number; sourceText: string; score: number; matchedName: string; ns: number; ne: number } | null {
   const text = unit.text;
   const trimmedStart = text.length - text.trimStart().length;
 
@@ -697,7 +697,7 @@ function extractWildcardFromUnit(
 
   // 1. 后：自动名称之后（第一段文字）
   let v = cleanValue(text.slice(ne), nameRe, matchedName);
-  if (v) return { value: v, paraId: unit.paraId, sourceText: text, score: scoreOf(1, v), matchedName };
+  if (v) return { value: v, paraId: unit.paraId, sourceText: text, score: scoreOf(1, v), matchedName, ns, ne };
 
   // 2. 右 / 下：表格相邻格
   if (unit.tableId != null) {
@@ -707,13 +707,13 @@ function extractWildcardFromUnit(
       if (right && !/[：]/.test(right)) {
         v = cleanValue(right, nameRe, matchedName);
         if (v && isBareLabelLike(v)) v = null;
-        if (v) return { value: v, paraId: unit.paraId, sourceText: `${text} ${right.trim()}`, score: scoreOf(2, v), matchedName };
+        if (v) return { value: v, paraId: unit.paraId, sourceText: `${text} ${right.trim()}`, score: scoreOf(2, v), matchedName, ns, ne };
       }
       const below = stripFullwidthLabel((grid[unit.row + 1] || [])[unit.col] || '');
       if (below && !/[：]/.test(below)) {
         v = cleanValue(below, nameRe, matchedName);
         if (v && isBareLabelLike(v)) v = null;
-        if (v) return { value: v, paraId: unit.paraId, sourceText: `${text} ${below.trim()}`, score: scoreOf(2, v), matchedName };
+        if (v) return { value: v, paraId: unit.paraId, sourceText: `${text} ${below.trim()}`, score: scoreOf(2, v), matchedName, ns, ne };
       }
     }
     return null;
@@ -724,7 +724,7 @@ function extractWildcardFromUnit(
   if (before.trim() && [...before].length <= 100) {
     v = cleanValue(before, nameRe, matchedName);
     if (v) v = v.split(/[（(]/)[0].trim() || null;
-    if (v) return { value: v, paraId: unit.paraId, sourceText: text, score: scoreOf(2, v), matchedName };
+    if (v) return { value: v, paraId: unit.paraId, sourceText: text, score: scoreOf(2, v), matchedName, ns, ne };
   }
 
   // 4. 下：自动名称后的下一段
@@ -737,7 +737,7 @@ function extractWildcardFromUnit(
     if (HAS_LABEL.test(nu.text)) break;
     v = cleanValue(nu.text, nameRe, matchedName);
     if (v && isBareLabelLike(v)) break;
-    if (v) return { value: v, paraId: nu.paraId, sourceText: `${text}\n${nu.text}`, score: scoreOf(-1, v), matchedName };
+    if (v) return { value: v, paraId: nu.paraId, sourceText: `${text}\n${nu.text}`, score: scoreOf(-1, v), matchedName, ns, ne };
     break;
   }
 
@@ -753,7 +753,7 @@ function extractWildcardFromUnit(
     v = cleanValue(pu.text, nameRe, matchedName);
     if (v && isBareLabelLike(v)) break;
     if (v && !/[0-9]/.test(v) && [...v].length < 10) break;
-    if (v) return { value: v, paraId: pu.paraId, sourceText: `${pu.text}\n${text}`, score: scoreOf(-1, v), matchedName };
+    if (v) return { value: v, paraId: pu.paraId, sourceText: `${pu.text}\n${text}`, score: scoreOf(-1, v), matchedName, ns, ne };
     break;
   }
   return null;
@@ -816,11 +816,12 @@ function applyRuleExtraction(
         const hitKey = hit.matchedName;
         if (seenHit.has(hitKey)) continue;
         seenHit.add(hitKey);
-        // 通配符标签视作关键字命中，用命中位置信息打分
+        // 通配符标签视作关键字命中，用 extractWildcardFromUnit 返回的命中位置信息打分
+        // （不能用 text.indexOf(matchedName) 重搜——同名字符串在段内可能出现在别处）
         const text = units[i].text;
         const trimmedStart = text.length - text.trimStart().length;
-        const ns = text.indexOf(hit.matchedName);
-        const ne = ns >= 0 ? ns + hit.matchedName.length : -1;
+        const ns = hit.ns;
+        const ne = hit.ne;
         const wAtStart = ns >= 0 && ns <= trimmedStart;
         const wColon = ne >= 0 && (text[ne] === '：' || text[ne] === ':');
         const wConfidence = calculateConfidence('keyword', wAtStart, wColon, wTextLen(i));
@@ -1255,6 +1256,7 @@ function mergeLLMResult(
       group: prev?.group || fallbackGroup,
       sourceText: 'LLM增强',
       paraIds: prev?.paraIds || [],
+      confidence: 5,
       source: 'llm',
     };
     groups[field] = extracts[field].group;
