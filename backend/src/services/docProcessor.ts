@@ -1065,6 +1065,30 @@ function businessValidate(extracts: Record<string, FieldExtract>): {
 // 主入口
 // ═══════════════════════════════════════════════════════════
 
+/**
+ * 计算命中率低于阈值的字段分组列表。
+ * 分组内 hit 率 = 有值的字段数 / 该组总字段数；低于 threshold 的组需要 LLM 增强。
+ */
+function shouldCallLlm(
+  extracts: Record<string, FieldExtract>,
+  threshold = 0.6,
+): string[] {
+  const byGroup: Record<string, FieldExtract[]> = {};
+  for (const [field, extract] of Object.entries(extracts)) {
+    if (!byGroup[extract.group]) byGroup[extract.group] = [];
+    byGroup[extract.group].push(extract);
+  }
+  const lowHitGroups: string[] = [];
+  for (const [group, fields] of Object.entries(byGroup)) {
+    const hitCount = fields.filter(f => f.value).length;
+    const hitRate = fields.length > 0 ? hitCount / fields.length : 1;
+    if (hitRate < threshold) {
+      lowHitGroups.push(group);
+    }
+  }
+  return lowHitGroups;
+}
+
 export async function parseDocument(filePath: string, options?: { skillId?: string }): Promise<ExtractOutput> {
   const ext = path.extname(filePath).toLowerCase();
 
@@ -1172,12 +1196,24 @@ export async function parseDocument(filePath: string, options?: { skillId?: stri
         'SELECT * FROM tender_llm_skill WHERE id = ? AND enable = 1'
       ).get(options.skillId) as any;
       const hasPrompt = !!(skill?.prompt_template || skill?.bind_prompt_template_id);
-      if (skill && skill.enable_llm && hasPrompt) {
+
+      const llmSettings = db.prepare(
+        'SELECT llm_enhance_enabled, llm_hit_rate_threshold FROM profile_settings WHERE id = 1'
+      ).get() as any;
+      const llmEnabled = llmSettings?.llm_enhance_enabled !== 0;
+      const threshold = llmSettings?.llm_hit_rate_threshold || 0.6;
+
+      if (llmEnabled && skill && skill.enable_llm && hasPrompt) {
         try {
-          llmResult = await runLLMExtraction(skill, flatParas, chapters, extracts);
-          const merged = mergeLLMResult(extracts, groups, fieldGroups, llmResult, skill.biz_type || 'info');
-          if (merged > 0) extractMode = 'llm_enhanced';
-          else console.warn('[docProcessor] LLM returned no usable fields, keep rule_only:', options.skillId);
+          const lowHitGroups = shouldCallLlm(extracts, threshold);
+          if (lowHitGroups.length > 0) {
+            llmResult = await runLLMExtraction(skill, flatParas, chapters, extracts, lowHitGroups);
+            const merged = mergeLLMResult(extracts, groups, fieldGroups, llmResult, skill.biz_type || 'info');
+            if (merged > 0) extractMode = 'llm_enhanced';
+            else console.warn('[docProcessor] LLM returned no usable fields, keep rule_only:', options.skillId);
+          } else {
+            console.log('[docProcessor] All groups meet hit rate threshold, skip LLM:', threshold);
+          }
         } catch (llmErr) {
           console.error('[docProcessor] LLM extraction failed, falling back to rule-only:', llmErr);
           extractMode = 'rule_only';
@@ -1280,6 +1316,7 @@ interface LLMSkillRow {
 
 /**
  * 将文档章节按 biz_type 分块，调用 LLM 进行结构化抽取。
+ * lowHitGroups 为空时保持原有全量行为；非空时仅抽取命中组内 chunk。
  * 返回 { fieldName: extractedText } 映射，用于合并到 extractResult。
  */
 async function runLLMExtraction(
@@ -1287,6 +1324,7 @@ async function runLLMExtraction(
   paras: FlatParagraph[],
   chapters: Chapter[],
   ruleResult: Record<string, FieldExtract>,
+  lowHitGroups: string[] = [],
 ): Promise<Record<string, string>> {
   const bizType = (skill as any).biz_type || 'info';
   // 绑定的提示词模板优先：提示词标签的维护真正参与提取
@@ -1316,12 +1354,16 @@ async function runLLMExtraction(
   if (Object.keys(chunksByType).length === 0) {
     chunksByType['all'] = paras.map(p => p.text).join('\n');
   }
+  // 命中率阈值过滤：仅处理命中组
+  const effectiveChunks: Record<string, string> = lowHitGroups.length > 0
+    ? Object.fromEntries(Object.entries(chunksByType).filter(([k]) => lowHitGroups.includes(k)))
+    : chunksByType;
 
   const allResults: Record<string, string> = {};
   // 规则预抽取结果仅与 skill 相关，chunk 无关，提升到循环外序列化一次
   const preExtractJson = JSON.stringify(ruleResult);
 
-  for (const [chunkKey, chunkText] of Object.entries(chunksByType)) {
+  for (const [chunkKey, chunkText] of Object.entries(effectiveChunks)) {
     const filled = effectivePrompt
       .replace(/\{\{chunkText\}\}/g, chunkText.slice(0, 3000))
       .replace(/\{\{preExtract\}\}/g, preExtractJson);
