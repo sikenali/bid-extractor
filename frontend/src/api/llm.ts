@@ -61,3 +61,18 @@ export async function getLlmApiConfigs(): Promise<Array<{ id: string; provider: 
   const response = await apiClient.get<Array<{ id: string; provider: string; model: string }>>('/rules/llm-api-configs');
   return response.data;
 }
+
+export interface LlmEnhanceConfig {
+  enabled: boolean;
+  hitRateThreshold: number;
+  modelId: string;
+}
+
+export async function getLlmEnhanceConfig(): Promise<LlmEnhanceConfig> {
+  const response = await apiClient.get<LlmEnhanceConfig>('/settings/llm-enhance');
+  return response.data;
+}
+
+export async function updateLlmEnhanceConfig(config: Partial<LlmEnhanceConfig>): Promise<void> {
+  await apiClient.put('/settings/llm-enhance', config);
+}
