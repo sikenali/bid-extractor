@@ -1363,7 +1363,8 @@ function getCorrectionHistory(db: any, bizType: string) {
     return db.prepare(
       'SELECT * FROM correction_history WHERE group_name = ? ORDER BY created_at DESC LIMIT 10'
     ).all(bizType);
-  } catch {
+  } catch (e) {
+    console.warn('[getCorrectionHistory] failed for group:', bizType, e);
     return [];
   }
 }
@@ -1371,7 +1372,7 @@ function getCorrectionHistory(db: any, bizType: string) {
 function buildFewShotExamples(correctionHistory: any[], bizType: string): string {
   const recent = correctionHistory
     .filter(c => c.group_name === bizType)
-    .slice(-3);
+    .slice(0, 3);
   if (recent.length === 0) return '';
   return `\n示例：\n${recent.map(c =>
     `原文: ${c.paragraph_text || ''}\n正确值: ${c.corrected_value || ''}`
