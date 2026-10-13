@@ -4,17 +4,55 @@ import { ElMessage } from 'element-plus';
 import { UiSwitch, UiInput, UiModal, UiSelect } from '@/components/ui';
 import RuleDialog from '@/components/settings/RuleDialog.vue';
 import apiClient from '@/api/client';
-import { getLlmSkills, createLlmSkill, updateLlmSkill, deleteLlmSkill, getLlmPrompts } from '@/api/llm';
+import { getLlmSkills, createLlmSkill, updateLlmSkill, deleteLlmSkill, getLlmPrompts, getLlmEnhanceConfig, updateLlmEnhanceConfig, getLlmApiConfigs } from '@/api/llm';
 import { getRules, addRule, updateRule, deleteRule, seedUniversalRules, type ExtractionRule } from '@/api/rules';
+import { getProfileSettings, setProfileSettings, type ProfileSettings } from '@/api/settings';
 
 // ── 主标签切换 ──────────────────────────────────────────────────
-const mainTab = ref<'llm' | 'prompts' | 'rules'>('llm');
+const mainTab = ref<'profile' | 'llm' | 'prompts' | 'rules'>('profile');
 
 const TABS = [
-  { key: 'llm' as const,   label: 'LLM 提取',    icon: 'ri-brain-line' },
-  { key: 'prompts' as const, label: '提示词模板',  icon: 'ri-chat-3-line' },
-  { key: 'rules' as const,  label: '规则管理',    icon: 'ri-list-settings-line' },
+  { key: 'profile' as const, label: '通用',     icon: 'ri-settings-4-line' },
+  { key: 'llm' as const,     label: '智能增强',  icon: 'ri-brain-line' },
+  { key: 'prompts' as const, label: '提示词模板', icon: 'ri-chat-3-line' },
+  { key: 'rules' as const,   label: '规则管理',  icon: 'ri-list-settings-line' },
 ];
+
+// ── Tab 1: 通用设置 ─────────────────────────────────────────────
+const profileSettings = ref<ProfileSettings | null>(null);
+
+async function loadProfileSettings() {
+  try { profileSettings.value = await getProfileSettings(); } catch { /* use defaults */ }
+}
+async function saveProfileSettings(patch: Partial<ProfileSettings>) {
+  try { profileSettings.value = await setProfileSettings(patch); ElMessage.success('设置已保存'); } catch { ElMessage.error('保存失败'); }
+}
+
+// ── LLM 增强配置 ─────────────────────────────────────────────────
+const llmEnhanceConfig = ref({ enabled: true, hitRateThreshold: 0.6, modelId: '' });
+
+async function loadLlmEnhanceConfig() {
+  try { llmEnhanceConfig.value = await getLlmEnhanceConfig(); } catch { /* use defaults */ }
+}
+
+async function saveLlmEnhanceConfig() {
+  try {
+    await updateLlmEnhanceConfig(llmEnhanceConfig.value);
+    ElMessage.success('配置已保存');
+  } catch { ElMessage.error('保存失败'); }
+}
+
+// ── 模型配置列表 ─────────────────────────────────────────────────
+const apiConfigs = ref<Array<{ id: string; provider: string; model: string; base_url?: string }>>([]);
+
+async function loadApiConfigs() {
+  try { apiConfigs.value = await getLlmApiConfigs(); } catch { /* empty */ }
+}
+
+const modelOptions = computed(() => [
+  { value: '', label: '使用技能配置' },
+  ...apiConfigs.value.map(c => ({ value: c.id, label: `${c.provider} - ${c.model}` })),
+]);
 
 // ── Tab 2: LLM 提取 ─────────────────────────────────────────────
 interface LlmSkill { id: string; skill_name: string; skill_code: string; biz_type: string; prompt_template: string; temperature: number; top_p: number; max_tokens: number; enable: number; enable_llm: number; bind_prompt_template_id: string; version: number; create_time: string; }
@@ -109,7 +147,13 @@ watch(mainTab, (tab) => {
   if (tab === 'rules') loadRules();
 });
 
-onMounted(() => { loadLlmSkills(); loadTemplates(); });
+onMounted(() => {
+  loadProfileSettings();
+  loadLlmEnhanceConfig();
+  loadApiConfigs();
+  loadLlmSkills();
+  loadTemplates();
+});
 
 // ── Tab 3: 规则管理 ─────────────────────────────────────────────
 interface RuleItem { id: string; fieldName: string; pattern: string; groupName: string; aliasFor: string; category: string; }
@@ -183,9 +227,62 @@ async function handleSeedUniversal() {
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════ -->
-    <!-- Tab 1: LLM 提取                                              -->
+    <!-- Tab 1: 通用                                                  -->
     <!-- ═══════════════════════════════════════════════════════════ -->
-    <template v-if="mainTab==='llm'">
+    <template v-if="mainTab==='profile'">
+      <div class="section-card profile-section">
+        <div class="card-title">界面与行为</div>
+        <div class="setting-item">
+          <div class="setting-info">
+            <div class="setting-name">提取完成后自动跳转</div>
+            <div class="setting-desc">任务完成后自动打开结果预览</div>
+          </div>
+          <UiSwitch :model-value="!!profileSettings?.auto_redirect_after_extract" size="sm" @update:model-value="(v:any)=>saveProfileSettings({auto_redirect_after_extract: v?1:0})" />
+        </div>
+        <div class="setting-item">
+          <div class="setting-info">
+            <div class="setting-name">默认预览模式</div>
+            <div class="setting-desc">选择提取结果的默认展示方式</div>
+          </div>
+          <UiSelect v-model="profileSettings.extract_preview_mode" :options="[
+            { value: 'table', label: '表格视图' },
+            { value: 'card',  label: '卡片视图' },
+          ]" size="sm" style="width:180px" @change="saveProfileSettings({extract_preview_mode: profileSettings.extract_preview_mode})" />
+        </div>
+      </div>
+      <div class="section-card profile-section">
+        <div class="card-title">关于</div>
+        <div class="about-text">投标标书信息提取工具 · 通过正则规则与 LLM 智能增强协同抽取关键字段</div>
+      </div>
+    </template>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- Tab 2: 智能增强（LLM 提取 + 增强配置）                          -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <template v-else-if="mainTab==='llm'">
+      <!-- LLM 增强配置区 -->
+      <div class="llm-config-card">
+        <div class="config-header">
+          <span class="config-title"><i class="ri-sparkling-2-line"></i>LLM 智能增强</span>
+          <UiSwitch :model-value="llmEnhanceConfig.enabled" size="sm" @update:model-value="(v:any)=>{ llmEnhanceConfig.enabled = v; saveLlmEnhanceConfig(); }" />
+        </div>
+        <div class="config-body" v-if="llmEnhanceConfig.enabled">
+          <div class="config-row">
+            <span class="config-label">命中率阈值</span>
+            <div class="threshold-control">
+              <input type="range" min="0" max="100" step="10"
+                     :value="llmEnhanceConfig.hitRateThreshold * 100"
+                     @input="llmEnhanceConfig.hitRateThreshold = ($event as any).target.value / 100" />
+              <span class="threshold-value">{{ Math.round(llmEnhanceConfig.hitRateThreshold * 100) }}%</span>
+            </div>
+          </div>
+          <div class="config-row">
+            <span class="config-label">模型配置</span>
+            <UiSelect v-model="llmEnhanceConfig.modelId" :options="modelOptions" size="sm" @change="saveLlmEnhanceConfig" style="width:280px" />
+          </div>
+        </div>
+      </div>
+
       <div class="toolbar">
         <button class="btn-primary" @click="openLlmCreate"><span class="icon ri-add-line"></span>提取技能</button>
         <UiInput v-model="llmSearch" type="search" class="search-input" placeholder="搜索技能名称" clearable />
@@ -396,6 +493,21 @@ async function handleSeedUniversal() {
 /* Section card */
 .section-card { background:var(--color-bg-white,#fff); border:0.7px solid var(--color-border-soft,#EDE9E0); border-radius:16px; padding:24px 32px; }
 .card-title { font-size:16px; font-weight:600; color:var(--color-text-primary,#1F1D1A); font-family:"SourceHanSans-Medium",var(--font-family-cn); margin-bottom:16px; }
+.profile-section { margin-bottom:16px; }
+.profile-section:last-child { margin-bottom:0; }
+.about-text { font-size:14px; color:var(--color-text-secondary,#6E6A60); line-height:1.7; font-family:"SourceHanSans-Regular",var(--font-family-cn); }
+
+/* LLM enhance config card */
+.llm-config-card { background:var(--color-bg-white,#fff); border:0.7px solid var(--color-border-soft,#EDE9E0); border-radius:16px; padding:20px 24px; margin-bottom:20px; }
+.llm-config-card .config-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:14px; border-bottom:0.7px solid var(--color-border-soft,#EDE9E0); }
+.config-title { font-size:15px; font-weight:600; color:var(--color-text-primary,#1F1D1A); font-family:"SourceHanSans-Medium",var(--font-family-cn); display:inline-flex; align-items:center; gap:8px; }
+.config-title i { font-family:"remixicon",sans-serif; font-style:normal; color:var(--color-primary,#C0392B); font-size:18px; }
+.config-body { display:flex; flex-direction:column; gap:16px; }
+.config-row { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.config-label { font-size:14px; color:var(--color-text-body,#3A3A3A); font-family:"SourceHanSans-Regular",var(--font-family-cn); }
+.threshold-control { display:flex; align-items:center; gap:14px; min-width:280px; }
+.threshold-control input[type="range"] { flex:1; height:4px; accent-color:var(--color-primary,#C0392B); cursor:pointer; }
+.threshold-value { font-size:13px; font-weight:600; color:var(--color-primary,#C0392B); font-family:monospace; min-width:44px; text-align:right; }
 
 /* Format row */
 .format-row { display:flex; gap:16px; }
