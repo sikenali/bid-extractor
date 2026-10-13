@@ -1210,7 +1210,7 @@ export async function parseDocument(filePath: string, options?: { skillId?: stri
             llmResult = await runLLMExtraction(skill, flatParas, chapters, extracts, lowHitGroups);
             const merged = Object.values(llmResult || {}).filter(v => typeof v === 'string' && v.trim() !== '').length;
             if (merged > 0) {
-              mergeWithConfidence(extracts, llmResult!);
+              mergeWithConfidence(extracts, llmResult!, skill.biz_type || 'info');
               extractMode = 'llm_enhanced';
             }
             else console.warn('[docProcessor] LLM returned no usable fields, keep rule_only:', options.skillId);
@@ -1279,6 +1279,7 @@ function cryptoCreateHash(filePath: string): string {
 function mergeWithConfidence(
   ruleExtracts: Record<string, FieldExtract>,
   llmExtracts: Record<string, string>,
+  fallbackGroup = '',
 ): Record<string, FieldExtract> {
   for (const [field, llmValue] of Object.entries(llmExtracts)) {
     if (!llmValue) continue;
@@ -1291,15 +1292,15 @@ function mergeWithConfidence(
       continue;
     }
 
-    // 规则置信度 < 5 且 LLM 有值时，LLM 覆盖
-    if (!ruleExtract || (ruleExtract.confidence ?? 5) < 5) {
+    // 规则置信度 < 5 且 LLM 有值时，LLM 覆盖（confidence 缺失视为低置信度）
+    if (!ruleExtract || (ruleExtract.confidence ?? 0) < 5) {
       ruleExtracts[field] = {
         value: llmValue,
         confidence: 7,
         source: 'llm',
         page: ruleExtract?.page ?? null,
         chapter: ruleExtract?.chapter || 'LLM',
-        group: ruleExtract?.group || '',
+        group: ruleExtract?.group || fallbackGroup,
         sourceText: `LLM抽取: ${llmValue.slice(0, 50)}`,
         paraIds: ruleExtract?.paraIds || [],
       };
