@@ -1097,26 +1097,29 @@ function getLowHitGroups(
   return lowHitGroups;
 }
 
-export async function parseDocument(filePath: string, options?: { skillId?: string }): Promise<ExtractOutput> {
-  const ext = path.extname(filePath).toLowerCase();
+export async function parseDocument(input: Buffer | string, options?: { skillId?: string; filename?: string }): Promise<ExtractOutput> {
+  const filePath = typeof input === 'string' ? input : '';
+  const buffer = typeof input === 'string' ? undefined : input;
+  const fileName = options?.filename || (filePath ? path.basename(filePath) : 'unknown');
+  const ext = (filePath ? path.extname(filePath) : path.extname(options?.filename || '')).toLowerCase();
 
   if (!SUPPORTED_EXT.includes(ext)) {
     return {
-      fileMeta: { fileName: path.basename(filePath), fileMd5: '', parseTime: new Date().toISOString(), parser: 'officeparser', warningList: [`不支持的格式：${ext || '未知'}`] },
+      fileMeta: { fileName, fileMd5: '', parseTime: new Date().toISOString(), parser: 'officeparser', warningList: [`不支持的格式：${ext || '未知'}`] },
       documentStructure: [], extractResult: {}, validateResult: { isPass: false, validateMsg: '不支持格式', checkItems: [] },
       extractMode: 'rule_only', markedItems: [], tables: [], paragraphsMeta: [], pageCount: 0,
     };
   }
   if (ext === '.doc') {
     return {
-      fileMeta: { fileName: path.basename(filePath), fileMd5: '', parseTime: new Date().toISOString(), parser: 'officeparser', warningList: ['.doc 格式暂不支持，请转换为 .docx 后上传'] },
+      fileMeta: { fileName, fileMd5: '', parseTime: new Date().toISOString(), parser: 'officeparser', warningList: ['.doc 格式暂不支持，请转换为 .docx 后上传'] },
       documentStructure: [], extractResult: {}, validateResult: { isPass: false, validateMsg: '.doc 不支持', checkItems: [] },
       extractMode: 'rule_only', markedItems: [], tables: [], paragraphsMeta: [], pageCount: 0,
     };
   }
-  if (!fs.existsSync(filePath)) {
+  if (typeof input === 'string' && !fs.existsSync(filePath)) {
     return {
-      fileMeta: { fileName: path.basename(filePath), fileMd5: '', parseTime: new Date().toISOString(), parser: 'officeparser', warningList: ['文件不存在'] },
+      fileMeta: { fileName, fileMd5: '', parseTime: new Date().toISOString(), parser: 'officeparser', warningList: ['文件不存在'] },
       documentStructure: [], extractResult: {}, validateResult: { isPass: false, validateMsg: '文件不存在', checkItems: [] },
       extractMode: 'rule_only', markedItems: [], tables: [], paragraphsMeta: [], pageCount: 0,
     };
@@ -1125,15 +1128,15 @@ export async function parseDocument(filePath: string, options?: { skillId?: stri
   try {
     let flatParas: FlatParagraph[];
     let tableRows: string[][][];
+    const fileBuffer = buffer || fs.readFileSync(filePath);
     if (ext === '.txt') {
-      const text = fs.readFileSync(filePath, 'utf-8');
+      const text = fileBuffer.toString('utf-8');
       flatParas = text.split(/\r?\n/).map(t => t.trim()).filter(Boolean)
         .map(t => ({ text: t, chapter: '', chapterPath: [] as string[], level: 0 }));
       tableRows = [];
     } else {
-      const buffer = fs.readFileSync(filePath);
       const fileTypeHint = { '.md': 'md', '.html': 'html', '.csv': 'csv' }[ext];
-      const ast = await OfficeParser.parseOffice(buffer, {
+      const ast = await OfficeParser.parseOffice(fileBuffer, {
         newlineDelimiter: '\n',
         ignoreHeadersAndFooters: true,
         ...(fileTypeHint ? { fileType: fileTypeHint } : {}),
@@ -1194,7 +1197,7 @@ export async function parseDocument(filePath: string, options?: { skillId?: stri
     // 业务校验
     const validateResult = businessValidate(extracts);
 
-    const fileMd5 = cryptoCreateHash(filePath);
+    const fileMd5 = cryptoCreateHash(fileBuffer);
 
     // Skill-driven LLM enhancement (optional)
     let llmResult: Record<string, string> | undefined;
@@ -1234,7 +1237,7 @@ export async function parseDocument(filePath: string, options?: { skillId?: stri
 
     return {
       fileMeta: {
-        fileName: path.basename(filePath),
+        fileName,
         fileMd5,
         parseTime: new Date().toISOString(),
         parser: 'officeparser',
@@ -1265,10 +1268,9 @@ export async function parseDocument(filePath: string, options?: { skillId?: stri
   }
 }
 
-function cryptoCreateHash(filePath: string): string {
+function cryptoCreateHash(buffer: Buffer | string): string {
   try {
-    const buf = fs.readFileSync(filePath);
-    return crypto.createHash('md5').update(buf).digest('hex');
+    return crypto.createHash('md5').update(buffer).digest('hex');
   } catch {
     return '';
   }

@@ -1,22 +1,11 @@
 import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { parseDocument } from '../services/docProcessor.js';
 import type { ExtractOutput } from '../services/docProcessor.js';
 import { db } from '../database.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const router = Router();
-
-const baseDir = process.env.BID_EXTRACTOR_DATA_DIR || path.join(__dirname, '..', '..');
-const UPLOAD_DIR = path.join(baseDir, 'uploads');
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
 
 interface JobEntry {
   filename: string;
@@ -31,17 +20,8 @@ interface JobEntry {
 const JOB_TTL_MS = 60 * 60 * 1000; // 1 hour
 const jobStore = new Map<string, JobEntry>();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`;
-    cb(null, uniqueName);
-  }
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = ['.docx', '.pdf', '.md', '.txt', '.xlsx', '.csv', '.html'];
@@ -60,35 +40,8 @@ function cleanupExpiredJobs() {
   }
 }
 
-// ── Cleanup: old uploaded files (> 24 hours) ─────────────────────────
-function cleanupOldUploads() {
-  if (!fs.existsSync(UPLOAD_DIR)) return;
-  const now = Date.now();
-  const maxAge = 24 * 60 * 60 * 1000; // 24 hours
-  try {
-    const files = fs.readdirSync(UPLOAD_DIR);
-    for (const file of files) {
-      const filePath = path.join(UPLOAD_DIR, file);
-      try {
-        const stat = fs.statSync(filePath);
-        if (stat.isFile() && now - stat.mtimeMs > maxAge) {
-          fs.unlinkSync(filePath);
-        }
-      } catch {
-        // skip individual file errors
-      }
-    }
-  } catch {
-    // skip directory read errors
-  }
-}
-
-// Run cleanup on startup
-cleanupOldUploads();
-
-// Periodic cleanup: jobs every 10 min, uploads every 1 hour
+// Periodic cleanup: jobs every 10 min
 setInterval(cleanupExpiredJobs, 10 * 60 * 1000);
-setInterval(cleanupOldUploads, 60 * 60 * 1000);
 
 router.post('/', upload.single('file'), async (req, res) => {
   if (!req.file) {
@@ -97,14 +50,13 @@ router.post('/', upload.single('file'), async (req, res) => {
   }
 
   const skillId = req.body?.skill_id as string | undefined;
+  const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+  const jobId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
   try {
-    const result = await parseDocument(req.file.path, { skillId });
+    const result = await parseDocument(req.file.buffer, { skillId, filename: originalName });
     const warnings = result.fileMeta?.warningList || [];
     const hasErrors = warnings.some(w => w.includes('失败') || w.includes('不支持') || w.includes('不存在'));
-
-    const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
-    const jobId = req.file.filename;
 
     jobStore.set(jobId, {
       filename: originalName,
@@ -144,17 +96,12 @@ router.post('/', upload.single('file'), async (req, res) => {
       result,
     });
   } catch (err: any) {
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
     res.status(500).json({ error: err.message || '解析过程中发生错误' });
   }
 });
 
 router.get('/:id/status', (req, res) => {
   const job = jobStore.get(req.params.id);
-  const filePath = path.join(UPLOAD_DIR, req.params.id);
-  const fileStat = fs.existsSync(filePath) ? fs.statSync(filePath) : null;
 
   if (job) {
     res.json({
@@ -162,7 +109,7 @@ router.get('/:id/status', (req, res) => {
       status: 'parsed',
       progress: 100,
       filename: job.filename,
-      fileSize: fileStat?.size || job.size,
+      fileSize: job.size,
       result: job.result,
       progressStage: job.progress,
       progressText: job.progressText,
@@ -179,7 +126,7 @@ router.get('/:id/status', (req, res) => {
         status: 'parsed',
         progress: 100,
         filename: row.filename,
-        fileSize: fileStat?.size || row.file_size,
+        fileSize: row.file_size,
         result: JSON.parse(row.result_json),
         progressStage: 3,
         progressText: '已完成',
@@ -191,26 +138,8 @@ router.get('/:id/status', (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
-  const filePath = path.join(UPLOAD_DIR, req.params.id);
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
-  }
   jobStore.delete(req.params.id);
   res.json({ deleted: true });
-});
-
-router.get('/file/:filename', (req, res) => {
-  const name = req.params.filename;
-  if (!name || name.includes('..') || name.includes('/') || name.includes('\\') || path.basename(name) !== name) {
-    res.status(400).json({ error: 'Invalid filename' });
-    return;
-  }
-  const filePath = path.join(UPLOAD_DIR, name);
-  if (!fs.existsSync(filePath)) {
-    res.status(404).json({ error: 'File not found' });
-    return;
-  }
-  res.sendFile(filePath);
 });
 
 // ── 导出结果 ─────────────────────────────────────────────────────
