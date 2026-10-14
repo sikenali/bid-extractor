@@ -1045,6 +1045,7 @@ function applyRuleExtraction(
   units: SearchUnit[],
   grids: Map<string, string[][]>,
   paras: FlatParagraph[],
+  paraToPage?: number[],
 ): { extracts: Record<string, FieldExtract>; groups: Record<string, string>; fieldParaMap: Record<string, number>; fieldGroups: Record<string, string> } {
   const extracts: Record<string, FieldExtract> = {};
   const groups: Record<string, string> = {};
@@ -1304,7 +1305,7 @@ function applyRuleExtraction(
         const atStart = idx <= (text.length - text.trimStart().length);
         const score = 3 + (atStart ? 3 : 0) + (after.startsWith('：') || after.startsWith(':') ? 2 : 0);
         if (!bestHit || score > bestHit.score) {
-          bestHit = { value: v, paraId: i, sourceText: text, score, page: i < paraToPage.length ? paraToPage[i] : 1 };
+          bestHit = { value: v, paraId: i, sourceText: text, score, page: (paraToPage && i < paraToPage.length ? paraToPage[i] : 1) };
         }
       }
     }
@@ -1605,7 +1606,7 @@ export async function parseDocument(input: Buffer | string, options?: { skillId?
       }));
     }
 
-    const { extracts, groups, fieldParaMap, fieldGroups } = applyRuleExtraction(rules, units, grids, flatParas);
+    const { extracts, groups, fieldParaMap, fieldGroups } = applyRuleExtraction(rules, units, grids, flatParas, paraToPage);
     const seen = new Set<string>();
     const markedItems = [
       ...extractMarkedItems(flatParas, paraToPage),
@@ -1625,31 +1626,40 @@ export async function parseDocument(input: Buffer | string, options?: { skillId?
     // Skill-driven LLM enhancement (optional)
     let llmResult: Record<string, string> | undefined;
     let extractMode = 'rule_only' as 'rule_only' | 'llm_enhanced';
+
+    // 自动检测：即使没有 skillId，如果整体命中率低也尝试 LLM 增强
+    const llmSettings = db.prepare(
+      'SELECT llm_enhance_enabled, llm_hit_rate_threshold FROM profile_settings WHERE id = 1'
+    ).get() as any;
+    const llmEnabled = llmSettings?.llm_enhance_enabled !== 0;
+    const defaultThreshold = llmSettings?.llm_hit_rate_threshold ?? 0.6;
+    const overallHitRate = Object.values(extracts).filter(v => v?.value).length / Math.max(Object.keys(extracts).length, 1);
+
+    // 确定使用的 skill（优先使用指定 skill，否则使用默认信息抽取 skill）
+    let skill: any = null;
     if (options?.skillId) {
-      const skill = db.prepare(
-        'SELECT * FROM tender_llm_skill WHERE id = ? AND enable = 1'
-      ).get(options.skillId) as any;
+      skill = db.prepare('SELECT * FROM tender_llm_skill WHERE id = ? AND enable = 1').get(options.skillId) as any;
+    } else if (llmEnabled && overallHitRate < defaultThreshold) {
+      // 无 skillId 但命中率低：尝试所有启用的 skill，选第一个有 prompt 的
+      const allSkills = db.prepare(
+        'SELECT * FROM tender_llm_skill WHERE enable = 1 AND enable_llm = 1 AND (prompt_template IS NOT NULL OR bind_prompt_template_id IS NOT NULL) ORDER BY create_time LIMIT 1'
+      ).all() as any[];
+      if (allSkills.length > 0) skill = allSkills[0];
+    }
+
+    if (llmEnabled && skill) {
       const hasPrompt = !!(skill?.prompt_template || skill?.bind_prompt_template_id);
-
-      const llmSettings = db.prepare(
-        'SELECT llm_enhance_enabled, llm_hit_rate_threshold FROM profile_settings WHERE id = 1'
-      ).get() as any;
-      const llmEnabled = llmSettings?.llm_enhance_enabled !== 0;
-      const threshold = llmSettings?.llm_hit_rate_threshold ?? 0.6;
-
-      if (llmEnabled && skill && skill.enable_llm && hasPrompt) {
+      if (hasPrompt) {
         try {
+          const threshold = defaultThreshold;
           const lowHitGroups = getLowHitGroups(extracts, threshold);
-          if (lowHitGroups.length > 0) {
+          if (lowHitGroups.length > 0 || overallHitRate < threshold) {
             llmResult = await runLLMExtraction(skill, flatParas, chapters, extracts, lowHitGroups);
             const merged = Object.values(llmResult || {}).filter(v => typeof v === 'string' && v.trim() !== '').length;
             if (merged > 0) {
               mergeWithConfidence(extracts, llmResult!, skill.biz_type || 'info');
               extractMode = 'llm_enhanced';
             }
-            else console.warn('[docProcessor] LLM returned no usable fields, keep rule_only:', options.skillId);
-          } else {
-            console.log('[docProcessor] All groups meet hit rate threshold, skip LLM:', threshold);
           }
         } catch (llmErr) {
           console.error('[docProcessor] LLM extraction failed, falling back to rule-only:', llmErr);

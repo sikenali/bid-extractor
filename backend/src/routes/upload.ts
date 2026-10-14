@@ -71,6 +71,22 @@ router.post('/', upload.single('file'), async (req, res) => {
   try {
     const result = await parseDocument(req.file.buffer, { skillId, filename: originalName });
     const warnings = result.fileMeta?.warningList || [];
+
+    // 补充命中率低的分组信息到 warnings
+    const extractStats: Record<string, { hit: number; total: number }> = {};
+    for (const [field, extract] of Object.entries(result.extracts || {})) {
+      const g = result.fieldGroups?.[field] || extract?.group || 'info';
+      if (!extractStats[g]) extractStats[g] = { hit: 0, total: 0 };
+      extractStats[g].total++;
+      if (extract?.value) extractStats[g].hit++;
+    }
+    const lowHitGroups = Object.entries(extractStats).filter(([_, s]) => s.total > 0 && s.hit / s.total < 0.5);
+    if (lowHitGroups.length > 0) {
+      for (const [g, s] of lowHitGroups) {
+        const labels: Record<string, string> = { info: '项目信息', business: '商务条款', tech: '技术条款', score: '评分标准', seal: '封标信息', star: '标星条款' };
+        warnings.push(`【${labels[g] || g}】命中率 ${Math.round(s.hit/s.total*100)}%（${s.hit}/${s.total}），建议开启 LLM 增强`);
+      }
+    }
     const hasErrors = warnings.some(w => w.includes('失败') || w.includes('不支持') || w.includes('不存在'));
 
     jobStore.set(jobId, {

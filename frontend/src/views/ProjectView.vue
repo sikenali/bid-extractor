@@ -119,6 +119,8 @@ const markedItems = ref<{ symbol: string; text: string; page: number }[]>([]);
 
 const fileInfo = ref({ name: '', size: 0, pageCount: 0 });
 const extractStatus = ref({ status: 'pending', progress: 0, filename: '' });
+const extractMode = ref('rule_only');
+const extractWarnings = ref<string[]>([]);
 const loading = ref(false);
 
 const sectionData = computed(() => {
@@ -409,6 +411,8 @@ function processResult(statusData: any) {
   fileInfo.value.name = statusData.filename || '招标文件';
   fileInfo.value.size = statusData.fileSize || 0;
   fileInfo.value.pageCount = result?.pageCount || 0;
+  extractMode.value = result?.extractMode || 'rule_only';
+  extractWarnings.value = (result?.warningList || []) as string[];
 }
 
 function handleCopy(field: string) {
@@ -727,6 +731,9 @@ function triggerDownload(blob: Blob, filename: string) {
         <div class="content-header">
           <h2 class="content-title">提取字段明细</h2>
           <div class="action-group">
+            <span v-if="extractMode === 'llm_enhanced'" class="mode-badge">
+              <span class="icon ri-brain-line"></span> LLM 增强
+            </span>
             <button class="btn-outline" @click="handlePreview">
               <span class="icon ri-eye-line"></span>
               <span>预览</span>
@@ -740,6 +747,20 @@ function triggerDownload(blob: Blob, filename: string) {
               <div class="export-progress-bar" :style="{ width: exportProgress + '%' }"></div>
             </div>
           </div>
+        </div>
+
+        <!-- 提取质量提示 -->
+        <div v-if="extractWarnings.length > 0 || extractMode === 'llm_enhanced'" class="extract-status-banner">
+          <template v-if="extractMode === 'llm_enhanced'">
+            <span class="banner-icon ri-brain-line"></span>
+            <span>本次已启用 LLM 智能增强，自动补全了规则无法覆盖的字段</span>
+          </template>
+          <template v-for="(w, wi) in extractWarnings" :key="wi">
+            <span v-if="w.includes('%')" class="banner-warn">
+              <span class="banner-icon ri-alert-line"></span>
+              {{ w }}
+            </span>
+          </template>
         </div>
 
         <div class="table-card" :class="{ 'is-loading': loading }">
@@ -948,6 +969,53 @@ function triggerDownload(blob: Blob, filename: string) {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+.mode-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+.mode-badge .icon {
+  font-family: "remixicon", sans-serif;
+  font-style: normal;
+  font-size: 15px;
+}
+.extract-status-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background-color: var(--color-bg-secondary, #F7F3EA);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
+  font-size: 14px;
+  color: var(--color-text-body, #3A3A3A);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+.banner-icon {
+  font-family: "remixicon", sans-serif;
+  font-style: normal;
+  font-size: 16px;
+  color: var(--color-primary, #C0392B);
+  flex-shrink: 0;
+}
+.banner-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background-color: rgba(192, 57, 43, 0.08);
+  color: var(--color-primary, #C0392B);
+  font-size: 13px;
 }
 .btn-outline {
   height: 42px;
