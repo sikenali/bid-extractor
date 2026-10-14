@@ -341,6 +341,14 @@ export function initializeDatabase() {
     }
   }
 
+  // Migration: fix seal keyword rules that were incorrectly seeded with group 'info'
+  try {
+    const fixed = db.prepare(
+      "UPDATE extraction_rules SET group_name = 'seal' WHERE group_name = 'info' AND field_name IN ('废标','无效投标','实质性响应','★号条款','否决投标','联合体投标')"
+    ).run();
+    if (fixed.changes > 0) console.log(`[migration] Fixed ${fixed.changes} seal keyword rules: info→seal`);
+  } catch { /* ignore */ }
+
   // Seed default records
   const existingExport = db.prepare('SELECT id FROM export_settings WHERE id = 1').get() as { id: number } | undefined;
   if (!existingExport) {
@@ -660,12 +668,12 @@ export function initializeDatabase() {
     ['score_keyword_committee', '评标委员会', '', 'keyword', 'score'],
     ['score_keyword_sme_pref', '中小企业优惠', '', 'keyword', 'score'],
     // seal group
-    ['seal_keyword_bid_seal', '废标', '', 'keyword', 'info'],
-    ['seal_keyword_invalid_bid', '无效投标', '', 'keyword', 'info'],
-    ['seal_keyword_substantial', '实质性响应', '', 'keyword', 'info'],
-    ['seal_keyword_star_clause', '★号条款', '', 'keyword', 'info'],
-    ['seal_keyword_reject', '否决投标', '', 'keyword', 'info'],
-    ['seal_keyword_consortium', '联合体投标', '', 'keyword', 'info'],
+    ['seal_keyword_bid_seal', '废标', '', 'keyword', 'seal'],
+    ['seal_keyword_invalid_bid', '无效投标', '', 'keyword', 'seal'],
+    ['seal_keyword_substantial', '实质性响应', '', 'keyword', 'seal'],
+    ['seal_keyword_star_clause', '★号条款', '', 'keyword', 'seal'],
+    ['seal_keyword_reject', '否决投标', '', 'keyword', 'seal'],
+    ['seal_keyword_consortium', '联合体投标', '', 'keyword', 'seal'],
     // info keywords section 2
     ['info_keyword_bidding_no', '招标编号', '', 'keyword', 'info'],
     ['info_keyword_package_no', '包件号', '', 'keyword', 'info'],

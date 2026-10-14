@@ -364,38 +364,42 @@ onMounted(loadSkills);
 
       <!-- 列表视图 -->
       <div v-else-if="viewMode === 'list'" class="list-container">
-        <div class="list-table">
-          <!-- 表头 -->
-          <div class="list-header">
-            <div class="col-name">技能名称</div>
-            <div class="col-desc">技能描述</div>
-            <div class="col-actions">操作</div>
-          </div>
-          <!-- 数据行 -->
-          <div
-            v-for="skill in filteredSkills"
-            :key="skill.name"
-            class="list-row"
-            :class="{ expanded: expandedSkill === skill.name }"
-          >
-            <div class="col-name">
-              <span class="row-name">{{ skill.name }}</span>
-              <span class="row-group">{{ groupLabels[skill.group] || skill.group }}</span>
-            </div>
-            <div class="col-desc">
-              <span class="row-desc">{{ skill.description }}</span>
-            </div>
-            <div class="col-actions">
-              <div class="row-actions">
-              <button class="action-btn edit" @click.stop="openEdit(skill)">修改</button>
-              <button class="action-btn delete" @click.stop="handleDelete(skill)">删除</button>
-              <UiSwitch :model-value="skill.enabled" size="sm" @click.stop="toggleEnabled(skill)" />
-              </div>
-            </div>
-          </div>
-          <!-- 表尾统计 -->
-          <div class="list-footer">
-            <span>共 {{ filteredSkills.length }} 个技能 · 已开启 {{ filteredSkills.filter(s => s.enabled).length }} · 当前显示 1-{{ filteredSkills.length }}</span>
+        <div class="table-card">
+          <table class="list-table">
+            <thead>
+              <tr>
+                <th class="col-name">技能名称</th>
+                <th class="col-desc">技能描述</th>
+                <th class="col-action">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="skill in filteredSkills" :key="skill.name"
+                  class="list-row"
+                  :class="{ expanded: expandedSkill === skill.name }"
+                  @click="expandedSkill = expandedSkill === skill.name ? null : skill.name">
+                <td class="col-name">
+                  <span class="row-name">{{ skill.name }}</span>
+                  <span class="row-group">{{ groupLabels[skill.group] || skill.group }}</span>
+                </td>
+                <td class="col-desc">
+                  <span class="row-desc">{{ skill.description }}</span>
+                </td>
+                <td class="col-action">
+                  <div class="row-actions" @click.stop>
+                    <button class="action-btn edit" @click="openEdit(skill)">修改</button>
+                    <button class="action-btn delete" @click="handleDelete(skill)">删除</button>
+                    <UiSwitch :model-value="skill.enabled" size="sm" @click.stop="toggleEnabled(skill)" />
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="filteredSkills.length === 0" class="empty-row">
+                <td colspan="3" class="empty-cell">暂无技能</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="table-footer">
+            共 {{ filteredSkills.length }} 个技能 · 已开启 {{ filteredSkills.filter(s => s.enabled).length }}
           </div>
         </div>
 
@@ -405,7 +409,6 @@ onMounted(loadSkills);
           :key="skill.name + '-detail'"
           v-show="expandedSkill === skill.name"
           class="skill-detail"
-          @click.stop
         >
           <div class="detail-header">
             <span class="detail-name">{{ skill.name }}</span>
@@ -704,135 +707,45 @@ onMounted(loadSkills);
 }
 
 /* 列表视图 */
-.list-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+.list-container { background-color: var(--color-bg-white, #FFFFFF); border: 0.7px solid var(--color-border-soft, #EDE9E0); border-radius: 16px; overflow: hidden; }
+.table-card { background: var(--color-bg-white, #fff); }
+.list-table { width: 100%; border-collapse: collapse; }
+.list-table thead { background-color: var(--color-bg-secondary, #F7F3EA); }
+.list-table th {
+  text-align: left; font-size: 15px; font-weight: 400; color: var(--color-text-secondary, #6E6A60);
+  padding: 0 40px; height: 52px; font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-.list-table {
-  background: var(--color-bg-white, #fff);
-  border: 0.7px solid var(--color-border-soft, #EDE9E0);
-  border-radius: 16px;
-  overflow: hidden;
-}
-.list-header {
-  display: flex;
-  align-items: center;
-  height: 52px;
-  padding: 0 40px;
-  background: var(--color-bg-secondary, #F7F3EA);
-  border-radius: 16px 16px 0 0;
-}
-.list-header .col-name,
-.list-header .col-desc,
-.list-header .col-actions {
-  font-size: 15px;
-  color: var(--color-text-secondary, #6E6A60);
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
-}
-.list-header .col-name {
-  width: 430px;
-  flex-shrink: 0;
-}
-.list-header .col-desc {
-  flex: 1;
-}
-.list-header .col-actions {
-  width: 260px;
-  flex-shrink: 0;
-  text-align: right;
-}
-
-.list-row {
-  display: flex;
-  align-items: center;
-  height: 76px;
-  padding: 0 40px;
-  border-bottom: 1px solid var(--color-border-soft, #EDE9E0);
-  transition: background 0.15s;
-}
-.list-row:last-child {
-  border-bottom: none;
-}
-.list-row:hover {
-  background: var(--color-bg-card, #FCFBF8);
-}
-.col-name {
-  width: 430px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+.list-table th:last-child { text-align: right; }
+.list-table td { padding: 0 40px; height: 76px; vertical-align: middle; border-bottom: 0.7px solid var(--color-border-soft, #EDE9E0); cursor: pointer; transition: background 0.15s; }
+.list-table td:last-child { text-align: right; }
+.list-table .list-row:hover td { background: var(--color-bg-card, #FCFBF8); }
+.col-name { width: 430px; flex-shrink: 0; }
+.col-desc { flex: 1; }
+.col-action { width: 260px; flex-shrink: 0; }
 .row-name {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--color-text-primary, #1F1D1A);
+  display: block; font-size: 16px; font-weight: 500; color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
 .row-group {
-  font-size: 12px;
-  color: var(--color-text-muted, #8A8578);
+  display: block; font-size: 12px; color: var(--color-text-muted, #8A8578); margin-top: 2px;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-.col-desc {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.row-desc {
-  font-size: 15px;
-  color: var(--color-text-secondary, #6E6A60);
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.col-actions {
-  width: 260px;
-  flex-shrink: 0;
-}
-.row-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 24px;
-}
+.row-desc { font-size: 15px; color: var(--color-text-secondary, #6E6A60); font-family: "SourceHanSans-Regular", var(--font-family-cn); }
+.row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 24px; }
 
-/* 操作按钮（与模板管理对齐） */
+/* 操作按钮 */
 .row-actions .action-btn {
-  display: inline-flex;
-  align-items: center;
-  font-size: 15px;
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  transition: opacity 0.2s;
+  display: inline-flex; align-items: center; font-size: 15px;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn); background: none; border: none;
+  cursor: pointer; padding: 0; transition: opacity 0.2s;
 }
-.row-actions .action-btn.edit {
-  color: var(--color-info, #4A72A8);
-}
-.row-actions .action-btn.delete {
-  color: var(--color-error, #E74C3C);
-}
-.row-actions .action-btn:hover {
-  opacity: 0.7;
-}
-
-/* 开关已统一为 UiSwitch，样式见 components/ui */
-
-/* 表尾 */
-.list-footer {
-  display: flex;
-  align-items: center;
-  height: 54px;
-  padding: 0 40px;
-  font-size: 14px;
-  color: var(--color-text-faint, #A7A296);
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+.row-actions .action-btn.edit { color: var(--color-info, #4A72A8); }
+.row-actions .action-btn.delete { color: var(--color-error, #E74C3C); }
+.row-actions .action-btn:hover { opacity: 0.7; }
+.empty-row td { text-align: center; vertical-align: middle; color: var(--color-text-faint, #A7A296); font-size: 14px; padding: 40px; }
+.table-footer {
+  padding: 0 40px; height: 54px; display: flex; align-items: center;
+  font-size: 14px; color: var(--color-text-faint, #A7A296); font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 
 /* 展开详情 */

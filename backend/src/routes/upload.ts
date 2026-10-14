@@ -1,11 +1,21 @@
 import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { parseDocument } from '../services/docProcessor.js';
 import type { ExtractOutput } from '../services/docProcessor.js';
 import { db } from '../database.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const router = Router();
+
+const UPLOADS_DIR = path.join(__dirname, '..', '..', 'data', 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+const ALLOWED_EXTS = ['.docx', '.pdf', '.md', '.txt', '.xlsx', '.csv', '.html'];
 
 interface JobEntry {
   filename: string;
@@ -35,6 +45,11 @@ function cleanupExpiredJobs() {
   const now = Date.now();
   for (const [key, entry] of jobStore.entries()) {
     if (now - entry.createdAt > JOB_TTL_MS) {
+      // 清理磁盘文件
+      const fp = (entry as any).filePath as string | undefined;
+      if (fp && fs.existsSync(fp)) {
+        try { fs.unlinkSync(fp); } catch {}
+      }
       jobStore.delete(key);
     }
   }
@@ -80,11 +95,23 @@ router.post('/', upload.single('file'), async (req, res) => {
         fieldGroups: result.fieldGroups,
         fieldParaMap: result.fieldParaMap,
         pageCount: result.pageCount,
+        virtualTables: result.virtualTables || [],
       });
       db.prepare(`INSERT INTO doc_results (id, filename, file_size, result_json, created_at)
                   VALUES (?, ?, ?, ?, datetime('now'))`).run(jobId, originalName, req.file.size, resultJson);
     } catch (dbErr) {
       console.warn('[upload] doc_results persist failed:', dbErr);
+    }
+
+    // 持久化原始文件到磁盘，供预览使用
+    try {
+      const ext = path.extname(originalName).toLowerCase();
+      const safeName = jobId + ext;
+      const filePath = path.join(UPLOADS_DIR, safeName);
+      fs.writeFileSync(filePath, req.file.buffer);
+      (jobStore.get(jobId) as any).filePath = filePath;
+    } catch (fsErr) {
+      console.warn('[upload] file persist failed:', fsErr);
     }
 
     res.status(201).json({
@@ -138,8 +165,91 @@ router.get('/:id/status', (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
-  jobStore.delete(req.params.id);
+  const id = req.params.id;
+  const job = jobStore.get(id);
+  if (job) {
+    // 清理磁盘上的上传文件
+    const fp = (job as any).filePath as string | undefined;
+    if (fp && fs.existsSync(fp)) {
+      try { fs.unlinkSync(fp); } catch {}
+    }
+    jobStore.delete(id);
+  }
+  // 清理磁盘文件（fallback，应对 jobStore 已过期情况）
+  for (const ext of ALLOWED_EXTS) {
+    const fp = path.join(UPLOADS_DIR, id + ext);
+    if (fs.existsSync(fp)) {
+      try { fs.unlinkSync(fp); } catch {}
+    }
+  }
+  // 清理 DB 中对应的结果记录
+  try { db.prepare('DELETE FROM doc_results WHERE id = ?').run(id); } catch {}
   res.json({ deleted: true });
+});
+
+// ── 文件预览：返回原始上传文件 ───────────────────────────────────────
+router.get('/file/:fileKey', (req, res) => {
+  const { fileKey } = req.params;
+
+  // 安全校验：防止路径遍历
+  const safeKey = path.basename(fileKey);
+  if (safeKey !== fileKey) {
+    res.status(400).json({ error: '非法文件标识' });
+    return;
+  }
+  if (/^[a-zA-Z0-9\-_.]+$/.test(safeKey) === false) {
+    res.status(400).json({ error: '非法文件标识' });
+    return;
+  }
+
+  // 优先从内存 jobStore 查找（含 filePath 字段）
+  const job = jobStore.get(fileKey);
+  if (job && (job as any).filePath && fs.existsSync((job as any).filePath)) {
+    const filePath = path.resolve((job as any).filePath as string);
+    if (!filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep) && filePath !== path.resolve(UPLOADS_DIR)) {
+      res.status(403).json({ error: '禁止访问' });
+      return;
+    }
+    const ext = path.extname(filePath);
+    const mimeTypeMap: Record<string, string> = {
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.pdf':  'application/pdf',
+      '.md':   'text/markdown',
+      '.txt':  'text/plain',
+      '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      '.csv':  'text/csv',
+      '.html': 'text/html',
+    };
+    res.setHeader('Content-Type', mimeTypeMap[ext] || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(path.basename(filePath))}"`);
+    res.sendFile(filePath);
+    return;
+  }
+
+  // 回落：从磁盘 uploads 目录按 jobId+ext 查找
+  for (const ext of ALLOWED_EXTS) {
+    const resolvedPath = path.resolve(path.join(UPLOADS_DIR, safeKey + ext));
+    if (!resolvedPath.startsWith(path.resolve(UPLOADS_DIR) + path.sep)) {
+      continue;
+    }
+    if (fs.existsSync(resolvedPath)) {
+      const mimeTypeMap: Record<string, string> = {
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.pdf':  'application/pdf',
+        '.md':   'text/markdown',
+        '.txt':  'text/plain',
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        '.csv':  'text/csv',
+        '.html': 'text/html',
+      };
+      res.setHeader('Content-Type', mimeTypeMap[ext] || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(safeKey + ext)}"`);
+      res.sendFile(resolvedPath);
+      return;
+    }
+  }
+
+  res.status(404).json({ error: '文件不存在' });
 });
 
 // ── 导出结果 ─────────────────────────────────────────────────────
@@ -223,6 +333,18 @@ function buildMarkdownExport(result: ExtractOutput): string {
     lines.push('\n## 标星条款 ★\n');
     for (const item of result.markedItems) {
       lines.push(`- [${item.symbol}] 第${item.page}页：${item.text}\n`);
+    }
+  }
+
+  // 虚拟表格（文字描述解析）
+  if (result.virtualTables?.length) {
+    lines.push('\n## 解析表格（文字描述）\n');
+    for (const vt of result.virtualTables) {
+      lines.push(`### 表格 · 第${vt.page}页 · ${vt.group}\n`);
+      for (const row of vt.rows) {
+        lines.push('| ' + row.map(c => c.replace(/\|/g, '\\|')).join(' | ') + ' |\n');
+      }
+      lines.push('');
     }
   }
 

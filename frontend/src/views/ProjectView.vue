@@ -114,7 +114,7 @@ function stringifyValue(v: unknown): string {
 
 const tableData = ref<ExtractedField[]>([]);
 const structuredExtracts = ref<Record<string, TechSectionItem[]>>({});
-const docTables = ref<{ rows: { cells: string[] }[]; page?: string; chapter?: string; group?: string }[]>([]);
+const docTables = ref<{ rows: { cells: string[] }[]; page?: string; chapter?: string; group?: string; source?: string }[]>([]);
 const markedItems = ref<{ symbol: string; text: string; page: number }[]>([]);
 
 const fileInfo = ref({ name: '', size: 0, pageCount: 0 });
@@ -367,7 +367,21 @@ function processResult(statusData: any) {
       page: typeof t.page === 'number' ? `P${t.page}` : (t.page || ''),
       chapter: t.chapter || '',
       group: t.group || '',
+      source: t.source || 'doc',
     }));
+  }
+  // 合并虚拟表格（文字描述解析所得）
+  if (result?.virtualTables) {
+    const vts = (result.virtualTables as any[]).map((t: any) => ({
+      rows: (t.rows || []).map((r: any) => ({
+        cells: Array.isArray(r) ? r.map((c: any) => String(c ?? '')) : [],
+      })),
+      page: typeof t.page === 'number' ? `P${t.page}` : (t.page || ''),
+      chapter: t.chapter || '',
+      group: t.group || '',
+      source: t.source || 'text_description',
+    }));
+    docTables.value = [...docTables.value, ...vts];
   }
   if (result?.markedItems) {
     markedItems.value = result.markedItems as { symbol: string; text: string; page: number }[];
@@ -501,6 +515,20 @@ async function exportDocx(grouped: Record<string, ExtractedField[]>, baseName: s
     await paint();
     const zip = new PizZip(bytes);
     const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+
+    // 虚拟表格：按分组组织，供模板追加渲染
+    const vtByGroup: Record<string, Array<{ page: string; chapter: string; rows: string[][] }>> = {};
+    for (const t of docTables.value) {
+      if (t.source !== 'text_description') continue;
+      const g = t.group || 'info';
+      if (!vtByGroup[g]) vtByGroup[g] = [];
+      vtByGroup[g].push({
+        page: t.page || '',
+        chapter: t.chapter || '',
+        rows: t.rows.map(r => r.cells),
+      });
+    }
+
     const groups = ['info', 'business', 'tech', 'score', 'seal', 'star']
       .map(g => ({
         name: sectionLabels[g] || g,
@@ -511,6 +539,7 @@ async function exportDocx(grouped: Record<string, ExtractedField[]>, baseName: s
         })),
       }))
       .filter(g => g.rows.length > 0);
+
     doc.render({ title: `${baseName} — 提取结果`, groups });
     exportProgress.value = 60;
     exportStage.value = '正在生成文档…';
@@ -755,10 +784,13 @@ function triggerDownload(blob: Blob, filename: string) {
         <div v-if="sectionTables.length > 0" class="doc-tables-card">
           <div class="doc-tables-title">
             原文表格（{{ sectionTables.length }}）
-            <span class="doc-tables-tip">直接取自文档中的表格</span>
+            <span class="doc-tables-tip">直接取自文档或文字解析</span>
           </div>
           <div v-for="(t, ti) in sectionTables" :key="ti" class="doc-table-wrap">
-            <div class="doc-table-meta">表格 {{ ti + 1 }} · {{ t.page }} · {{ t.chapter || '正文' }}</div>
+            <div class="doc-table-meta">
+              表格 {{ ti + 1 }} · {{ t.page }} · {{ t.chapter || '正文' }}
+              <span v-if="t.source === 'text_description'" class="vt-badge">文字解析</span>
+            </div>
             <table class="doc-table">
               <tr v-for="(row, ri) in t.rows" :key="ri" :class="{ 'is-header': ri === 0 }">
                 <td v-for="(cell, ci) in row.cells" :key="ci">{{ cell || '—' }}</td>
@@ -1112,6 +1144,16 @@ function triggerDownload(blob: Blob, filename: string) {
   font-size: 13px;
   font-weight: 400;
   color: var(--color-text-muted, #8A8578);
+}
+.vt-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background-color: var(--color-primary-soft, #FBE9E7);
+  color: var(--color-primary, #C0392B);
+  font-size: 12px;
+  font-weight: 500;
 }
 .doc-table-wrap { overflow-x: auto; }
 .doc-table-meta {

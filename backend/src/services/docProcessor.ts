@@ -41,6 +41,16 @@ export interface TableMeta {
   group: string;
 }
 
+/** 虚拟表格：由文字段落解析得到的类表格结构 */
+export interface VirtualTableMeta {
+  tableId: string;
+  page: number;
+  chapter: string;
+  rows: string[][];
+  group: string;
+  source: 'text_description';
+}
+
 export interface FieldExtract {
   value: string | null;
   page: number | null;
@@ -74,6 +84,7 @@ export interface ExtractOutput {
   extractMode: 'rule_only' | 'llm_enhanced';
   markedItems: MarkedItem[];
   tables: TableMeta[];
+  virtualTables: VirtualTableMeta[];
   paragraphsMeta: ParagraphMeta[];
   pageCount: number;
   // 兼容前端结果契约（顶层扁平字段）
@@ -119,6 +130,130 @@ function buildTableMarkdown(rows: string[][]): string {
     lines.push('| ' + row.map(cellToMarkdown).join(' | ') + ' |');
   }
   return lines.join('\n');
+}
+
+/**
+ * 将文字描述段落解析为类表格行。
+ * 识别模式：
+ *   1. 编号条目：(1) xxx / 1. xxx / ①xxx 后跟"："分隔的值 → 两列（项目, 值）
+ *   2. 纯"键：值"行（每行一个） → 两列
+ *   3. 分号分隔的多字段行 → 多列（按出现次数推断列数）
+ * 仅对 tech / score 分组文本生效，避免误解析无关段落。
+ */
+function parseTextToTable(text: string, group: string, page: number): string[][] | null {
+  if (!['tech', 'score'].includes(group)) return null;
+  const lines = text
+    .split(/\n/)
+    .map(l => l.trim())
+    .filter(l => l.length > 0);
+  if (lines.length < 2) return null;
+
+  // 候选模式A：编号条目 "(n) xxx：yyy" / "n. xxx：yyy" / "①xxx：yyy"
+  const numberedRe = /^[(（]?\d+[)）．.\s、]|^[①②③④⑤⑥⑦⑧⑨⑩][：:\s]/;
+  const kvRe = /^(.+?)[：:]\s*(.+)$/;
+  const numLabelRe = /^(?:[(（]?\d+[)）．.\s、]|[①-⑩])[：:\s]?(.+?)[：:]\s*(.*)$/;
+
+  const asNumRows: string[][] = [];
+  const asKvRows: string[][] = [];
+
+  for (const line of lines) {
+    const nm = line.match(numLabelRe);
+    if (nm) {
+      asNumRows.push([nm[1].trim(), nm[2].trim()]);
+    }
+    const km = line.match(kvRe);
+    if (km && km[1].trim().length < 40 && km[2].trim().length > 0) {
+      asKvRows.push([km[1].trim(), km[2].trim()]);
+    }
+  }
+
+  // 选用行数最多的解析结果（至少 3 行才视为有效表格）
+  const candidates: string[][][] = [asNumRows, asKvRows];
+  let best: string[][] | null = null;
+  for (const c of candidates) {
+    if (c.length >= 3 && (!best || c.length > best.length)) best = c;
+  }
+  if (!best) return null;
+
+  // 为所有行补齐列数：取最长行的列数
+  const maxCols = Math.max(...best.map(r => r.length));
+  if (maxCols < 2) return null;
+  return best.map(r => {
+    while (r.length < maxCols) r.push('');
+    return r;
+  });
+}
+
+function extractVirtualTables(
+  paras: FlatParagraph[],
+  paraToPage: number[],
+  tablesMeta: TableMeta[],
+  fieldGroups: Record<string, string>,
+  extracts: Record<string, FieldExtract>,
+): VirtualTableMeta[] {
+  const results: VirtualTableMeta[] = [];
+  let vid = 0;
+
+  // 策略1：对每个 extracts 中值较长的字段，尝试将其值解析为表格
+  for (const [field, extract] of Object.entries(extracts)) {
+    if (!extract?.value) continue;
+    const group = fieldGroups[field] || extract.group || '';
+    if (!['tech', 'score'].includes(group)) continue;
+    const value = String(extract.value);
+    if (value.split(/\n/).length < 3) continue;
+      const rows = parseTextToTable(value, group, extract.page ?? 1);
+    if (rows && rows.length >= 3) {
+      results.push({
+        tableId: `vt${vid++}`,
+        page: extract.page ?? 1,
+        chapter: extract.chapter || '',
+        rows,
+        group,
+        source: 'text_description',
+      });
+    }
+  }
+
+  // 策略2：扫描段落中与 tech/score 关键词相关的长段落，尝试解析为表格
+  const sectionKeywordPatterns: Record<string, RegExp> = {
+    tech: /技术|参数|规格|配置|性能|验收|指标|服务|软件|硬件|系统|方案|质保|接口|安全|质量|资料|运维|交付|测试|部署|范围|实施|产品|设备|功能|安装|培训/i,
+    score: /评分|分值|得分|权重|评标|商务分|技术分|价格分|满分|合格|评审|细则|因素/i,
+  };
+  for (let i = 0; i < paras.length; i++) {
+    const p = paras[i];
+    if (p.level !== 0) continue; // 跳过标题行
+    const text = p.text.trim();
+    if (!text || text.length < 30) continue;
+    for (const [group, re] of Object.entries(sectionKeywordPatterns)) {
+      if (!re.test(text)) continue;
+      // 检查该段落是否含有多个编号或冒号条目
+      const lineCount = text.split(/\n/).filter(l => l.trim().length > 0).length;
+      if (lineCount < 3) continue;
+       const rows = parseTextToTable(text, group, i < paraToPage.length ? paraToPage[i] : 1);
+      if (rows && rows.length >= 3) {
+        // 去重：相同页码+分组+首行内容完全一致则跳过
+        const firstRowStr = rows[0].join('');
+        const dup = results.some(vt =>
+          vt.page === (i < paraToPage.length ? paraToPage[i] : 1) &&
+          vt.group === group &&
+          vt.rows[0].join('') === firstRowStr
+        );
+        if (!dup) {
+          results.push({
+            tableId: `vt${vid++}`,
+            page: i < paraToPage.length ? paraToPage[i] : 1,
+            chapter: p.chapter,
+            rows,
+            group,
+            source: 'text_description',
+          });
+        }
+      }
+      break;
+    }
+  }
+
+  return results;
 }
 
 interface FlatParagraph {
@@ -1107,21 +1242,21 @@ export async function parseDocument(input: Buffer | string, options?: { skillId?
     return {
       fileMeta: { fileName, fileMd5: '', parseTime: new Date().toISOString(), parser: 'officeparser', warningList: [`不支持的格式：${ext || '未知'}`] },
       documentStructure: [], extractResult: {}, validateResult: { isPass: false, validateMsg: '不支持格式', checkItems: [] },
-      extractMode: 'rule_only', markedItems: [], tables: [], paragraphsMeta: [], pageCount: 0,
+       extractMode: 'rule_only', markedItems: [], tables: [], virtualTables: [], paragraphsMeta: [], pageCount: 0,
     };
   }
   if (ext === '.doc') {
     return {
       fileMeta: { fileName, fileMd5: '', parseTime: new Date().toISOString(), parser: 'officeparser', warningList: ['.doc 格式暂不支持，请转换为 .docx 后上传'] },
       documentStructure: [], extractResult: {}, validateResult: { isPass: false, validateMsg: '.doc 不支持', checkItems: [] },
-      extractMode: 'rule_only', markedItems: [], tables: [], paragraphsMeta: [], pageCount: 0,
+       extractMode: 'rule_only', markedItems: [], tables: [], virtualTables: [], paragraphsMeta: [], pageCount: 0,
     };
   }
   if (typeof input === 'string' && !fs.existsSync(filePath)) {
     return {
       fileMeta: { fileName, fileMd5: '', parseTime: new Date().toISOString(), parser: 'officeparser', warningList: ['文件不存在'] },
       documentStructure: [], extractResult: {}, validateResult: { isPass: false, validateMsg: '文件不存在', checkItems: [] },
-      extractMode: 'rule_only', markedItems: [], tables: [], paragraphsMeta: [], pageCount: 0,
+       extractMode: 'rule_only', markedItems: [], tables: [], virtualTables: [], paragraphsMeta: [], pageCount: 0,
     };
   }
 
@@ -1235,6 +1370,9 @@ export async function parseDocument(input: Buffer | string, options?: { skillId?
       }
     }
 
+    // 文字描述段落 → 虚拟表格（针对 tech / score 分类的长文本条目）
+    const virtualTables = extractVirtualTables(flatParas, paraToPage, tablesMeta, fieldGroups, extracts);
+
     return {
       fileMeta: {
         fileName,
@@ -1249,6 +1387,7 @@ export async function parseDocument(input: Buffer | string, options?: { skillId?
       extractMode,
       markedItems,
       tables: tablesMeta,
+      virtualTables,
       paragraphsMeta,
       pageCount,
       extracts,
@@ -1263,7 +1402,7 @@ export async function parseDocument(input: Buffer | string, options?: { skillId?
       fileMeta: { fileName: path.basename(filePath), fileMd5: '', parseTime: new Date().toISOString(), parser: 'officeparser', warningList: [`解析失败：${err.message || '未知错误'}`] },
       documentStructure: [], extractResult: {},
       validateResult: { isPass: false, validateMsg: err.message || '未知错误', checkItems: [] },
-      extractMode: 'rule_only', markedItems: [], tables: [], paragraphsMeta: [], pageCount: 0,
+       extractMode: 'rule_only', markedItems: [], tables: [], virtualTables: [], paragraphsMeta: [], pageCount: 0,
     };
   }
 }
