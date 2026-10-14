@@ -60,7 +60,7 @@ export interface FieldExtract {
   paraIds: number[];
   score?: number;
   confidence?: number;
-  source?: 'regex' | 'keyword' | 'llm' | 'title_fallback' | 'table';
+  source?: 'regex' | 'keyword' | 'llm' | 'title_fallback' | 'table' | 'context';
 }
 
 /** V1.3 最终输出结构 */
@@ -1052,9 +1052,45 @@ function applyRuleExtraction(
   const fieldGroups: Record<string, string> = {};
   const nameRe = buildFieldNamePattern(rules.map(r => r.fieldName));
 
+  // ── 别名扩展：将 alias_for 规则中的字段名映射到主字段名 ──────────────────
+  // 例如：招标编号 → 项目编号，最高限价 → 预算金额
+  const aliasMap: Record<string, string> = {};
+  for (const r of rules) {
+    if (r.aliasFor && r.aliasFor !== r.fieldName) {
+      aliasMap[r.fieldName] = r.aliasFor;
+    }
+  }
+  // 反向：canonical → [aliases]
+  const canonicalToAliases: Record<string, string[]> = {};
+  for (const [alias, canonical] of Object.entries(aliasMap)) {
+    if (!canonicalToAliases[canonical]) canonicalToAliases[canonical] = [];
+    canonicalToAliases[canonical].push(alias);
+  }
+  // 编译别名正则：最长优先，避免 "采购编号" 被 "编号" 截断
+  const allNames = [...new Set(rules.map(r => r.fieldName))];
+  const aliasNames = Object.keys(aliasMap).filter(n => n && [...n].length >= 2);
+  const allSearchNames = [...allNames, ...aliasNames];
+  const searchNameRe = buildFieldNamePattern(allSearchNames);
+
   const keyOf = (rule: FieldRule) =>
     (rule.aliasFor && rule.aliasFor !== rule.fieldName) ? rule.aliasFor : rule.fieldName;
   const isAlias = (r: FieldRule) => keyOf(r) !== r.fieldName;
+
+  /** 用 rule.fieldName + 其别名搜索段落/单元格 */
+  function searchWithAliases(unit: SearchUnit, rule: FieldRule): { value: string; paraId: number; sourceText: string; score: number; confidence: number; source: 'regex' | 'keyword'; matchedName: string } | null {
+    // 优先用原始 fieldName 搜索（已内置在 extractFromUnit）
+    const direct = extractFromUnit(unit, units, unit.paraId, grids, rule, nameRe);
+    if (direct) return { ...direct, matchedName: rule.fieldName };
+
+    // 再用别名搜索
+    const aliases = canonicalToAliases[keyOf(rule)] || [];
+    for (const alias of aliases) {
+      const aliasRule = { ...rule, fieldName: alias };
+      const aliasHit = extractFromUnit(unit, units, unit.paraId, grids, aliasRule, nameRe);
+      if (aliasHit) return { ...aliasHit, matchedName: alias };
+    }
+    return null;
+  }
 
   const bestByKey: Record<string, { value: string; paraId: number; sourceText: string; score: number; page: number; chapter: string; group: string; fromAlias: boolean; confidence?: number; source?: 'regex' | 'keyword' | 'title_fallback' } | null> = {};
 
@@ -1096,10 +1132,10 @@ function applyRuleExtraction(
       return;
     }
 
-    // 全文候选打分取最优
+    // 全文候选打分取最优（含别名搜索）
     let best: { value: string; paraId: number; sourceText: string; score: number; page: number; chapter: string } | null = null;
     for (let i = 0; i < units.length; i++) {
-      const hit = extractFromUnit(units[i], units, i, grids, rule, nameRe);
+      const hit = searchWithAliases(units[i], rule);
       if (hit && (!best || hit.score > best.score)) {
         best = { ...hit, page: units[i].page, chapter: units[i].chapter };
       }
@@ -1169,6 +1205,123 @@ function applyRuleExtraction(
     groups[key] = b.group;
     fieldGroups[key] = b.group;
     fieldParaMap[key] = b.paraId;
+  }
+
+  // ── 上下文感知提取：按章节范围缩小搜索，提升不同模板的命中率 ──────────
+  // 策略：文本内找章节标题（officeparser 未识别 heading 时回退到关键词匹配）
+  const SECTION_PATTERNS: Record<string, RegExp[]> = {
+    info: [/招标条件|项目概况|招标公告|投标须知|采购内容|项目背景|第一章|第一部分/],
+    business: [/商务条款|投标人资格|资格要求|商务要求|合同条款|付款条件|质保期|售后服务/],
+    tech: [/技术规格|技术要求|技术参数|技术标准|采购需求|技术需求|验收标准|技术说明|用户需求/],
+    score: [/评分标准|评标办法|评审办法|评分细则|综合评分|评分因素/],
+    seal: [/密封|封装|正本|副本|电子文件|递交|盖章|封标|投标文件的密封/],
+  };
+
+  // 文本检测章节起始位置
+  function detectSectionBoundaries(paras: FlatParagraph[]): Record<string, { start: number; end: number }> {
+    const ranges: Record<string, { start: number; end: number }> = {};
+    const sectionOrder = ['info', 'business', 'tech', 'score', 'seal'];
+    let currentSection = 'info';
+    let currentStart = 0;
+
+    for (let i = 0; i < paras.length; i++) {
+      const text = paras[i].text.trim();
+      if (!text || text.length < 3) continue;
+      for (const group of sectionOrder) {
+        if (group === currentSection) continue;
+        if (SECTION_PATTERNS[group]?.some(re => re.test(text))) {
+          // 切换到新章节
+          if (ranges[currentSection] && !ranges[currentSection].end) {
+            ranges[currentSection].end = i;
+          }
+          currentSection = group;
+          currentStart = i;
+          break;
+        }
+      }
+    }
+    // 关闭最后一个章节
+    if (ranges[currentSection] && !ranges[currentSection].end) {
+      ranges[currentSection].end = paras.length - 1;
+    }
+    // 确保所有章节都有范围
+    for (const g of sectionOrder) {
+      if (!ranges[g]) {
+        // 默认：在整个文档中搜索
+        ranges[g] = { start: 0, end: paras.length - 1 };
+      }
+    }
+    return ranges;
+  }
+
+  const sectionRanges = detectSectionBoundaries(paras);
+
+  // 在章节范围内对未命中的字段做模糊匹配
+  const KNOWN_FIELDS: Array<{ field: string; group: string; keywords: string[] }> = [
+    // info
+    { field: '交付时间', group: 'info', keywords: ['交付时间','交付期限','交货时间','完工时间','服务周期','工期'] },
+    { field: '交付地点', group: 'info', keywords: ['交付地点','交货地点','安装地点','实施地点','验收地点'] },
+    { field: '资金来源', group: 'info', keywords: ['资金来源','资金性质','经费来源','预算来源'] },
+    { field: '分包情况', group: 'info', keywords: ['分包情况','是否接受分包','分包要求','转包'] },
+    { field: '合同包号', group: 'info', keywords: ['合同包号','采购包号','包件号','标段'] },
+    // business
+    { field: '保密要求', group: 'business', keywords: ['保密要求','保密义务','保密条款','信息安全'] },
+    { field: '发票要求', group: 'business', keywords: ['发票要求','开票要求','发票类型','增值税'] },
+    { field: '售后响应', group: 'business', keywords: ['响应时间','售后服务响应','故障响应','维修响应'] },
+    { field: '交货期', group: 'business', keywords: ['交货期','供货周期','交付周期','工期','服务期'] },
+    // tech
+    { field: '配置清单', group: 'tech', keywords: ['配置清单','配置明细','设备清单','货物清单','服务清单'] },
+    { field: '技术参数', group: 'tech', keywords: ['技术参数','技术规格','规格参数','技术指标'] },
+    { field: '性能要求', group: 'tech', keywords: ['性能要求','性能指标','技术指标'] },
+    { field: '安装调试', group: 'tech', keywords: ['安装调试','安装要求','部署方式'] },
+    { field: '接口要求', group: 'tech', keywords: ['接口要求','接口规范','数据接口','接口协议'] },
+    // score
+    { field: '评分标准', group: 'score', keywords: ['评分标准','评分办法','评标标准','评审标准'] },
+    { field: '综合评分', group: 'score', keywords: ['综合评分','评分方法','评标方法'] },
+    { field: '合格分数线', group: 'score', keywords: ['合格分数线','合格分','及格线','通过分'] },
+    // seal
+    { field: '正本数量', group: 'seal', keywords: ['正本数量','正本份数','正本'] },
+    { field: '副本数量', group: 'seal', keywords: ['副本数量','副本份数','副本'] },
+    { field: '递交方式', group: 'seal', keywords: ['递交方式','提交方式','上传方式','递交'] },
+  ];
+
+  // 对每个未命中的字段，在其所属章节范围内搜索别名关键词
+  for (const { field, group, keywords } of KNOWN_FIELDS) {
+    if (extracts[field]?.value) continue; // 已命中
+    const range = sectionRanges[group];
+    if (!range) continue;
+    let bestHit: { value: string; paraId: number; sourceText: string; score: number; page: number } | null = null;
+    for (let i = range.start; i <= range.end && i < paras.length; i++) {
+      const p = paras[i];
+      if (p.level > 0) continue; // 跳过子标题
+      const text = p.text;
+      for (const kw of keywords) {
+        const idx = text.indexOf(kw);
+        if (idx < 0) continue;
+        const after = text.slice(idx + kw.length);
+        const v = cleanValue(after, nameRe, field);
+        if (!v) continue;
+        const atStart = idx <= (text.length - text.trimStart().length);
+        const score = 3 + (atStart ? 3 : 0) + (after.startsWith('：') || after.startsWith(':') ? 2 : 0);
+        if (!bestHit || score > bestHit.score) {
+          bestHit = { value: v, paraId: i, sourceText: text, score, page: i < paraToPage.length ? paraToPage[i] : 1 };
+        }
+      }
+    }
+    if (bestHit && bestHit.score >= 4) {
+      extracts[field] = {
+        value: bestHit.value,
+        page: bestHit.page,
+        chapter: paras[bestHit.paraId]?.chapter || '',
+        group,
+        sourceText: bestHit.sourceText,
+        paraIds: [bestHit.paraId],
+        score: bestHit.score,
+        confidence: 6,
+        source: 'context',
+      };
+      fieldGroups[field] = group;
+    }
   }
 
   // 未命中补 null 占位（通配符规则名称未知，不做占位）
