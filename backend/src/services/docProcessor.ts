@@ -102,7 +102,7 @@ export interface ExtractOutput {
 
 const SUPPORTED_EXT = ['.docx', '.pdf', '.md', '.txt', '.xlsx', '.wps', '.doc', '.csv', '.html', '.odt', '.rtf', '.pptx'];
 
-const STAR_SYMBOLS = ['★', '☆', '▲', '△', '●', '○', '◆', '◇', '※', '⚠', '♦', '▸', '▹', '►', '▻', '✦', '✧', '⬤', '🔴', '⭐', '❗'];
+const STAR_SYMBOLS = ['★', '▲', '●', '◆', '※', '✦', '✧', '⬤', '🔴', '⭐', '❗', '○', '*'];
 
 const SECTION_STARTERS = [
   '一、', '二、', '三、', '四、', '五、', '六、', '七、', '八、',
@@ -148,40 +148,81 @@ function parseTextToTable(text: string, group: string, page: number): string[][]
     .filter(l => l.length > 0);
   if (lines.length < 2) return null;
 
-  // 候选模式A：编号条目 "(n) xxx：yyy" / "n. xxx：yyy" / "①xxx：yyy"
-  const numberedRe = /^[(（]?\d+[)）．.\s、]|^[①②③④⑤⑥⑦⑧⑨⑩][：:\s]/;
+  // 模式A：编号条目 "(n) xxx：yyy" / "n. xxx：yyy" / "①xxx：yyy"
   const kvRe = /^(.+?)[：:]\s*(.+)$/;
   const numLabelRe = /^(?:[(（]?\d+[)）．.\s、]|[①-⑩])[：:\s]?(.+?)[：:]\s*(.*)$/;
 
+  // 模式B：▲/★/○ 符号引导的条目 "▲（1）xxx" / "★ xxx" / "○ xxx"
+  const symbolItemRe = /^(?:[▲★○●◆※✦\*✧]|第\d+条|第\d+款)\s*[（\(]?\d+[)）]?\s*(.+?)\s*[；;，,。:]?\s*$/;
+  const symbolKeyValueRe = /^(?:[▲★○●◆※✦\*✧]|第\d+条|第\d+款)\s*[（\(]?\d+[)）]?\s*(.+?)[：:]\s*(.+)$/;
+
+  // 模式C：章节标题 + 内容 "3.1总体要求" → 下一行内容作为值
+  const sectionRe = /^(\d+[\.、]\s*)?([^\n]{2,30})$/;
+
   const asNumRows: string[][] = [];
   const asKvRows: string[][] = [];
+  const asSymbolRows: string[][] = [];
+  const asSectionRows: string[][] = [];
+
+  let pendingSection: string = '';
+  let pendingContent: string = '';
 
   for (const line of lines) {
-    const nm = line.match(numLabelRe);
-    if (nm) {
-      asNumRows.push([nm[1].trim(), nm[2].trim()]);
+    // 优先匹配符号条目
+    const sm = line.match(symbolKeyValueRe);
+    if (sm) {
+      asSymbolRows.push([sm[1].trim(), sm[2].trim()]);
+      continue;
     }
+    const sn = line.match(symbolItemRe);
+    if (sn) {
+      asSymbolRows.push([sn[1].trim(), '']);
+      continue;
+    }
+    // 章节标题
+    const sec = line.match(sectionRe);
+    if (sec && !line.match(numLabelRe) && !line.match(kvRe)) {
+      if (pendingSection && pendingContent) {
+        asSectionRows.push([pendingSection, pendingContent]);
+      }
+      pendingSection = sec[2].trim();
+      pendingContent = '';
+      continue;
+    }
+    // 普通 kv
     const km = line.match(kvRe);
     if (km && km[1].trim().length < 40 && km[2].trim().length > 0) {
       asKvRows.push([km[1].trim(), km[2].trim()]);
     }
+    // 编号条目
+    const nm = line.match(numLabelRe);
+    if (nm) {
+      asNumRows.push([nm[1].trim(), nm[2].trim()]);
+    }
+    // 累积章节内容
+    if (pendingSection && line.length > 5) {
+      pendingContent += (pendingContent ? ' ' : '') + line;
+    }
+  }
+  if (pendingSection) {
+    asSectionRows.push([pendingSection, pendingContent]);
   }
 
-  // 选用行数最多的解析结果（至少 3 行才视为有效表格）
-  const candidates: string[][][] = [asNumRows, asKvRows];
-  let best: string[][] | null = null;
+  // 选出最优解析结果
+  const candidates: { rows: string[][]; weight: number }[] = [
+    { rows: asSymbolRows, weight: asSymbolRows.length * 2 },
+    { rows: asSectionRows, weight: asSectionRows.length * 2 },
+    { rows: asNumRows, weight: asNumRows.length },
+    { rows: asKvRows, weight: asKvRows.length },
+  ];
+  candidates.sort((a, b) => b.weight - a.weight);
   for (const c of candidates) {
-    if (c.length >= 3 && (!best || c.length > best.length)) best = c;
+    if (c.rows.length >= 3) return c.rows.map(r => {
+      while (r.length < 2) r.push('');
+      return r.slice(0, 2);
+    });
   }
-  if (!best) return null;
-
-  // 为所有行补齐列数：取最长行的列数
-  const maxCols = Math.max(...best.map(r => r.length));
-  if (maxCols < 2) return null;
-  return best.map(r => {
-    while (r.length < maxCols) r.push('');
-    return r;
-  });
+  return null;
 }
 
 function extractVirtualTables(
@@ -1184,13 +1225,17 @@ function extractMarkedItems(paras: FlatParagraph[], paraToPage: number[]): Marke
   const items: MarkedItem[] = [];
   for (let i = 0; i < paras.length; i++) {
     for (const sym of STAR_SYMBOLS) {
-      if (paras[i].text.includes(sym)) {
-        const page = i < paraToPage.length ? paraToPage[i] : 1;
-        let text = paras[i].text.trim();
-        if ([...text].length > 120) text = [...text].slice(0, 120).join('') + '...';
-        items.push({ symbol: sym, text, page });
-        break;
-      }
+      if (!paras[i].text.includes(sym)) continue;
+      // 过滤：符号后紧跟中文数字年月（如 "○二○二六年五月"）不是标星条款
+      const idx = paras[i].text.indexOf(sym);
+      const afterSym = paras[i].text.slice(idx + 1).trimStart();
+      // 过滤：纯日期/年份文本（如 "二○二六年五月"、"2026年"）
+      if (/^[二三四五六七八九十○〇\d]{2,}(?:年|月|日)|^\d{4}[年\-\/]\d{1,2}[年\-\/]\d{1,2}/.test(afterSym)) continue;
+      const page = i < paraToPage.length ? paraToPage[i] : 1;
+      let text = paras[i].text.trim();
+      if ([...text].length > 120) text = [...text].slice(0, 120).join('') + '...';
+      items.push({ symbol: sym, text, page });
+      break;
     }
   }
   return items;
