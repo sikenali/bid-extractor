@@ -60,7 +60,7 @@ export interface FieldExtract {
   paraIds: number[];
   score?: number;
   confidence?: number;
-  source?: 'regex' | 'keyword' | 'llm' | 'title_fallback';
+  source?: 'regex' | 'keyword' | 'llm' | 'title_fallback' | 'table';
 }
 
 /** V1.3 最终输出结构 */
@@ -412,16 +412,71 @@ function buildParaToPage(paras: FlatParagraph[]): { paraToPage: number[]; pageCo
   return { paraToPage, pageCount: estimatedPages };
 }
 
-const SCORE_TABLE_KEYWORDS = ['评分', '分值', '得分', '权重', '评标', '商务分', '技术分', '价格分'];
+const SCORE_TABLE_KEYWORDS = ['评分', '分值', '得分', '权重', '评标', '商务分', '技术分', '价格分', '评分项', '分项'];
+const SCORE_CORE_KEYWORDS = ['评分', '分值', '得分', '权重', '评标'];
 const TECH_TABLE_KEYWORDS = ['技术', '参数', '规格', '配置', '设备', '性能', '服务', '验收', '指标', '系统', '软件', '硬件', '方案', '质保'];
+// 评分表特有的表头特征词（技术条款表一般不含）
+const SCORE_HEADER_EXCLUSIVES = ['评分', '分值', '得分', '权重', '评标', '分项', '因素'];
 
 function detectTableGroup(rows: string[][]): string {
   const text = rows.flat().join(' ');
   const count = (kws: string[]) => kws.reduce((n, k) => n + (text.includes(k) ? 1 : 0), 0);
   const scoreHits = count(SCORE_TABLE_KEYWORDS);
+  const scoreCoreHits = count(SCORE_CORE_KEYWORDS);
   const techHits = count(TECH_TABLE_KEYWORDS);
-  if (scoreHits < 2 && techHits < 2) return '';
-  return scoreHits >= techHits ? 'score' : 'tech';
+  // 评分表优先判断：只要核心评分词 ≥1 且比技术词多（或技术词也不多的情况下）
+  // 评分表的行通常包含"评分/分值/得分/权重"，技术表主要含"技术参数/规格"
+  if (scoreCoreHits >= 1 && scoreCoreHits > techHits) return 'score';
+  // 如果行中存在明显的评分表头特征（如"评分项""分值分配"）且不含太多技术词
+  const headerOnly = rows.slice(0, 1).flat().join(' ');
+  const headerScoreHits = SCORE_HEADER_EXCLUSIVES.filter(k => headerOnly.includes(k)).length;
+  if (headerScoreHits >= 1 && techHits < 2) return 'score';
+  if (scoreHits >= 2 && scoreHits >= techHits) return 'score';
+  if (techHits >= 2) return 'tech';
+  return '';
+}
+
+/** 从评分表格中提取技术/商务/价格评分值 */
+function parseScoreTable(tables: { rows: string[][] }[]): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const tbl of tables) {
+    if (tbl.rows.length < 2) continue;
+    const headerRow = tbl.rows[0].map(c => c.trim());
+    // 找分值行（首列为"分值"/"分数"/"得分"或纯数字）
+    let scoreRowIdx = -1;
+    for (let ri = 0; ri < tbl.rows.length; ri++) {
+      const row = tbl.rows[ri].map(c => c.trim());
+      if (row[0] === '分值' || row[0] === '分数' || row[0] === '得分' || /^\d+$/.test(row[0])) {
+        scoreRowIdx = ri;
+        break;
+      }
+    }
+    if (scoreRowIdx < 0) scoreRowIdx = 1;
+    const scoreRow = tbl.rows[scoreRowIdx]?.map(c => c.trim()) || [];
+    // 从首行识别评分列
+    const scoreCols: { colIdx: number; key: string }[] = [];
+    const scoreKeys = ['技术评分', '商务评分', '价格评分'];
+    for (let ci = 0; ci < headerRow.length; ci++) {
+      for (const key of scoreKeys) {
+        if (headerRow[ci].includes(key)) { scoreCols.push({ colIdx: ci, key }); break; }
+      }
+    }
+    if (scoreCols.length > 0) {
+      for (const { colIdx, key } of scoreCols) {
+        const m = (scoreRow[colIdx] || '').match(/(\d+(?:\.\d+)?)/);
+        if (m) result[key] = m[1] + '分';
+      }
+      continue;
+    }
+    // 兜底：在分值行中按顺序匹配数值
+    if (scoreRow.length >= 2) {
+      const nums = scoreRow.filter(c => /^\d+(?:\.\d+)?$/.test(c));
+      if (nums.length >= 1 && !result['技术评分']) result['技术评分'] = nums[0] + '分';
+      if (nums.length >= 2 && !result['商务评分']) result['商务评分'] = nums[1] + '分';
+      if (nums.length >= 3 && !result['价格评分']) result['价格评分'] = nums[2] + '分';
+    }
+  }
+  return result;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -612,13 +667,17 @@ function calculateConfidence(
 
 function truncateAtOtherFields(value: string, nameRe: RegExp | null, self: string): string {
   if (!nameRe) return value;
-  // 与旧逻辑等价：取所有字段名在 value 中的最小出现位置（self 除外），切断并去尾随引导符
   nameRe.lastIndex = 0;
   let m: RegExpExecArray | null;
+  // 只截断第一个非self的字段名，且该字段名前有明确分隔符（标点/换行/行首），避免误切
   while ((m = nameRe.exec(value)) !== null) {
     if (m[0] === '') { nameRe.lastIndex++; continue; }
     if (m[0] === self || [...m[0]].length < 2) continue;
-    return value.slice(0, m.index).replace(/[：:、,，；;\s]+$/, '').trim();
+    // 只有当匹配位置前有标点或处于字符串开头时才截断，避免切到值中间的字段名字符串
+    const before = value.slice(0, m.index);
+    const hasSeparator = m.index === 0 || /[：:\s,，；;\n]/.test(before.slice(-1));
+    if (!hasSeparator) continue;
+    return before.replace(/[：:、,，；;\s]+$/, '').trim();
   }
   return value;
 }
@@ -666,34 +725,34 @@ function extractFromUnit(
           };
         }
       }
-      // 仅当当前段以冒号/引导符结尾时才尝试合并下一段（避免跨段误匹配）
-      const lastChar = text.trimEnd().slice(-1);
-      if (lastChar === '：' || lastChar === ':') {
-        for (let k = 1; k <= 2; k++) {
-          const nu = units[idx + k];
-          if (!nu || nu.tableId != null || !nu.text.trim()) continue;
-          if (nu.level > 0) break;
-          const merged = text + nu.text;
-          const mm = merged.match(re);
-          if (mm) {
-            const v = cleanValue((mm[1] || mm[0]) || '', nameRe, rule.fieldName);
-            if (v) {
-              let score = 2;
-              if (/[目录章节篇表格式一览]$/.test(v.trim())) score -= 5;
-              return {
-                value: v,
-                paraId: unit.paraId,
-                sourceText: merged,
-                score,
-                confidence: 6,
-                source: 'regex',
-              };
-            }
-          }
-        }
-      }
-    }
-  }
+       // 仅当当前段以冒号/引导符结尾时才尝试合并下一段（避免跨段误匹配）
+       const lastChar = text.trimEnd().slice(-1);
+       if (lastChar === '：' || lastChar === ':') {
+         for (let k = 1; k <= 2; k++) {
+           const nu = units[idx + k];
+           if (!nu || nu.tableId != null || !nu.text.trim()) continue;
+           if (nu.level > 0) break;
+           const merged = text + nu.text;
+           const mm = merged.match(re);
+           if (mm) {
+             const v = cleanValue((mm[1] || mm[0]) || '', nameRe, rule.fieldName);
+             if (v) {
+               let score = 2;
+               if (/[目录章节篇表格式一览]$/.test(v.trim())) score -= 5;
+               return {
+                 value: v,
+                 paraId: unit.paraId,
+                 sourceText: merged,
+                 score,
+                 confidence: 6,
+                 source: 'regex',
+               };
+             }
+           }
+         }
+       }
+     }
+   }
 
   // 关键字在本段内逐个出现位置尝试：跳过"复合长词标签"
   const CJK = /[\u4e00-\u9fff]/;
@@ -904,7 +963,7 @@ function extractWildcardFromUnit(
 
 /** 标题兜底提取：对没有标签但形似项目名的首段直接返回 */
 function extractTitleProjectName(paras: FlatParagraph[]): { value: string; score: number } | null {
-  // 取前10段中第一个像项目名的（长度≥8，无冒号，纯中文/数字/空格组合，非标题行）
+  // 策略1：取前10段中第一个像项目名的（长度≥8，无冒号，纯中文/数字/空格组合，非标题行）
   for (let i = 0; i < Math.min(10, paras.length); i++) {
     const p = paras[i];
     if (p.level > 0) continue; // 跳过标题行
@@ -919,6 +978,21 @@ function extractTitleProjectName(paras: FlatParagraph[]): { value: string; score
       // 要求以项目类后缀结尾，避免日期/金额误中
       if (/项目|工程|服务|系统|采购|标的|任务|课题|计划$/.test(t)) {
         return { value: t, score: 8 }; // 标题兜底高分
+      }
+    }
+  }
+  // 策略2：在后续段落中找含"项目名称"或"就XXX项目"的长文本
+  for (let i = 0; i < Math.min(30, paras.length); i++) {
+    const p = paras[i];
+    if (p.level > 0) continue;
+    const t = p.text.trim();
+    if (!t || t.length < 15) continue;
+    // 匹配 "就[XXX服务项目] [招标编号" 这种常见句式
+    const m = t.match(/就([^【\[]+?(?:项目|工程|服务|系统|采购)[^\s]*)((?:\s*\[|\s*[（(]))/);
+    if (m) {
+      const name = m[1].trim();
+      if (name.length >= 6 && name.length <= 120) {
+        return { value: name, score: 7 };
       }
     }
   }
@@ -1018,6 +1092,22 @@ function applyRuleExtraction(
         confidence: 3,
         source: 'title_fallback',
       };
+    } else if (cur && cur.score < 4) {
+      // 如果已有结果分过低（<4），也用标题兜底覆盖（防止 keyword 规则误中）
+      if (titleHit && titleHit.score >= cur.score) {
+        bestByKey[key] = {
+          value: titleHit.value,
+          paraId: -1,
+          sourceText: `(标题兜底) ${titleHit.value}`,
+          score: titleHit.score,
+          page: 1,
+          chapter: '',
+          group: rule.group,
+          fromAlias: false,
+          confidence: 3,
+          source: 'title_fallback',
+        };
+      }
     }
   }
 
@@ -1372,6 +1462,31 @@ export async function parseDocument(input: Buffer | string, options?: { skillId?
 
     // 文字描述段落 → 虚拟表格（针对 tech / score 分类的长文本条目）
     const virtualTables = extractVirtualTables(flatParas, paraToPage, tablesMeta, fieldGroups, extracts);
+
+    // 从评分表格中提取技术得分/商务得分/价格得分（补全文本规则无法覆盖的表格数据）
+    const scoreTableScores = parseScoreTable(tablesMeta);
+    const scoreFieldMap: Record<string, string> = {
+      '技术得分': '技术评分',
+      '商务得分': '商务评分',
+      '价格得分': '价格评分',
+    };
+    for (const [extractField, tableField] of Object.entries(scoreFieldMap)) {
+      if (scoreTableScores[tableField] && !extracts[extractField]?.value) {
+        const scorePage = tablesMeta.find(t => t.group === 'score')?.page ?? 1;
+        extracts[extractField] = {
+          value: scoreTableScores[tableField],
+          page: scorePage,
+          chapter: '',
+          group: 'score',
+          sourceText: `(评分表) ${scoreTableScores[tableField]}`,
+          paraIds: [],
+          score: 9,
+          confidence: 8,
+          source: 'table',
+        };
+        fieldGroups[extractField] = 'score';
+      }
+    }
 
     return {
       fileMeta: {

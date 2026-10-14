@@ -162,9 +162,11 @@ const sectionCounts = computed<Record<string, number>>(() => {
 });
 
 function extractScore(raw: string): string {
+  if (!raw) return '-';
   const m = raw.match(/(\d+(?:\.\d+)?)\s*分/);
   if (m) return m[1] + '分';
-  const n = raw.match(/(\d+(?:\.\d+)?)/);
+  // 兼容纯数字格式（如 "40" 无"分"字）
+  const n = raw.match(/^(\d+(?:\.\d+)?)\s*分?$/);
   if (n) return n[1] + '分';
   return '-';
 }
@@ -174,6 +176,20 @@ function parseScoreTable(tables: { rows: { cells: string[] }[] }[]): Record<stri
   for (const tbl of tables) {
     if (tbl.rows.length < 2) continue;
     const headerRow = tbl.rows[0].cells.map(c => c.trim());
+    // 先找分值行（"分值"/"分数"/"得分"作为首列），在其后一行提取数值
+    let scoreRowIdx = -1;
+    for (let ri = 0; ri < tbl.rows.length; ri++) {
+      const row = tbl.rows[ri].cells.map(c => c.trim());
+      if (row[0] === '分值' || row[0] === '分数' || row[0] === '得分' || /^\d+$/.test(row[0])) {
+        scoreRowIdx = ri;
+        break;
+      }
+    }
+    // 如果没找到明确的分值行，用第二行兜底
+    if (scoreRowIdx < 0) scoreRowIdx = 1;
+    const scoreRow = tbl.rows[scoreRowIdx]?.cells.map(c => c.trim()) || [];
+
+    // 从首行识别评分列
     const scoreCols: { colIdx: number; key: string }[] = [];
     const scoreKeys = ['技术评分', '商务评分', '价格评分'];
     for (let ci = 0; ci < headerRow.length; ci++) {
@@ -184,16 +200,20 @@ function parseScoreTable(tables: { rows: { cells: string[] }[] }[]): Record<stri
         }
       }
     }
-    if (scoreCols.length === 0) continue;
-    for (let ri = 1; ri < tbl.rows.length; ri++) {
-      const row = tbl.rows[ri].cells.map(c => c.trim());
-      if (!row[0] || (row[0] !== '分值' && row[0] !== '分数' && row[0] !== '得分')) continue;
+    if (scoreCols.length > 0) {
       for (const { colIdx, key } of scoreCols) {
-        if (row[colIdx]) {
-          const m = row[colIdx].match(/(\d+(?:\.\d+)?)/);
-          if (m) result[key] = m[1] + '分';
-        }
+        const cell = scoreRow[colIdx] || '';
+        const m = cell.match(/(\d+(?:\.\d+)?)/);
+        if (m) result[key] = m[1] + '分';
       }
+      continue;
+    }
+    // 兜底：在分值行中按顺序匹配数值
+    if (scoreRow.length >= 2) {
+      const nums = scoreRow.filter(c => /^\d+(?:\.\d+)?$/.test(c));
+      if (nums.length >= 1 && !result['技术评分']) result['技术评分'] = nums[0] + '分';
+      if (nums.length >= 2 && !result['商务评分']) result['商务评分'] = nums[1] + '分';
+      if (nums.length >= 3 && !result['价格评分']) result['价格评分'] = nums[2] + '分';
     }
   }
   return result;

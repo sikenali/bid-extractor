@@ -553,7 +553,7 @@ const REGEX_PATTERNS: Record<string, { group: string; pattern: string }> = {
   '项目名称': { group: 'info', pattern: '(?:(?:项目|采购|工程|服务)\\s*(?:名称|内容|概述|概况)|招标内容|本次招标(?:内容|范围)|采购内容)[：:]?\\s*((?:(?!(?:项目|招标|采购)编号|招标方式|采购方式)[^\\n]){6,})' },
   '项目编号': { group: 'info', pattern: '(?:项目|采购|招标|工程)(?:编号|编号ID|No.)[：:]?\\s*([A-Za-z0-9][A-Za-z0-9\\-_/．.]{3,40})' },
   '采购方式': { group: 'info', pattern: '(?:采购|招标)\\s*方式[：:]?\\s*([^，。\\n；;]{2,20})' },
-  '预算金额': { group: 'info', pattern: '(?:(?:采购|项目|招标)\\s*)?(?:预算(?:金额)?|最高限价|招标控制价|采购预算)[：:]?\\s*(?:人民币\\s*)?[¥￥]?\\s*(\\d+(?:,\\d{3})*(?:\\.\\d{1,2})?)\\s*(?:万元|万|元)?' },
+  '预算金额': { group: 'info', pattern: '(?:(?:采购|项目|招标)\\s*)?(?:预算(?:金额)?|最高限价|招标控制价|采购预算)[：:]?\\s*(?:人民币\\s*)?[¥￥]?\\s*(\\d+(?:,\\d{3})*(?:\\.\\d{1,2})?(?:万)?)\\s*(?:万元|万|元)?' },
   '投标截止时间': { group: 'info', pattern: '(?:投标|递交|应标)(?:文件)?(?:递交)?(?:截止)?时间[：:]?\\s*(\\d{4}年\\d{1,2}月\\d{1,2}日(?:\\s*\\d{1,2}[时:：]\\d{2}[分]?)?)' },
   '开标时间': { group: 'info', pattern: '(?:开标|解密)时间[：:]?\\s*(.{0,40}?(?:年|月|日|时|分).{0,20})' },
   '投标地点': { group: 'info', pattern: '(?:投标|递交|开标)地点[：:]?\\s*((?!http|www|网址|平台)[^，。\\n；;]{4,80})' },
@@ -581,10 +581,17 @@ const REGEX_PATTERNS: Record<string, { group: string; pattern: string }> = {
 
   '评标办法': { group: 'score', pattern: '评标办法[：:]?\\s*([^，。\\n；;]{2,40})' },
   '评分标准': { group: 'score', pattern: '评分标准[：:]?\\s*([^，。\\n；;]{2,40})' },
-  '价格评分': { group: 'score', pattern: '价格(?:评分|得分)[：:]?\\s*(\\d+(?:\\.\\d+)?)\\s*分' },
-  '技术评分': { group: 'score', pattern: '技术(?:评分|得分)[：:]?\\s*(\\d+(?:\\.\\d+)?)\\s*分' },
-  '商务评分': { group: 'score', pattern: '商务(?:评分|得分)[：:]?\\s*(\\d+(?:\\.\\d+)?)\\s*分' },
+  // 价格评分：兼容 "价格评分：40分" / "价格40分" / "价格部分40" / "价格得分：40"
+  '价格评分': { group: 'score', pattern: '(?:价格)(?:\\s*(?:评分|得分|部分|权重))?[^\\n]{0,10}(\\d+(?:\\.\\d+)?)\\s*分?' },
+  // 技术评分：兼容 "技术评分：40分" / "技术40分" / "技术部分40"
+  '技术评分': { group: 'score', pattern: '(?:技术)(?:\\s*(?:评分|得分|部分|权重))?[^\\n]{0,10}(\\d+(?:\\.\\d+)?)\\s*分?' },
+  // 商务评分：兼容 "商务评分：40分" / "商务40分" / "商务部分40"
+  '商务评分': { group: 'score', pattern: '(?:商务)(?:\\s*(?:评分|得分|部分|权重))?[^\\n]{0,10}(\\d+(?:\\.\\d+)?)\\s*分?' },
   '满分值': { group: 'score', pattern: '满分(?:值)?[：:]?\\s*(\\d+(?:\\.\\d+)?)\\s*分' },
+  // 得分值（表格列中常见，不带"分"单位）
+  '价格得分': { group: 'score', pattern: '价格(?:得)?分[：:]?\\s*(\\d+(?:\\.\\d+)?)\\s*(?:分|)' },
+  '商务得分': { group: 'score', pattern: '商务(?:得)?分[：:]?\\s*(\\d+(?:\\.\\d+)?)\\s*(?:分|)' },
+  '技术得分': { group: 'score', pattern: '技术(?:得)?分[：:]?\\s*(\\d+(?:\\.\\d+)?)\\s*(?:分|)' },
 
   '密封要求': { group: 'seal', pattern: '密封要求[：:]?\\s*([^，。\\n；;]{4,60})' },
   '正本数量': { group: 'seal', pattern: '正本\\s*(\\d+)\\s*份' },
@@ -594,9 +601,10 @@ const REGEX_PATTERNS: Record<string, { group: string; pattern: string }> = {
 
 function applyRegexPatterns(): number {
   let updated = 0;
-  const stmt = db.prepare('UPDATE extraction_rules SET pattern = ?, category = ? WHERE field_name = ? AND group_name = ?');
+  // 不覆盖 title_first 类型规则（保留标题兜底逻辑）
+  const stmt = db.prepare('UPDATE extraction_rules SET pattern = ?, category = ? WHERE field_name = ? AND group_name = ? AND category != ?');
   for (const [field, cfg] of Object.entries(REGEX_PATTERNS)) {
-    const r = stmt.run(cfg.pattern, 'regex', field, cfg.group);
+    const r = stmt.run(cfg.pattern, 'regex', field, cfg.group, 'title_first');
     if (r.changes > 0) updated++;
   }
   return updated;

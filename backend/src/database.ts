@@ -349,6 +349,77 @@ export function initializeDatabase() {
     if (fixed.changes > 0) console.log(`[migration] Fixed ${fixed.changes} seal keyword rules: info→seal`);
   } catch { /* ignore */ }
 
+  // Migration: restore title_first rule for 项目名称 (was overwritten by applyRegexPatterns)
+  try {
+    const hasTitleFirst = (db.prepare("SELECT COUNT(*) as c FROM extraction_rules WHERE field_name = '项目名称' AND category = 'title_first'").get() as any).c;
+    if (hasTitleFirst === 0) {
+      // Remove duplicate regex rules for 项目名称 (keep the first one), insert title_first
+      db.prepare("DELETE FROM extraction_rules WHERE field_name = '项目名称' AND category = 'regex'").run();
+      db.prepare("INSERT INTO extraction_rules (id, field_name, pattern, category, group_name) VALUES (?, '项目名称', '', 'title_first', 'info')")
+        .run('info_project_name_title');
+      console.log('[migration] Restored title_first rule for 项目名称');
+    }
+  } catch { /* ignore */ }
+
+  // Migration: disable noisy keyword rules that match common terms in arbitrary text,
+  // producing garbage values (entire paragraphs) instead of precise extractions.
+  // These rules should only be used via LLM or manual review, not automated extraction.
+  try {
+    const noisyFields = [
+      '失信被执行人', '失信被执行人查询', '政府采购网', '审计报告', '会计报表',
+      '合同解除', '价格调整', '出口管制', '法定代表人身份证明', '法人授权',
+      '分公司授权', '联合体协议', '联合体牵头方', '股东股权结构', '无外资控股',
+      '无境外参股声明', '无境外资本声明', '无行贿犯罪记录', '重大违法记录声明',
+      '近三年无重大质量事故', '社保缴纳证明', '纳税信用等级', '经营年限',
+      '经营异常查询', '经营范围匹配', '履约担保', '保修期', '质量保证期',
+      '质保保证金', '质量保证金', '竣工结算款', '进度款', '预付款',
+      '资产负债率', '银行资信证明', '授信额度', '完税证明',
+      '涉密人员备案', '保密委员会机构', '保密设备', '涉密载体管理',
+      '涉密业务隔离措施', '军代表对接机制', '军品配套资质', '配套单位名录准入',
+      '脱密处理方案', '武器装备科研生产许可证', '武器装备科研生产单位安全生产许可证',
+      '武器装备科研生产单位保密资格证', '国军标质量管理体系GJB9001C认证',
+      '军工四证', 'A类承制单位', 'B类承制单位', '一级保密资质',
+      '二级保密资质', '三级保密资质', '装备承制单位资格证', '装备承制单位注册证书',
+      '非外资独资/控股/参股承诺书',
+    ];
+    const placeholders = noisyFields.map(() => '?').join(',');
+    const disabled = db.prepare(
+      `UPDATE extraction_rules SET enabled = 0 WHERE category = 'keyword' AND pattern = '' AND field_name IN (${placeholders})`
+    ).run(...noisyFields);
+    if (disabled.changes > 0) console.log(`[migration] Disabled ${disabled.changes} noisy keyword rules`);
+  } catch { /* ignore */ }
+
+  // Migration: disable noisy keyword rules in info group that match common terms
+  try {
+    const noisyInfoFields = [
+      '招标公告发布时间', '招标文件发售起止时间', '文件获取截止时间',
+      '答疑截止时间', '澄清截止时间', '补遗发布时限', '投标文件递交开始时间',
+      '评标时间', '公示期', '中标公示期限', '质疑期限', '投诉期限',
+      '合同签订时限', '交付周期', '完工工期', '试运行周期', '质保周期',
+      '服务周期', '履约期限',
+      '线上投标', '线下递交', '加密标书', 'CA数字证书', '平台注册',
+      '供应商入库', '准入审核', '资格预审', '资质预审', '资格后审',
+      '现场答疑', '招标文件澄清', '招标文件补遗', '变更公告', '更正公告',
+      '重新招标', '竞争性谈判', '单一来源', '询价采购', '框架协议采购',
+      '集中采购', '定点采购', '批量采购',
+      '安装地点', '项目实施地点', '到货验收地点', '运输目的地',
+      '售后服务驻点', '部队驻场', '军工厂区', '保密库房',
+      '采购单位', '最终用户', '监理单位', '联审单位',
+      '招标代理机构', '项目负责人', '采购数量', '单位',
+      '专项资金', '国拨经费', '科研试制经费', '装备建设经费', '财政资金',
+      '工程名称', '招标名称', '投标名称',
+      '控制价', '最高限价', '招标控制价', '预算文号',
+      '包件号', '标段', '品目号', '采购计划编号',
+      '军品采购编号', '装备采购编号',
+      '节能环保', '面向中小微', '进口产品',
+    ];
+    const ph2 = noisyInfoFields.map(() => '?').join(',');
+    const d2 = db.prepare(
+      `UPDATE extraction_rules SET enabled = 0 WHERE category = 'keyword' AND pattern = '' AND field_name IN (${ph2})`
+    ).run(...noisyInfoFields);
+    if (d2.changes > 0) console.log(`[migration] Disabled ${d2.changes} noisy info keyword rules`);
+  } catch { /* ignore */ }
+
   // Seed default records
   const existingExport = db.prepare('SELECT id FROM export_settings WHERE id = 1').get() as { id: number } | undefined;
   if (!existingExport) {
