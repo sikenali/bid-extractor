@@ -606,6 +606,7 @@ export interface SearchUnit {
 
 /** 清洗候选取值：去引导符号、截断句长、遇到其他字段名截断 */
 function cleanValue(raw: string, nameRe: RegExp | null, self: string): string | null {
+  if (nameRe) nameRe.lastIndex = 0;
   let v = (raw || '').trim().replace(/^[：:、,，；;\s]+/, '').trim();
   if (!v) return null;
   // 编号条目开头（(2)/5.2/3、…）是目录/条款序号，不是取值

@@ -109,7 +109,7 @@ function resetAll() {
   saveTheme('parchment').catch(() => {});
   localStorage.setItem('accent', 'vermilion');
   themeStore.applyAccent('#BE3B2E');
-  localStorage.setItem('layout', 'sidebar');
+  localStorage.setItem('layout', 'topbar');
   ElMessage.success('已恢复默认');
 }
 </script>

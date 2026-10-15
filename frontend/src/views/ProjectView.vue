@@ -463,9 +463,12 @@ function confirmEdit() {
       originalValue,
       correctedValue: editValue.value,
       paragraphText: row.sourceText || '',
-      groupName: activeSection.value,
+      groupName: row.groupName || activeSection.value,
       fileName: fileInfo.value.name
-    }).catch(err => console.warn('Failed to save correction:', err));
+    }).then(() => ElMessage.success('已保存修正')).catch(err => {
+      console.warn('Failed to save correction:', err);
+      ElMessage.error('保存失败，请重试');
+    });
   }
   showEditDialog.value = false;
 }

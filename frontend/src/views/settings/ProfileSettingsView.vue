@@ -88,7 +88,7 @@ async function saveLlmEdit() {
   if (!editingSkill.value||!eName.value.trim()||!ePrompt.value.trim()) { ElMessage.warning('请填写名称和提示词'); return; }
   try { await updateLlmSkill(editingSkill.value.id,{skill_name:eName.value.trim(),prompt_template:ePrompt.value,biz_type:eBiz.value,temperature:eTemp.value,top_p:eTopP.value,max_tokens:eMaxTok.value,enable_llm:eEnableLlm.value?1:0,bind_prompt_template_id:eBindPrompt.value}); ElMessage.success('已更新'); llmShowEdit.value=false; await loadLlmSkills(); } catch { ElMessage.error('保存失败'); }
 }
-async function toggleLlmSkill(s: LlmSkill) { s.enable = s.enable===0?1:0; await updateLlmSkill(s.id,{enable:s.enable}); ElMessage.success(s.enable===1?'已启用':'已禁用'); }
+async function toggleLlmSkill(s: LlmSkill) { const prev = s.enable; s.enable = s.enable===0?1:0; try { await updateLlmSkill(s.id,{enable:s.enable}); ElMessage.success(s.enable===1?'已启用':'已禁用'); } catch { s.enable = prev; ElMessage.error('操作失败'); } }
 async function toggleLlmFeature(s: LlmSkill) { const next = s.enable_llm===1?0:1; s.enable_llm = next; try { await updateLlmSkill(s.id,{enable_llm:next}); ElMessage.success(next===1?'LLM增强已启用':'LLM增强已禁用'); } catch { s.enable_llm = next===1?0:1; ElMessage.error('操作失败'); } }
 const showDelSkillDialog = ref(false);
 const deletingSkill = ref<LlmSkill | null>(null);

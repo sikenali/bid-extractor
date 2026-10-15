@@ -172,10 +172,15 @@ async function confirmDelete() {
 }
 
 async function handleToggle(key: SavedKey) {
+  const prevEnabled = key.enabled;
+  key.enabled = !key.enabled;
   try {
     const result = await toggleApiKey(key.id);
     key.enabled = result.enabled === 1;
-  } catch { ElMessage.error('操作失败'); }
+  } catch {
+    key.enabled = prevEnabled;
+    ElMessage.error('操作失败');
+  }
 }
 
 async function handleTest(key: SavedKey) {
