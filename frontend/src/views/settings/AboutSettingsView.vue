@@ -41,7 +41,7 @@ const appVersion = 'V1.0.0';
 
       <a class="about-repo" href="https://github.com/sikenali/bid-extractor" target="_blank" rel="noopener noreferrer" title="访问 GitHub 仓库">
         <span class="repo-right">
-          <span class="icon ri-github-line"></span>
+          <RiGithubLine class="icon" />
         </span>
       </a>
 

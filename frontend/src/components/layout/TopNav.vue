@@ -21,7 +21,7 @@ const showSettingsModal = ref(false);
   <header class="top-nav">
     <div class="nav-left" @click="router.push('/upload')">
       <div class="tool-mark">
-        <span class="ri-target-line tool-logo"></span>
+        <RiTargetLine class="tool-logo" />
       </div>
       <span class="brand-cn">{{ brand || BRAND_NAME }}</span>
       <span class="divider"></span>
@@ -30,12 +30,12 @@ const showSettingsModal = ref(false);
     <div class="nav-right">
       <UiTip v-if="showBack" text="返回" placement="bottom">
         <button class="nav-btn" @click="router.push('/upload')">
-          <span class="ri-arrow-left-s-line icon"></span>
+          <RiArrowLeftSLine class="icon" />
         </button>
       </UiTip>
       <UiTip text="设置" placement="bottom">
         <button class="nav-btn" @click="showSettingsModal = true">
-          <span class="ri-settings-3-line icon"></span>
+          <RiSettings3Line class="icon" />
         </button>
       </UiTip>
     </div>
@@ -100,8 +100,8 @@ const showSettingsModal = ref(false);
   gap: 12px;
 }
 .nav-btn {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: none;
   background-color: var(--color-bg-white, #FFFFFF);
@@ -121,7 +121,7 @@ const showSettingsModal = ref(false);
 .nav-btn .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
-  font-size: 16px;
+  font-size: 14px;
   color: var(--color-text-secondary, #6E6A60);
 }
 .nav-btn:hover .icon {

@@ -105,7 +105,7 @@ function clear() {
       @blur="emit('blur', $event)"
     />
     <button v-if="showClear" class="ui-input-clear" type="button" title="清空" @click.stop="clear">
-      <span class="icon ri-close-circle-fill"></span>
+      <RiCloseCircleFill class="icon" />
     </button>
     <span v-if="$slots.suffix" class="ui-input-suffix">
       <slot name="suffix" />

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ElMessage } from 'element-plus';
+import { ElMessage } from '@/utils/toast';
 
 const apiClient = axios.create({
   baseURL: '/api',

@@ -18,4 +18,9 @@ scratch/
 # 构建产物与编辑器缓存
 *.tsbuildinfo
 vite.config.d.ts
-release/
+release/frontend/core/
+frontend/core/
+
+# 本地设计参考文档（不入库）
+docs/AGENT.md
+docs/DESIGN.md

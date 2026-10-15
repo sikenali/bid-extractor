@@ -1,8 +1,7 @@
 <script setup lang="ts">
-// @ts-nocheck
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage } from '@/utils/toast';
 import TopNav from '@/components/layout/TopNav.vue';
 import PageFooter from '@/components/layout/PageFooter.vue';
 import PreviewModal from '@/components/preview/PreviewModal.vue';
@@ -740,15 +739,15 @@ function triggerDownload(blob: Blob, filename: string) {
           <h2 class="content-title">提取字段明细</h2>
           <div class="action-group">
             <span v-if="extractMode === 'llm_enhanced'" class="mode-badge">
-              <span class="icon ri-brain-line"></span> LLM 增强
+              <RiBrainLine class="icon" /> LLM 增强
             </span>
             <button class="btn-outline" @click="handlePreview">
-              <span class="icon ri-eye-line"></span>
+              <RiEyeLine class="icon" />
               <span>预览</span>
             </button>
             <button class="btn-outline" @click="handleExport" :disabled="exporting">
-              <span v-if="exporting" class="icon ri-loader-4-line spinning"></span>
-              <span v-else class="icon ri-download-2-line"></span>
+              <RiLoader4Line v-if="exporting" class="icon spinning" />
+              <RiDownload2Line v-else class="icon" />
               <span>{{ exporting ? (exportStage || '导出中…') : '导出' }}</span>
             </button>
             <div v-if="exporting" class="export-progress">
@@ -760,12 +759,12 @@ function triggerDownload(blob: Blob, filename: string) {
         <!-- 提取质量提示 -->
         <div v-if="extractWarnings.length > 0 || extractMode === 'llm_enhanced'" class="extract-status-banner">
           <template v-if="extractMode === 'llm_enhanced'">
-            <span class="banner-icon ri-brain-line"></span>
+            <RiBrainLine class="banner-icon" />
             <span>本次已启用 LLM 智能增强，自动补全了规则无法覆盖的字段</span>
           </template>
           <template v-for="(w, wi) in extractWarnings" :key="wi">
             <span v-if="w.includes('%')" class="banner-warn">
-              <span class="banner-icon ri-alert-line"></span>
+              <RiAlertLine class="banner-icon" />
               {{ w }}
             </span>
           </template>
@@ -801,10 +800,10 @@ function triggerDownload(blob: Blob, filename: string) {
                 <td class="col-action">
                   <div class="action-btns">
                     <button class="icon-btn" title="复制" @click="handleCopy(row.field)">
-                      <span class="icon ri-file-copy-line"></span>
+                      <RiFileCopyLine class="icon" />
                     </button>
                     <button class="icon-btn" title="编辑" @click="handleEdit(row.field)">
-                      <span class="icon ri-pencil-line"></span>
+                      <RiPencilLine class="icon" />
                     </button>
                   </div>
                 </td>
@@ -852,7 +851,7 @@ function triggerDownload(blob: Blob, filename: string) {
           <span class="page-info">共 {{ totalRows }} 条 · 每页 {{ pageSize }} 条 · 第 {{ currentPage }} / {{ totalPages }} 页</span>
           <div class="pagination">
             <button class="page-btn" :disabled="currentPage <= 1" @click="goPage(currentPage - 1)">
-              <span class="icon ri-arrow-left-s-line"></span>
+              <RiArrowLeftSLine class="icon" />
             </button>
             <template v-for="p in totalPages" :key="p">
               <button
@@ -860,7 +859,7 @@ function triggerDownload(blob: Blob, filename: string) {
                 class="page-num" :class="{ active: currentPage === p }" @click="goPage(p)">{{ p }}</button>
             </template>
             <button class="page-btn" :disabled="currentPage >= totalPages" @click="goPage(currentPage + 1)">
-              <span class="icon ri-arrow-right-s-line"></span>
+              <RiArrowRightSLine class="icon" />
             </button>
           </div>
         </div>

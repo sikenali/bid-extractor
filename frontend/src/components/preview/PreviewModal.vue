@@ -115,11 +115,11 @@ onUnmounted(() => { previewBlob.value = null; });
           <div class="preview-body">
             <div class="preview-content">
               <div v-if="loading" class="preview-state">
-                <span class="icon ri-loader-line spin-icon"></span>
+                <RiLoaderLine class="icon spin-icon" />
                 <span>加载中…</span>
               </div>
               <div v-else-if="errorMsg" class="preview-state preview-state--error">
-                <span class="icon ri-error-warning-line"></span>
+                <RiErrorWarningLine class="icon" />
                 <span>{{ errorMsg }}</span>
               </div>
               <OpenFileViewer
@@ -148,8 +148,8 @@ onUnmounted(() => { previewBlob.value = null; });
                 :disabled="!previewBlob || downloading"
                 @click="handleDownload"
               >
-                <span v-if="downloading" class="icon ri-loader-4-line spinning"></span>
-                <span v-else class="icon ri-download-2-line"></span>
+                <RiLoader4Line v-if="downloading" class="icon spinning" />
+                <RiDownload2Line v-else class="icon" />
                 下载原文件
               </button>
             </div>

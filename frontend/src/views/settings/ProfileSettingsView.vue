@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage } from '@/utils/toast';
 import { UiSwitch, UiInput, UiModal, UiSelect } from '@/components/ui';
 import RuleDialog from '@/components/settings/RuleDialog.vue';
 import apiClient from '@/api/client';
@@ -285,7 +285,7 @@ async function handleSeedUniversal() {
       </div>
 
       <div class="toolbar">
-        <button class="btn-primary" @click="openLlmCreate"><span class="icon ri-add-line"></span>提取技能</button>
+        <button class="btn-primary" @click="openLlmCreate"><RiAddLine class="icon" />提取技能</button>
         <UiInput v-model="llmSearch" type="search" class="search-input" placeholder="搜索技能名称" clearable />
       </div>
       <div class="content-area">
@@ -322,7 +322,7 @@ async function handleSeedUniversal() {
     <!-- ═══════════════════════════════════════════════════════════ -->
     <template v-else-if="mainTab==='prompts'">
       <div class="toolbar">
-        <button class="btn-primary" @click="openTplCreate"><span class="icon ri-add-line"></span>新建提示词</button>
+        <button class="btn-primary" @click="openTplCreate"><RiAddLine class="icon" />新建提示词</button>
         <UiInput v-model="tplSearch" type="search" class="search-input" placeholder="搜索模板名称" clearable />
       </div>
       <div class="content-area">
@@ -351,8 +351,8 @@ async function handleSeedUniversal() {
     <template v-else>
       <div class="rule-toolbar">
         <div class="rule-toolbar-left">
-          <button class="add-rule-button" @click="openAdd('regex')"><span class="icon ri-add-line"></span><span>新增规则</span></button>
-          <button class="seed-universal-button" @click="handleSeedUniversal"><span class="icon ri-global-line"></span><span>补全通用规则</span></button>
+          <button class="add-rule-button" @click="openAdd('regex')"><RiAddLine class="icon" /><span>新增规则</span></button>
+          <button class="seed-universal-button" @click="handleSeedUniversal"><RiGlobalLine class="icon" /><span>补全通用规则</span></button>
         </div>
         <div class="rule-toolbar-right">
           <UiInput v-model="rSearch" type="search" class="toolbar-search" placeholder="搜索规则字段或描述" clearable />

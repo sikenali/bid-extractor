@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox } from '@/utils/toast';
 import apiClient from '@/api/client';
 import { UiInput, UiSwitch, UiModal, UiTip } from '@/components/ui';
 
@@ -305,7 +305,7 @@ onMounted(loadSkills);
           </div>
         </div>
         <button class="reset-button" @click="handleResetSkills">
-          <span class="icon ri-restart-line"></span>
+          <RiRestartLine class="icon" />
           恢复默认
         </button>
       </div>
@@ -315,7 +315,7 @@ onMounted(loadSkills);
       <div class="toolbar">
       <div class="toolbar-left">
         <button class="btn-import" @click="triggerFileInput">
-          <span class="icon ri-file-upload-line"></span>
+          <RiFileUploadLine class="icon" />
           <span>导入技能</span>
         </button>
         <button class="btn-sync" :disabled="syncLoading" @click="handleSyncSkills">
@@ -338,7 +338,7 @@ onMounted(loadSkills);
               :class="{ active: viewMode === 'list' }"
               @click="viewMode = 'list'"
             >
-              <span class="icon ri-layout-column-line"></span>
+              <RiLayoutColumnLine class="icon" />
             </button>
           </UiTip>
           <UiTip text="网格视图">
@@ -347,7 +347,7 @@ onMounted(loadSkills);
               :class="{ active: viewMode === 'grid' }"
               @click="viewMode = 'grid'"
             >
-              <span class="icon ri-layout-grid-line"></span>
+              <RiLayoutGridLine class="icon" />
             </button>
           </UiTip>
         </div>
@@ -357,7 +357,7 @@ onMounted(loadSkills);
       <div class="skill-content">
       <!-- 加载状态 -->
       <div v-if="loading" class="loading-state">
-        <span class="icon ri-loader-4-line spinning"></span>
+        <RiLoader4Line class="icon spinning" />
         <span>加载中...</span>
       </div>
 
@@ -412,7 +412,7 @@ onMounted(loadSkills);
           <div class="detail-header">
             <span class="detail-name">{{ skill.name }}</span>
             <span class="detail-close" @click="expandedSkill = null">
-              <span class="icon ri-close-line"></span>
+              <RiCloseLine class="icon" />
             </span>
           </div>
           <div v-if="skill.type === 'prompt' && skill.content" class="detail-prompt">
@@ -481,7 +481,7 @@ onMounted(loadSkills);
     />
 
     <div v-if="importLoading" class="loading-overlay">
-      <span class="icon ri-loader-4-line spinning"></span>
+      <RiLoader4Line class="icon spinning" />
       <span>正在导入: {{ selectedFileName }}</span>
     </div>
 
