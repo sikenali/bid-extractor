@@ -386,8 +386,8 @@ function resetAll() {
   transition: all 0.2s;
 }
 .theme-preview-card.active {
-  background-color: #FBF5E3;
-  border-color: #E4CD8E;
+  background-color: var(--color-primary-soft, #FBE9E7);
+  border-color: var(--color-primary, #C0392B);
 }
 .preview-thumb {
   width: 100%;

@@ -254,7 +254,7 @@ function handleExtract() {
 
 /* ── upload card ────────────────────────────────────── */
 .upload-card {
-  width: 875px;
+  width: min(875px, calc(100vw - 64px));
   height: 345px;
   flex-shrink: 0;
   background-color: var(--color-bg-white, #FFFFFF);
@@ -417,7 +417,7 @@ function handleExtract() {
   background: var(--color-bg-white, #fff);
   border: 0.7px solid var(--color-border-soft, #EDE9E0);
   border-radius: 10px;
-  width: 875px;
+  width: min(875px, calc(100vw - 64px));
 }
 
 .skill-label {

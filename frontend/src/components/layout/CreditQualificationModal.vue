@@ -208,7 +208,7 @@ const creditSites = [
   box-shadow: 0 8px 24px color-mix(in srgb, var(--color-primary, #C0392B) 16%, transparent),
               0 2px 8px rgba(0, 0, 0, 0.04);
   transform: translateY(-3px);
-  border-color: rgba(232, 213, 192, 0.8);
+  border-color: var(--color-border-hover, #D9D2C2);
 }
 
 .site-card:hover::before {

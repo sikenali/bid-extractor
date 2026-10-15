@@ -426,7 +426,7 @@ onMounted(() => {
 .view-btn .icon {
   font-family: "remixicon", sans-serif; font-style: normal; font-size: 18px; color: var(--color-text-muted, #8A8578);
 }
-.view-btn.active { background: #F6EEDA; }
+.view-btn.active { background: var(--color-primary-soft, #FBE9E7); }
 .view-btn.active .icon { color: var(--color-primary, #C0392B); }
 
 /* 列表视图 */

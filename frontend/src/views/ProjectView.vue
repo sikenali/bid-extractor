@@ -984,8 +984,8 @@ function triggerDownload(blob: Blob, filename: string) {
   gap: 6px;
   padding: 6px 14px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
+  background: var(--color-primary-soft, #FBE9E7);
+  color: var(--color-primary, #C0392B);
   font-size: 13px;
   font-weight: 500;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
@@ -1021,8 +1021,8 @@ function triggerDownload(blob: Blob, filename: string) {
   gap: 6px;
   padding: 4px 10px;
   border-radius: 6px;
-  background-color: rgba(192, 57, 43, 0.08);
-  color: var(--color-primary, #C0392B);
+  background-color: var(--color-error-soft, #FADCDA);
+  color: var(--color-error, #E74C3C);
   font-size: 13px;
 }
 .btn-outline {
@@ -1154,8 +1154,8 @@ function triggerDownload(blob: Blob, filename: string) {
   gap: 20px;
 }
 .icon-btn {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -1182,9 +1182,9 @@ function triggerDownload(blob: Blob, filename: string) {
 .star-symbol { font-size: 18px; font-weight: 700; }
 
 .score-card {
-  border: 0.7px solid #EFE0BE;
+  border: 0.7px solid var(--color-warning, #F39C12);
   border-radius: 12px;
-  background-color: #FDF6E3;
+  background-color: var(--color-warning-soft, #FEF5E7);
   padding: 24px 28px;
   display: flex;
   flex-direction: column;
@@ -1203,7 +1203,7 @@ function triggerDownload(blob: Blob, filename: string) {
 .score-pill {
   height: 38px;
   padding: 0 16px;
-  border: 0.7px solid #E5DCC2;
+  border: 0.7px solid var(--color-border-hover, #D9D2C2);
   border-radius: 8px;
   background-color: var(--color-bg-white, #FFFFFF);
   display: flex;
@@ -1292,10 +1292,10 @@ function triggerDownload(blob: Blob, filename: string) {
   gap: 8px;
 }
 .page-btn {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border: 0.7px solid var(--color-border, #E5DFD3);
-  border-radius: 8px;
+  border-radius: 10px;
   background-color: var(--color-bg-card, #FCFBF8);
   cursor: pointer;
   display: flex;
@@ -1334,7 +1334,8 @@ function triggerDownload(blob: Blob, filename: string) {
 .loading-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(255, 253, 248, 0.92);
+  background-color: var(--color-bg-main, #FAF7F2);
+  opacity: 0.92;
   display: flex;
   flex-direction: column;
   align-items: center;
