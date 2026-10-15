@@ -438,10 +438,10 @@ function buildChapters(paras: FlatParagraph[], paraToPage: number[]): Chapter[] 
 
 function buildParaToPage(paras: FlatParagraph[]): { paraToPage: number[]; pageCount: number } {
   const totalChars = paras.reduce((sum, p) => sum + [...p.text].length, 0);
-  const avgCharsPerPage = 1000;
-  let estimatedPages = Math.ceil(totalChars / avgCharsPerPage);
-  if (estimatedPages < 1) estimatedPages = 1;
-  const charsPerPage = totalChars / estimatedPages;
+  // 自适应每页字符数：文档越长单页容量越大，但上限 2000、下限 600
+  let estimatedPages = totalChars > 0 ? Math.max(1, Math.round(totalChars / 1400)) : 1;
+  if (estimatedPages > 200) estimatedPages = 200;
+  const charsPerPage = Math.min(2000, Math.max(600, totalChars / estimatedPages));
   const paraToPage: number[] = new Array(paras.length).fill(1);
   let accumulated = 0;
   let currentPage = 1;
@@ -450,7 +450,33 @@ function buildParaToPage(paras: FlatParagraph[]): { paraToPage: number[]; pageCo
     paraToPage[i] = currentPage;
     if (accumulated >= charsPerPage * currentPage) currentPage++;
   }
-  return { paraToPage, pageCount: estimatedPages };
+  // 章节锚点修正：同一 chapterPath 内的段落尽量落在同一页区间
+  const pathGroups: Record<string, number[]> = {};
+  for (let i = 0; i < paras.length; i++) {
+    const path = (paras[i].chapterPath || []).join('||');
+    if (!pathGroups[path]) pathGroups[path] = [];
+    pathGroups[path].push(i);
+  }
+  for (const indices of Object.values(pathGroups)) {
+    if (indices.length <= 1) continue;
+    const firstPage = paraToPage[indices[0]];
+    const lastPage  = paraToPage[indices[indices.length - 1]];
+    if (firstPage === lastPage) continue;
+    // 将该章节所有段落统一分配到其 span 中最多的页
+    const pageFreq: Record<number, number> = {};
+    for (const idx of indices) {
+      const p = paraToPage[idx];
+      pageFreq[p] = (pageFreq[p] || 0) + 1;
+    }
+    let modalPage = indices[0];
+    for (const [p, cnt] of Object.entries(pageFreq)) {
+      if (cnt > (pageFreq[modalPage] || 0)) modalPage = Number(p);
+    }
+    for (const idx of indices) {
+      paraToPage[idx] = modalPage;
+    }
+  }
+  return { paraToPage, pageCount: currentPage };
 }
 
 const SCORE_TABLE_KEYWORDS = ['评分', '分值', '得分', '权重', '评标', '商务分', '技术分', '价格分', '评分项', '分项'];
@@ -474,6 +500,15 @@ function detectTableGroup(rows: string[][]): string {
   if (headerScoreHits >= 1 && techHits < 2) return 'score';
   if (scoreHits >= 2 && scoreHits >= techHits) return 'score';
   if (techHits >= 2) return 'tech';
+  // 纯数字列辅助判断：表头 ≥2 列全为纯数字 → 高概率为评分列
+  if (rows.length >= 2) {
+    const headerRow = rows[0].map(c => c.trim());
+    let numColCount = 0;
+    for (const cell of headerRow) {
+      if (/^\d+$/.test(cell)) numColCount++;
+    }
+    if (numColCount >= 2 && scoreHits === 0 && techHits < 2) return 'score';
+  }
   return '';
 }
 
@@ -583,6 +618,21 @@ function cleanValue(raw: string, nameRe: RegExp | null, self: string): string | 
   v = v.replace(/^名称[：:]\s*/, '').trim();
   // 拒绝以"人民币"开头的金额（预算金额等字段应只取数字）
   v = v.replace(/^人民币\s*/, '').trim();
+  // 字段名前缀截断：遇到下一个字段名（如 "项目编号：ABC  采购方式：XYZ"）时立即截断
+  if (nameRe) {
+    nameRe.lastIndex = 0;
+    let m2: RegExpExecArray | null;
+    while ((m2 = nameRe.exec(v)) !== null) {
+      if (m2[0] === '' || m2[0] === self || [...m2[0]].length < 2) continue;
+      const before = v.slice(0, m2.index);
+      const hasSep = m2.index === 0 || /[：:\s,，；;\n(（]/.test(before.slice(-1));
+      if (hasSep) {
+        v = before.replace(/[：:、,，；;\s]+$/, '').trim();
+        if (!v) return null;
+        break;
+      }
+    }
+  }
   const end = v.match(/[。；;\n]/);
   if (end && end.index !== undefined && end.index < 200) v = v.slice(0, end.index);
   else if (v.length > 200) v = v.slice(0, 200);
@@ -1499,6 +1549,7 @@ function businessValidate(extracts: Record<string, FieldExtract>): {
 
 /**
  * 计算命中率低于阈值的字段分组列表。
+ * 新增：按字段级低置信度触发（confidence < 5 且无值），同时保留分组级兜底逻辑。
  * 分组内 hit 率 = 有值的字段数 / 该组总字段数；低于 threshold 的组需要 LLM 增强。
  */
 function getLowHitGroups(
@@ -1513,7 +1564,16 @@ function getLowHitGroups(
   const lowHitGroups: string[] = [];
   for (const [group, fields] of Object.entries(byGroup)) {
     const hitCount = fields.filter(f => f.value).length;
+    const lowConfMissing = fields.filter(f =>
+      !f.value && (f.confidence ?? 10) < 5
+    ).length;
     const hitRate = fields.length > 0 ? hitCount / fields.length : 1;
+    // 字段级触发：本组内有低置信度缺失字段 → 加入 LLM 范围
+    if (lowConfMissing > 0) {
+      if (!lowHitGroups.includes(group)) lowHitGroups.push(group);
+      continue;
+    }
+    // 分组级兜底：整体命中率太低
     if (hitRate < threshold) {
       lowHitGroups.push(group);
     }

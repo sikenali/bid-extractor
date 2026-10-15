@@ -112,6 +112,7 @@ router.post('/', upload.single('file'), async (req, res) => {
         fieldParaMap: result.fieldParaMap,
         pageCount: result.pageCount,
         virtualTables: result.virtualTables || [],
+        chapters: result.chapters || [],
       });
       db.prepare(`INSERT INTO doc_results (id, filename, file_size, result_json, created_at)
                   VALUES (?, ?, ?, ?, datetime('now'))`).run(jobId, originalName, req.file.size, resultJson);
