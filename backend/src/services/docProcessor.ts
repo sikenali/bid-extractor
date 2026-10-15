@@ -476,7 +476,7 @@ function buildParaToPage(paras: FlatParagraph[]): { paraToPage: number[]; pageCo
       paraToPage[idx] = modalPage;
     }
   }
-  return { paraToPage, pageCount: currentPage };
+  return { paraToPage, pageCount: Math.max(1, currentPage - 1) };
 }
 
 const SCORE_TABLE_KEYWORDS = ['评分', '分值', '得分', '权重', '评标', '商务分', '技术分', '价格分', '评分项', '分项'];
