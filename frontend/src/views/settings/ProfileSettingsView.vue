@@ -127,7 +127,7 @@ async function saveTpl() {
     ElMessage.success('已保存'); tplShowEdit.value=false; await loadTemplates();
   } catch { ElMessage.error('保存失败'); }
 }
-async function toggleTpl(t: PromptTpl) { t.enable = t.enable===1?0:1; await apiClient.put(`/llm-prompts/${t.id}`,{enable:t.enable}); }
+async function toggleTpl(t: PromptTpl) { const prev = t.enable; t.enable = t.enable===1?0:1; try { await apiClient.put(`/llm-prompts/${t.id}`,{enable:t.enable}); } catch { t.enable = prev; ElMessage.error('操作失败'); } }
 const showDelTplDialog = ref(false);
 const deletingTpl = ref<PromptTpl | null>(null);
 function openDelTpl(t: PromptTpl) { deletingTpl.value = t; showDelTplDialog.value = true; }

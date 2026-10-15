@@ -181,10 +181,9 @@ async function handleResetSkills() {
   try {
     await ElMessageBox.confirm('确定恢复默认技能？已导入的自定义技能将被清除。', '确认恢复默认');
     await apiClient.post('/rules/reset-skills');
-    skills.value = MOCK_SKILLS;
-    filteredSkills.value = MOCK_SKILLS;
     expandedSkill.value = null;
     ElMessage.success('已恢复默认技能');
+    await loadSkills();
   } catch { /* cancelled */ }
 }
 
@@ -214,15 +213,15 @@ async function loadSkills() {
       ...s,
       enabled: s.enabled ?? true,
     }));
-    if (data.length > 0) {
-      skills.value = data;
-    } else {
-      skills.value = MOCK_SKILLS;
+    skills.value = data;
+    filteredSkills.value = data;
+    if (data.length === 0) {
+      ElMessage.info('暂无技能数据，可点击导入按钮添加技能文件');
     }
-    filteredSkills.value = skills.value;
-  } catch {
-    skills.value = MOCK_SKILLS;
-    filteredSkills.value = MOCK_SKILLS;
+  } catch (err: any) {
+    ElMessage.error(err?.response?.data?.error || '加载技能列表失败');
+    skills.value = [];
+    filteredSkills.value = [];
   } finally {
     loading.value = false;
   }

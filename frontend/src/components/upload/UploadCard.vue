@@ -78,7 +78,10 @@ function handleDragOver(e: DragEvent) {
   e.preventDefault();
   isDragging.value = true;
 }
-function handleDragLeave() {
+function handleDragLeave(e: DragEvent) {
+  // 只有当鼠标真正离开卡片区域时才清除高亮，避免子元素触发时误清
+  const related = e.relatedTarget as Node | null;
+  if (related && (e.currentTarget as HTMLElement).contains(related)) return;
   isDragging.value = false;
 }
 function handleDrop(e: DragEvent) {

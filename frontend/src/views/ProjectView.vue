@@ -455,22 +455,27 @@ function handleEdit(field: string) {
 
 function confirmEdit() {
   const row = tableData.value.find(d => d.field === editingField.value);
-  if (row) {
-    const originalValue = row.value;
-    row.value = editValue.value;
-    apiClient.post('/rules/corrections', {
-      fieldName: editingField.value,
-      originalValue,
-      correctedValue: editValue.value,
-      paragraphText: row.sourceText || '',
-      groupName: row.groupName || activeSection.value,
-      fileName: fileInfo.value.name
-    }).then(() => ElMessage.success('已保存修正')).catch(err => {
+  if (!row) { showEditDialog.value = false; return; }
+  const originalValue = row.value;
+  const payload = {
+    fieldName: editingField.value,
+    originalValue,
+    correctedValue: editValue.value,
+    paragraphText: row.sourceText || '',
+    groupName: row.groupName || activeSection.value,
+    fileName: fileInfo.value.name
+  };
+  apiClient.post('/rules/corrections', payload)
+    .then(() => {
+      row.value = editValue.value;
+      ElMessage.success('已保存修正');
+      showEditDialog.value = false;
+    })
+    .catch(err => {
       console.warn('Failed to save correction:', err);
       ElMessage.error('保存失败，请重试');
+      // 不关闭弹窗，让用户可以重新编辑
     });
-  }
-  showEditDialog.value = false;
 }
 
 function selectSection(section: string) {
