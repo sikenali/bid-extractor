@@ -1582,7 +1582,7 @@ function getLowHitGroups(
   return lowHitGroups;
 }
 
-export async function parseDocument(input: Buffer | string, options?: { skillId?: string; filename?: string }): Promise<ExtractOutput> {
+export async function parseDocument(input: Buffer | string, options?: { skillIds?: string[]; filename?: string }): Promise<ExtractOutput> {
   const filePath = typeof input === 'string' ? input : '';
   const buffer = typeof input === 'string' ? undefined : input;
   const fileName = options?.filename || (filePath ? path.basename(filePath) : 'unknown');
@@ -1684,48 +1684,40 @@ export async function parseDocument(input: Buffer | string, options?: { skillId?
 
     const fileMd5 = cryptoCreateHash(fileBuffer);
 
-    // Skill-driven LLM enhancement (optional)
-    let llmResult: Record<string, string> | undefined;
+    // Skill-driven LLM enhancement (V1.5 检查逻辑)
+    // 1. 没有配置模型 → 纯 officeparser + 规则提取
+    // 2. 配置了模型 → 调用所有对应技能的 LLM 提取
     let extractMode = 'rule_only' as 'rule_only' | 'llm_enhanced';
 
-    // 自动检测：即使没有 skillId，如果整体命中率低也尝试 LLM 增强
-    const llmSettings = db.prepare(
-      'SELECT llm_enhance_enabled, llm_hit_rate_threshold FROM profile_settings WHERE id = 1'
-    ).get() as any;
-    const llmEnabled = llmSettings?.llm_enhance_enabled !== 0;
-    const defaultThreshold = llmSettings?.llm_hit_rate_threshold ?? 0.6;
-    const overallHitRate = Object.values(extracts).filter(v => v?.value).length / Math.max(Object.keys(extracts).length, 1);
-
-    // 确定使用的 skill（优先使用指定 skill，否则使用默认信息抽取 skill）
-    let skill: any = null;
-    if (options?.skillId) {
-      skill = db.prepare('SELECT * FROM tender_llm_skill WHERE id = ? AND enable = 1').get(options.skillId) as any;
-    } else if (llmEnabled && overallHitRate < defaultThreshold) {
-      // 无 skillId 但命中率低：尝试所有启用的 skill，选第一个有 prompt 的
-      const allSkills = db.prepare(
-        'SELECT * FROM tender_llm_skill WHERE enable = 1 AND enable_llm = 1 AND (prompt_template IS NOT NULL OR bind_prompt_template_id IS NOT NULL) ORDER BY create_time LIMIT 1'
-      ).all() as any[];
-      if (allSkills.length > 0) skill = allSkills[0];
-    }
-
-    if (llmEnabled && skill) {
-      const hasPrompt = !!(skill?.prompt_template || skill?.bind_prompt_template_id);
-      if (hasPrompt) {
-        try {
-          const threshold = defaultThreshold;
-          const lowHitGroups = getLowHitGroups(extracts, threshold);
-          if (lowHitGroups.length > 0 || overallHitRate < threshold) {
-            llmResult = await runLLMExtraction(skill, flatParas, chapters, extracts, lowHitGroups);
-            const merged = Object.values(llmResult || {}).filter(v => typeof v === 'string' && v.trim() !== '').length;
+    const skillIds = options?.skillIds || [];
+    if (skillIds.length > 0) {
+      try {
+        const llmSettings = db.prepare(
+          'SELECT llm_hit_rate_threshold FROM profile_settings WHERE id = 1'
+        ).get() as any;
+        const threshold = llmSettings?.llm_hit_rate_threshold ?? 0.6;
+        const lowHitGroups = getLowHitGroups(extracts, threshold);
+        for (const sid of skillIds) {
+          const skill = db.prepare(
+            'SELECT * FROM tender_llm_skill WHERE id = ? AND enable = 1 AND enable_llm = 1'
+          ).get(sid) as any;
+          if (!skill) continue;
+          const hasPrompt = !!(skill?.prompt_template || skill?.bind_prompt_template_id);
+          if (!hasPrompt) continue;
+          try {
+            const skillLlmResult = await runLLMExtraction(skill, flatParas, chapters, extracts, lowHitGroups);
+            const merged = Object.values(skillLlmResult || {}).filter(v => typeof v === 'string' && v.trim() !== '').length;
             if (merged > 0) {
-              mergeWithConfidence(extracts, llmResult!, skill.biz_type || 'info');
+              mergeWithConfidence(extracts, skillLlmResult!, skill.biz_type || 'info');
               extractMode = 'llm_enhanced';
             }
+          } catch (llmErr) {
+            console.error(`[docProcessor] LLM extraction failed for skill ${sid}:`, llmErr);
           }
-        } catch (llmErr) {
-          console.error('[docProcessor] LLM extraction failed, falling back to rule-only:', llmErr);
-          extractMode = 'rule_only';
         }
+      } catch (llmErr) {
+        console.error('[docProcessor] LLM extraction failed, falling back to rule-only:', llmErr);
+        extractMode = 'rule_only';
       }
     }
 

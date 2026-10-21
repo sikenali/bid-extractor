@@ -71,6 +71,15 @@ export async function uploadFile(file: File, skillId?: string): Promise<UploadRe
   return response.data;
 }
 
+export interface ApiConfigStatus {
+  modelConfigured: boolean;
+}
+
+export async function getApiConfigStatus(): Promise<ApiConfigStatus> {
+  const response = await apiClient.get<ApiConfigStatus>('/settings/model-config');
+  return response.data;
+}
+
 export async function getParseStatus(id: string): Promise<ParseStatus> {
   const response = await apiClient.get<ParseStatus>(`/upload/${id}/status`);
   return response.data;

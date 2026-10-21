@@ -64,12 +64,27 @@ router.post('/', upload.single('file'), async (req, res) => {
     return;
   }
 
+  // 检查是否配置了大模型：有启用且非空的 api_key 则视为已配置
+  const modelCheck = db.prepare(
+    'SELECT COUNT(*) as cnt FROM api_configs WHERE enabled = 1 AND api_key IS NOT NULL AND api_key != ""'
+  ).get() as { cnt: number };
+  const modelConfigured = (modelCheck?.cnt ?? 0) > 0;
+
   const skillId = req.body?.skill_id as string | undefined;
+  // 如果前端未传 skillId 但模型已配置，自动获取所有启用的技能 ID 列表
+  const rawSkillId = skillId || '';
+  const effectiveSkillIds = !rawSkillId && modelConfigured
+    ? (db.prepare('SELECT id FROM tender_llm_skill WHERE enable = 1 AND enable_llm = 1').all() as any[])
+        .map((s: any) => s.id)
+    : rawSkillId
+      ? [rawSkillId]
+      : [];
+
   const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
   const jobId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
   try {
-    const result = await parseDocument(req.file.buffer, { skillId, filename: originalName });
+    const result = await parseDocument(req.file.buffer, { skillIds: effectiveSkillIds, filename: originalName });
     const warnings = result.fileMeta?.warningList || [];
 
     // 补充命中率低的分组信息到 warnings

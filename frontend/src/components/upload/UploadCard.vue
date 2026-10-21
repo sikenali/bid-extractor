@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from '@/utils/toast';
-import { uploadFile } from '@/api/upload';
+import { uploadFile, getApiConfigStatus } from '@/api/upload';
 import StepStrip from '@/components/StepStrip.vue';
 import { UiTip } from '@/components/ui';
 import apiClient from '@/api/client';
@@ -40,8 +40,13 @@ const isDragging = ref(false);
 const selectedFile = ref<File | null>(null);
 const selectedSkill = ref<string>('');
 const skills = ref<LlmSkill[]>([]);
+const modelConfigured = ref(false);
 
 onMounted(async () => {
+  try {
+    const status = await getApiConfigStatus();
+    modelConfigured.value = status.modelConfigured;
+  } catch {}
   try {
     const res = await apiClient.get<any[]>('/rules/llm-skills');
     skills.value = (res.data || []).filter((s: any) => s.enable_llm === 1);
@@ -220,8 +225,8 @@ function handleExtract() {
       />
     </div>
 
-    <!-- 技能选择器 -->
-    <div class="skill-selector" v-if="skills.length > 0 && !uploading">
+    <!-- 技能选择器：仅在大模型已配置时显示 -->
+    <div class="skill-selector" v-if="modelConfigured && skills.length > 0 && !uploading">
       <label class="skill-label">
         <RiBrainLine class="icon" />
         选择抽取技能：
@@ -232,6 +237,14 @@ function handleExtract() {
           {{ skill.skill_name }}
         </option>
       </select>
+    </div>
+    <!-- 未配置大模型时提示 -->
+    <div class="skill-selector" v-else-if="!modelConfigured && !uploading">
+      <label class="skill-label">
+        <RiRuleLine class="icon" />
+        当前模式：
+      </label>
+      <span class="skill-hint">纯规则提取（未配置大模型，使用 officeparser + 正则/关键字规则）</span>
     </div>
 
     <StepStrip
@@ -453,5 +466,20 @@ function handleExtract() {
 
 .skill-select:focus {
   border-color: var(--color-primary, #C0392B);
+}
+
+.skill-hint {
+  flex: 1;
+  font-size: 13px;
+  color: var(--color-text-muted, #8A8578);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  line-height: 1.5;
+}
+
+.skill-selector .icon {
+  font-family: "remixicon", sans-serif;
+  font-style: normal;
+  font-size: 16px;
+  color: var(--color-info, #4A72A8);
 }
 </style>
