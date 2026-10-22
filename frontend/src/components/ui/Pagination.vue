@@ -121,7 +121,7 @@ function go(page: number) {
 .page-btn.active {
   background-color: var(--color-success);
   border-color: var(--color-success);
-  color: var(--color-on-primary, #fff);
+  color: var(--color-on-success, #1F1D1A);
   font-weight: 600;
 }
 .page-ellipsis {

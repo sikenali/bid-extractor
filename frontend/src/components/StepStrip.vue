@@ -195,7 +195,7 @@ onUnmounted(() => {
 }
 .step-pill.done .step-num {
   background-color: var(--color-success, #4E9B7A);
-  color: var(--color-on-primary, #fff);
+  color: var(--color-on-success, #1F1D1A);
 }
 .step-pill.done .step-label { color: var(--color-success, #3E8A6B); }
 
@@ -218,7 +218,7 @@ onUnmounted(() => {
 }
 .step-strip-root.loading .step-pill.processing .step-num {
   background-color: var(--color-success, #4E9B7A);
-  color: var(--color-on-primary, #fff);
+  color: var(--color-on-success, #1F1D1A);
 }
 .step-strip-root.loading .step-pill.processing .step-label { color: var(--color-success, #3E8A6B); }
 .step-strip-root.loading .step-pill.processing::before { opacity: 0; }
@@ -248,7 +248,7 @@ onUnmounted(() => {
 }
 .step-strip-root.done .step-pill .step-num {
   background-color: var(--color-success, #4E9B7A);
-  color: var(--color-on-primary, #fff);
+  color: var(--color-on-success, #1F1D1A);
 }
 .step-strip-root.done .step-pill .step-label { color: var(--color-success, #3E8A6B); }
 .step-strip-root.done .step-line {
@@ -291,7 +291,7 @@ onUnmounted(() => {
 }
 
 .check-icon {
-  color: var(--color-on-primary, #fff);
+  color: var(--color-on-success, #1F1D1A);
   display: flex;
   align-items: center;
   justify-content: center;

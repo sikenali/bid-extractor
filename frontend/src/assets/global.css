@@ -6,6 +6,9 @@
   --color-primary-deep: #3A5C96;
   --color-primary-soft: #FBE9E7;
   --color-on-primary: #FFFFFF;
+  /* 固定底色（非强调色）上的前景色，与 --color-on-primary 解耦 */
+  --color-on-brand: #FFFFFF;
+  --color-on-success: #1F1D1A;
   --color-bg-main: #FAF7F2;
   --color-bg-secondary: #F7F3EA;
   --color-bg-card: #FCFBF8;

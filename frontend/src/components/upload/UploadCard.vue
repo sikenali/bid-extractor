@@ -371,11 +371,11 @@ defineExpose({ extract: handleExtract });
   justify-content: center;
   flex-shrink: 0;
 }
-.file-icon.fmt-docx                      { background-color: #2B579A; color: var(--color-on-primary, #fff); }
-.file-icon.fmt-xlsx, .file-icon.fmt-csv   { background-color: #217346; color: var(--color-on-primary, #fff); }
+.file-icon.fmt-docx                      { background-color: #2B579A; color: var(--color-on-brand, #FFFFFF); }
+.file-icon.fmt-xlsx, .file-icon.fmt-csv   { background-color: #217346; color: var(--color-on-brand, #FFFFFF); }
 .file-icon.fmt-pdf, .file-icon.fmt-html   { background-color: var(--color-primary, #C0392B); color: var(--color-on-primary, #fff); }
-.file-icon.fmt-md                     { background-color: #4A6FA5; color: var(--color-on-primary, #fff); }
-.file-icon.fmt-txt                    { background-color: #5A5750; color: var(--color-on-primary, #fff); }
+.file-icon.fmt-md                     { background-color: #4A6FA5; color: var(--color-on-brand, #FFFFFF); }
+.file-icon.fmt-txt                    { background-color: #5A5750; color: var(--color-on-brand, #FFFFFF); }
 .file-name {
   margin: 0;
   font-size: 16px;

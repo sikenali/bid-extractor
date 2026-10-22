@@ -120,26 +120,48 @@ function mixRgb(a: Rgb, b: Rgb, t: number): Rgb {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
+function contrastRatio(a: Rgb, b: Rgb): number {
+  const la = relLuminance(a);
+  const lb = relLuminance(b);
+  const lighter = la > lb ? la : lb;
+  const darker = la > lb ? lb : la;
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 const DARK_BACKGROUND = '#17171A';
 const MIN_CONTRAST_RATIO = 4.5;
-// 深色底色的 WCAG 相对亮度，用于反推强调色达 4.5:1 所需的最小亮度
 const DARK_BG_LUMINANCE = relLuminance(hexToRgb(DARK_BACKGROUND) as Rgb);
-const MIN_ACCENT_LUMINANCE = DARK_BG_LUMINANCE * MIN_CONTRAST_RATIO - 0.05;
+
+const WHITE_RGB: Rgb = [255, 255, 255];
+const INK_RGB: Rgb = hexToRgb('#1F1D1A') as Rgb;
+
+// WCAG (L1+0.05)/(L2+0.05) ≥ 4.5:1，反解出强调色需要的最小相对亮度：
+// 1) 强调色 vs 深色底；2) 墨色文字 vs 强调色（深色主题下强调色必被提亮，白字不可用）
+const MIN_ACCENT_LUMINANCE = Math.max(
+  MIN_CONTRAST_RATIO * (DARK_BG_LUMINANCE + 0.05) - 0.05,
+  MIN_CONTRAST_RATIO * (relLuminance(INK_RGB) + 0.05) - 0.05
+);
+
+/** 强调色本身被提亮后，白色文字会看不清，按对比度自动选白/深字色 */
+function bestOnColor(hex: string): string {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return '#FFFFFF';
+  return contrastRatio(rgb, WHITE_RGB) >= contrastRatio(rgb, INK_RGB) ? '#FFFFFF' : '#1F1D1A';
+}
 
 /**
- * 深色主题下强调色若过暗则向白色提亮，保证与底色对比度 ≥4.5:1（DESIGN §10）。
- * 例如「黛墨 #2F3640」在 #17171A 上对比度约 2.1，会被提亮到 ~#595D66（6.6:1）。
+ * 深色主题下强调色若过暗则向白色提亮，保证与底色对比度 ≥4.5:1，且提亮后其上的墨色文字同样 ≥4.5:1。
+ * 例如「黛墨 #2F3640」在 #17171A 上仅 1.47:1，会被提亮到 #8D9195（底色 4.9:1 / 文字 5.0:1）。
  */
 function brightenForDark(hex: string): string {
   const rgb = hexToRgb(hex);
   if (!rgb) return hex;
   if (relLuminance(rgb) >= MIN_ACCENT_LUMINANCE) return hex;
-  const white: Rgb = [255, 255, 255];
   for (let t = 0.05; t <= 1; t += 0.05) {
-    const blended = mixRgb(rgb, white, t);
+    const blended = mixRgb(rgb, WHITE_RGB, t);
     if (relLuminance(blended) >= MIN_ACCENT_LUMINANCE) return rgbToHex(blended);
   }
-  return rgbToHex(white);
+  return rgbToHex(WHITE_RGB);
 }
 
 /** 按当前主题派生实际生效的强调色（存留值非合法 hex 时视为未设置） */
@@ -154,13 +176,12 @@ function primarySoft(accent: string): string {
 }
 
 function applyAccentTokens(root: HTMLElement, accent: string | null) {
-  if (accent) {
-    root.style.setProperty('--color-primary', accent);
-    root.style.setProperty('--color-primary-soft', primarySoft(accent));
-  } else {
-    root.style.removeProperty('--color-primary');
-    root.style.removeProperty('--color-primary-soft');
-  }
+  // 无自定义强调色时保留主题自身的主色 token（applyTheme 刚写入的行内值），
+  // 不能 removeProperty —— 那会让深色主题回落到 global.css 的羊皮纸色。
+  if (!accent) return;
+  root.style.setProperty('--color-primary', accent);
+  root.style.setProperty('--color-primary-soft', primarySoft(accent));
+  root.style.setProperty('--color-on-primary', bestOnColor(accent));
 }
 
 export const useThemeStore = defineStore('theme', () => {
