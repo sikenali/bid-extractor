@@ -3,7 +3,9 @@
 :root {
   /* Colors - Parchment Theme */
   --color-primary: #C0392B;
+  --color-primary-deep: #3A5C96;
   --color-primary-soft: #FBE9E7;
+  --color-on-primary: #FFFFFF;
   --color-bg-main: #FAF7F2;
   --color-bg-secondary: #F7F3EA;
   --color-bg-card: #FCFBF8;
@@ -27,8 +29,9 @@
   --color-error-soft: #FADCDA;
 
   /* Typography - Sizing Hierarchy */
-  --font-family: 'Inter', 'SourceHanSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-family-cn: 'SourceHanSans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  /* 西文优先走 Inter/系统字体，中文逐字符回退到思源/Noto/苹方/雅黑 */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SourceHanSans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-family-cn: 'SourceHanSans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', sans-serif;
 
   /* Base font size for root */
   font-size: 16px;
@@ -120,6 +123,62 @@
 /* 主题切换唯一来源: stores/theme.ts (JS 直写 CSS 变量);
    下方 dark 覆盖块已删除(data-theme 属性无任何设置方,留存会造成双源误解) */
 
+/* ── 字体别名解析 ────────────────────────────────────────────────
+   项目不打包字体字节（无远程 @font-face、无网络依赖），而是用 local()
+   把设计稿里的字体名/权重名别名映射到用户机器上已安装的
+   思源黑体 / Noto Sans SC / 苹方 / 微软雅黑。这样代码中大量
+   `font-family: "SourceHanSans-Medium"` 这类写法才能真正命中，
+   而不是静默落到默认 sans-serif。local() 不产生任何下载。 */
+@font-face {
+  font-family: 'SourceHanSans';
+  src: local('Source Han Sans SC'), local('Source Han Sans CN'), local('Source Han Sans'),
+       local('SourceHanSansSC'), local('Noto Sans SC'), local('NotoSansSC'),
+       local('PingFang SC'), local('PingFangSC-Regular'),
+       local('Microsoft YaHei'), local('MicrosoftYaHei'),
+       local('Hiragino Sans GB'), local('HiraginoSansGBW3');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SourceHanSans-Regular';
+  src: local('Source Han Sans SC Regular'), local('SourceHanSansSC-Regular'),
+       local('Noto Sans SC Regular'), local('NotoSansSC-Regular'),
+       local('PingFang SC Regular'), local('PingFangSC-Regular'),
+       local('Microsoft YaHei'), local('MicrosoftYaHei'),
+       local('Hiragino Sans GB W3'), local('HiraginoSansGBW3');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SourceHanSans-Medium';
+  src: local('Source Han Sans SC Medium'), local('SourceHanSansSC-Medium'),
+       local('Noto Sans SC Medium'), local('NotoSansSC-Medium'),
+       local('PingFang SC Medium'), local('PingFangSC-Medium'),
+       local('Microsoft YaHei'), local('MicrosoftYaHei');
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SourceHanSans-Bold';
+  src: local('Source Han Sans SC Bold'), local('SourceHanSansSC-Bold'),
+       local('Noto Sans SC Bold'), local('NotoSansSC-Bold'),
+       local('PingFang SC Semibold'), local('PingFangSC-Semibold'),
+       local('Microsoft YaHei Bold'), local('MicrosoftYaHei-Bold'),
+       local('Hiragino Sans GB W6'), local('HiraginoSansGBW6');
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: local('Inter'), local('Inter-Regular'), local('Inter Variable');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 /* Global Reset & Base Styles */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -137,7 +196,6 @@ html {
 
 body {
   font-family: var(--font-family);
-  font-family: var(--font-family-cn), var(--font-family);
   line-height: var(--leading-normal);
   color: var(--color-text-primary);
   background-color: var(--color-bg-main);
@@ -184,7 +242,7 @@ h6 { font-size: var(--text-md); margin-bottom: var(--spacing-2); }
 
 .btn-primary {
   background-color: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -304,7 +362,7 @@ h6 { font-size: var(--text-md); margin-bottom: var(--spacing-2); }
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -330,13 +388,19 @@ h6 { font-size: var(--text-md); margin-bottom: var(--spacing-2); }
   margin-bottom: var(--spacing-6);
 }
 
-/* Iconography */
+/* Iconography — RemixIcon Vue 组件渲染为 <svg class="remixicon">，
+   统一让图标尺寸跟随 CSS font-size（1em），配合各处的 .icon{font-size:Npx} */
 .icon {
-  font-family: "remixicon", sans-serif;
-  font-style: normal;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+.remixicon {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+  flex-shrink: 0;
+  vertical-align: -0.15em;
 }
 
 /* Text Utilities */
@@ -426,21 +490,4 @@ h6 { font-size: var(--text-md); margin-bottom: var(--spacing-2); }
 ::selection {
   background-color: var(--color-primary-soft);
   color: var(--color-primary);
-}
-
-/* Element Plus 消息提示统一使用强调色 */
-:root {
-  --el-color-primary: var(--color-primary);
-  --el-message-primary-icon-color: var(--color-primary);
-  --el-message-success-icon-color: var(--color-primary);
-  --el-message-success-bg-color: var(--color-primary-soft);
-  --el-message-info-icon-color: var(--color-primary);
-  --el-message-info-bg-color: var(--color-primary-soft);
-}
-.el-message {
-  --el-message-border-color: var(--color-primary-soft);
-}
-.el-message--success .el-message__content,
-.el-message--info .el-message__content {
-  color: var(--color-text-body);
 }

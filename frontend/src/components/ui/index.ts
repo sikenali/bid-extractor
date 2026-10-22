@@ -10,6 +10,7 @@
  * UiSelectCard 通用可选选中卡片（主题 / 模板 / 导出 / 个性）
  * UiTabs       标签切换（滑动指示器 + 内容过渡动画）
  * UiModal      统一弹框壳（对齐信用查询平台，仅 width 可调）
+ * Pagination   标准分页组件（DESIGN §8.6，禁止各产品自建分页样式）
  */
 export { default as UiTip } from './UiTip.vue';
 export { default as UiInput } from './UiInput.vue';
@@ -23,3 +24,4 @@ export { default as UiSelectCard } from './UiSelectCard.vue';
 export { default as UiTabs } from './UiTabs.vue';
 export type { UiTabItem } from './UiTabs.vue';
 export { default as UiModal } from './UiModal.vue';
+export { default as Pagination } from './Pagination.vue';

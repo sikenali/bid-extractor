@@ -1,56 +1,47 @@
 <template>
-  <teleport to="body">
-    <transition name="modal">
-      <div v-if="visible" class="modal-overlay" @click.self="close">
-        <div class="settings-panel">
-          <div class="panel-header">
-            <div class="header-left">
-              <div class="header-icon">
-                <RiLinksLine />
-              </div>
-              <div class="header-text">
-                <h2 class="panel-title">招标采购平台</h2>
-                <p class="panel-subtitle">涵盖全军装备、航天、船舶、兵器等采购信息</p>
-              </div>
-            </div>
-            <button class="close-btn" @click="close">
-              <RiCloseLine />
-            </button>
-          </div>
-
-          <div class="website-grid">
-            <div
-              v-for="(site, index) in biddingSites"
-              :key="index"
-              class="site-card"
-            >
-              <div class="site-card-top">
-                <RiTargetLine class="site-logo" />
-                <div class="site-info">
-                  <h3 class="site-name">{{ site.name }}</h3>
-                  <p class="site-desc">{{ site.desc }}</p>
-                </div>
-              </div>
-              <div class="site-card-bottom">
-                <a class="site-link" :href="site.url" target="_blank" :title="site.url">
-                  <RiExternalLinkLine />
-                  <span>{{ site.url }}</span>
-                </a>
-              </div>
-            </div>
-          </div>
-
-          <div class="panel-footer">
-            <a href="https://www.tbrdh.com/" target="_blank" class="footer-link">投标人导航网</a>
+  <UiModal
+    :model-value="visible"
+    title="招标采购平台"
+    subtitle="涵盖全军装备、航天、船舶、兵器等采购信息"
+    icon="ri-links-line"
+    :width="1120"
+    :max-width="1400"
+    height="90vh"
+    :show-footer="false"
+    @update:model-value="emit('update:visible', $event)"
+  >
+    <div class="website-grid">
+      <div
+        v-for="(site, index) in biddingSites"
+        :key="index"
+        class="site-card"
+      >
+        <div class="site-card-top">
+          <div class="site-logo"><RiTargetLine class="icon" style="font-size: 18px" /></div>
+          <div class="site-info">
+            <h3 class="site-name">{{ site.name }}</h3>
+            <p class="site-desc">{{ site.desc }}</p>
           </div>
         </div>
+        <div class="site-card-bottom">
+          <a class="site-link" :href="site.url" target="_blank" :title="site.url">
+            <RiExternalLinkLine />
+            <span>{{ site.url }}</span>
+          </a>
+        </div>
       </div>
-    </transition>
-  </teleport>
+    </div>
+
+    <div class="panel-footer">
+      <a href="https://www.tbrdh.com/" target="_blank" class="footer-link">投标人导航网</a>
+    </div>
+  </UiModal>
 </template>
 
 <script setup>
-const props = defineProps({
+import UiModal from '../ui/UiModal.vue'
+
+defineProps({
   visible: {
     type: Boolean,
     default: false
@@ -58,10 +49,6 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:visible'])
-
-function close() {
-  emit('update:visible', false)
-}
 
 const biddingSites = [
   { name: '全军武器装备采购信息网', desc: '军委装备发展部', url: 'http://www.weain.mil.cn' },
@@ -80,98 +67,6 @@ const biddingSites = [
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.settings-panel {
-  width: 1120px;
-  max-height: 90vh;
-  background: var(--color-bg-secondary, #F7F3EA);
-  border: 0.7px solid var(--color-border-soft, #EDE9E0);
-  border-radius: 16px;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.1);
-  padding: 36px 40px;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-}
-
-.panel-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding-bottom: 24px;
-}
-
-.header-left {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-.header-icon {
-  width: 48px;
-  height: 48px;
-  background: var(--color-primary-soft, #FBE9E7);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26px;
-  color: var(--color-primary, #C0392B);
-  flex-shrink: 0;
-}
-
-.header-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.panel-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--color-text-primary, #1F1D1A);
-  margin: 0;
-  line-height: 28px;
-}
-
-.panel-subtitle {
-  font-size: 13px;
-  color: var(--color-text-muted, #8A8578);
-  margin: 0;
-  line-height: 18px;
-}
-
-.close-btn {
-  width: 40px;
-  height: 40px;
-  background: var(--color-bg-secondary, #F7F3EA);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  color: var(--color-text-secondary, #6E6A60);
-  cursor: pointer;
-  border: none;
-  flex-shrink: 0;
-}
-
-.close-btn:hover {
-  background: var(--color-border-soft, #EDE9E0);
-}
-
 .website-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -283,7 +178,7 @@ const biddingSites = [
   justify-content: center;
   padding-top: 6px;
   margin-top: 4px;
-  border-top: 1px solid var(--color-border-soft, #EDE9E0);
+  border-top: 0.7px solid var(--color-border-soft, #EDE9E0);
 }
 
 .site-link {
@@ -304,8 +199,9 @@ const biddingSites = [
   transform: translateY(-1px);
 }
 
-.site-link i {
-  font-size: 14px;
+.site-link svg {
+  width: 14px;
+  height: 14px;
 }
 
 .panel-footer {
@@ -313,7 +209,7 @@ const biddingSites = [
   align-items: center;
   justify-content: center;
   padding-top: 16px;
-  border-top: 1px solid var(--color-bg-secondary, #F7F3EA);
+  border-top: 0.7px solid var(--color-bg-secondary, #F7F3EA);
 }
 
 .footer-link {
@@ -328,15 +224,5 @@ const biddingSites = [
 .footer-link:hover {
   background: color-mix(in srgb, var(--color-primary, #C0392B) 14%, transparent);
   color: var(--color-primary, #C0392B);
-}
-
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
 }
 </style>

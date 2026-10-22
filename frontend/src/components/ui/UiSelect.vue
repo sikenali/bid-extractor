@@ -22,7 +22,7 @@ const props = withDefaults(defineProps<{
   options?: UiSelectOption[];
   placeholder?: string;
   disabled?: boolean;
-  /** sm=36px md=44px */
+  /** sm=36px md=42px */
   size?: 'sm' | 'md';
   /** 面板最大高度 */
   maxHeight?: number;
@@ -60,7 +60,6 @@ function toggle() {
   if (props.disabled) return;
   open.value = !open.value;
 }
-function close() { open.value = false; }
 function pick(o: UiSelectOption) {
   if (o.disabled) return;
   emit('update:modelValue', o.value);
@@ -136,7 +135,7 @@ onUnmounted(() => {
   transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
   font-family: "SourceHanSans-Regular", var(--font-family-cn), sans-serif;
 }
-.is-md .ui-select-btn { height: 44px; }
+.is-md .ui-select-btn { height: 42px; }
 .is-sm .ui-select-btn { height: 36px; font-size: 13px; }
 .ui-select-btn:hover:not(:disabled) { border-color: var(--color-border-hover, #D9D2C2); }
 .is-open .ui-select-btn, .ui-select-btn:focus-visible {

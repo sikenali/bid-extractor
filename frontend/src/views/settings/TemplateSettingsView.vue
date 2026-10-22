@@ -408,7 +408,7 @@ onMounted(() => {
 .toolbar-right { display: flex; align-items: center; gap: 12px; }
 .btn-add {
   display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 46px;
-  border: none; border-radius: 10px; background: var(--color-primary, #C0392B); color: #fff;
+  border: none; border-radius: 10px; background: var(--color-primary, #C0392B); color: var(--color-on-primary, #fff);
   font-size: 16px; font-weight: 500; cursor: pointer;
   font-family: "SourceHanSans-Medium", var(--font-family-cn); transition: all 0.2s;
 }

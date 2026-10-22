@@ -59,16 +59,23 @@ function cleanupExpiredJobs() {
 setInterval(cleanupExpiredJobs, 10 * 60 * 1000);
 
 router.post('/', upload.single('file'), async (req, res) => {
+  try {
   if (!req.file) {
     res.status(400).json({ error: 'No file uploaded' });
     return;
   }
 
   // 检查是否配置了大模型：有启用且非空的 api_key 则视为已配置
-  const modelCheck = db.prepare(
-    'SELECT COUNT(*) as cnt FROM api_configs WHERE enabled = 1 AND api_key IS NOT NULL AND api_key != ""'
-  ).get() as { cnt: number };
-  const modelConfigured = (modelCheck?.cnt ?? 0) > 0;
+  // 注意：SQLite 空字符串字面量必须用单引号 ''，双引号 "" 会被当作标识符引用而抛错
+  let modelConfigured = false;
+  try {
+    const modelCheck = db.prepare(
+      "SELECT COUNT(*) as cnt FROM api_configs WHERE enabled = 1 AND api_key IS NOT NULL AND TRIM(api_key) != ''"
+    ).get() as { cnt: number };
+    modelConfigured = (modelCheck?.cnt ?? 0) > 0;
+  } catch (dbErr) {
+    console.warn('[upload] model config check failed:', dbErr);
+  }
 
   const skillId = req.body?.skill_id as string | undefined;
   // 如果前端未传 skillId 但模型已配置，自动获取所有启用的技能 ID 列表
@@ -160,6 +167,13 @@ router.post('/', upload.single('file'), async (req, res) => {
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || '解析过程中发生错误' });
+  }
+  } catch (err: any) {
+    // 兜底：任何未预期的异常都返回 500，绝不因单个请求终止进程
+    console.error('[upload] unhandled error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message || '服务器内部错误' });
+    }
   }
 });
 

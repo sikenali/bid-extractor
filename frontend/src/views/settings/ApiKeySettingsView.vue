@@ -307,7 +307,7 @@ onMounted(loadKeys);
             >
               <template #suffix>
                 <button class="form-key-toggle" @click="keyVisible = !keyVisible">
-                  <span class="icon" :class="keyVisible ? 'ri-eye-line' : 'ri-eye-off-line'"></span>
+                  <RiEyeLine v-if="keyVisible" class="icon" /><RiEyeOffLine v-else class="icon" />
                 </button>
               </template>
             </UiInput>
@@ -492,7 +492,7 @@ onMounted(loadKeys);
 }
 .btn-save {
   height: 44px; padding: 0 28px; border: none; border-radius: 10px;
-  background: var(--color-primary, #C0392B); color: #fff; font-size: 15px; font-weight: 500;
+  background: var(--color-primary, #C0392B); color: var(--color-on-primary, #fff); font-size: 15px; font-weight: 500;
   cursor: pointer; font-family: "SourceHanSans-Medium", var(--font-family-cn);
   transition: background 0.2s, transform 0.1s; white-space: nowrap;
 }

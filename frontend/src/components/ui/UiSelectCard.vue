@@ -33,7 +33,7 @@ withDefaults(defineProps<{
   title: '',
   desc: '',
   iconText: '',
-  iconColor: '#8A8578',
+  iconColor: 'var(--color-text-muted, #8A8578)',
   disabled: false,
   activeBorder: 'var(--color-primary, #C0392B)',
   activeBg: 'var(--color-primary-soft, #FBE9E7)',
@@ -114,7 +114,7 @@ function onClick() {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #fff;
+  color: var(--color-on-primary, #fff);
 }
 .ui-select-card-icon-text {
   font-weight: 700;

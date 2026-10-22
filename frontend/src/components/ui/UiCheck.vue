@@ -15,7 +15,7 @@ withDefaults(defineProps<{
 }>(), {
   checked: false,
   mode: 'ghost',
-  size: 24,
+  size: 18,
 });
 </script>
 
@@ -55,7 +55,7 @@ withDefaults(defineProps<{
 .ui-check.is-checked {
   background-color: var(--color-primary, #C0392B);
   border-color: var(--color-primary, #C0392B);
-  color: #fff;
+  color: var(--color-on-primary, #fff);
   box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary, #C0392B) 40%, transparent);
 }
 .ui-check-pop-enter-active { transition: transform 0.22s cubic-bezier(0.34, 1.5, 0.64, 1), opacity 0.15s; }

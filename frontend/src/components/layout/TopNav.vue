@@ -5,7 +5,7 @@ import SettingsModal from '@/components/layout/SettingsModal.vue';
 import { UiTip } from '@/components/ui';
 import { BRAND_NAME } from '@/constants/brand';
 
-const props = withDefaults(defineProps<{
+withDefaults(defineProps<{
   title?: string;
   brand?: string;
   showBack?: boolean;
@@ -21,7 +21,7 @@ const showSettingsModal = ref(false);
   <header class="top-nav">
     <div class="nav-left" @click="router.push('/upload')">
       <div class="tool-mark">
-        <RiTargetLine class="tool-logo" />
+        <RiTargetLine style="font-size: 26px" class="tool-logo" />
       </div>
       <span class="brand-cn">{{ brand || BRAND_NAME }}</span>
       <span class="divider"></span>
@@ -30,12 +30,12 @@ const showSettingsModal = ref(false);
     <div class="nav-right">
       <UiTip v-if="showBack" text="返回" placement="bottom">
         <button class="nav-btn" @click="router.push('/upload')">
-          <RiArrowLeftSLine class="icon" />
+          <RiArrowLeftSLine style="font-size: 18px" class="icon" />
         </button>
       </UiTip>
       <UiTip text="设置" placement="bottom">
         <button class="nav-btn" @click="showSettingsModal = true">
-          <RiSettings3Line class="icon" />
+          <RiSettings3Line style="font-size: 18px" class="icon" />
         </button>
       </UiTip>
     </div>
@@ -70,9 +70,6 @@ const showSettingsModal = ref(false);
   justify-content: center;
 }
 .tool-logo {
-  font-family: "remixicon", sans-serif;
-  font-style: normal;
-  font-size: 26px;
   line-height: 1;
   color: var(--color-primary, #C0392B);
 }
@@ -100,8 +97,8 @@ const showSettingsModal = ref(false);
   gap: 12px;
 }
 .nav-btn {
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: none;
   background-color: var(--color-bg-white, #FFFFFF);
@@ -114,17 +111,14 @@ const showSettingsModal = ref(false);
 }
 .nav-btn:hover {
   background-color: var(--color-primary, #C0392B);
-  color: #fff;
+  color: var(--color-on-primary, #fff);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary, #C0392B) 30%, transparent);
 }
 .nav-btn .icon {
-  font-family: "remixicon", sans-serif;
-  font-style: normal;
-  font-size: 14px;
   color: var(--color-text-secondary, #6E6A60);
 }
 .nav-btn:hover .icon {
-  color: #fff;
+  color: var(--color-on-primary, #fff);
 }
 </style>

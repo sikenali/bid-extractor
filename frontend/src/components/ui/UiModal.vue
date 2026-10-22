@@ -9,7 +9,7 @@
  *   <UiInput v-model="name" placeholder="请输入" />
  * </UiModal>
  */
-import { watch, onMounted, onUnmounted } from 'vue';
+import { watch, onMounted, onUnmounted, computed } from 'vue';
 import { riToCompName } from '@/utils/icon';
 
 const props = withDefaults(defineProps<{
@@ -20,6 +20,12 @@ const props = withDefaults(defineProps<{
   icon?: string;
   /** 面板宽度（px 数字或 css 字符串），默认 560 */
   width?: number | string;
+  /** 面板最大宽度（DESIGN §8.1：设置中心 1400px / 普通 600px） */
+  maxWidth?: number | string;
+  /** 面板高度（DESIGN §8.1：设置中心 92vh / 普通 calc(100vh - 40px)） */
+  height?: number | string;
+  /** 面板底色（DESIGN §5.1：设置中心 var(--color-bg-secondary)） */
+  panelBackground?: string;
   /** 点击遮罩关闭 */
   closeOnClickOverlay?: boolean;
   /** ESC 关闭 */
@@ -38,6 +44,8 @@ const props = withDefaults(defineProps<{
   subtitle: '',
   icon: 'ri-file-edit-line',
   width: 560,
+  maxWidth: '600px',
+  height: 'calc(100vh - 40px)',
   closeOnClickOverlay: true,
   closeOnEsc: true,
   showClose: true,
@@ -47,6 +55,16 @@ const props = withDefaults(defineProps<{
   confirmDisabled: false,
   confirmLoading: false,
 });
+
+function toCss(v: number | string) {
+  return typeof v === 'number' ? v + 'px' : v;
+}
+const panelStyle = computed(() => ({
+  width: toCss(props.width),
+  maxWidth: toCss(props.maxWidth),
+  height: toCss(props.height),
+  background: props.panelBackground,
+}));
 
 const emit = defineEmits<{
   (e: 'update:modelValue', v: boolean): void;
@@ -76,9 +94,18 @@ function lockScroll(lock: boolean) {
   lockCount = Math.max(0, lockCount + (lock ? 1 : -1));
   document.body.style.overflow = lockCount > 0 ? 'hidden' : '';
 }
-watch(() => props.modelValue, v => lockScroll(v), { immediate: false });
-onMounted(() => { if (props.modelValue) lockScroll(true); });
-onUnmounted(() => { if (props.modelValue) lockScroll(false); });
+// Escape 关闭需要挂到 document，否则焦点不在弹框内时收不到按键
+function toggleEscListener(v: boolean) {
+  if (v) document.addEventListener('keydown', onKey);
+  else document.removeEventListener('keydown', onKey);
+}
+watch(() => props.modelValue, v => { lockScroll(v); toggleEscListener(v); });
+onMounted(() => {
+  if (props.modelValue) { lockScroll(true); toggleEscListener(true); }
+});
+onUnmounted(() => {
+  if (props.modelValue) { lockScroll(false); toggleEscListener(false); }
+});
 </script>
 
 <template>
@@ -87,14 +114,14 @@ onUnmounted(() => { if (props.modelValue) lockScroll(false); });
       <div v-if="modelValue" class="ui-modal-overlay" @click.self="closeOnClickOverlay && close()">
         <div
           class="ui-modal-panel"
-          :style="{ width: typeof width === 'number' ? width + 'px' : width }"
+          :style="panelStyle"
           role="dialog"
           aria-modal="true"
         >
           <div class="ui-modal-header">
             <div class="ui-modal-header-left">
               <div class="ui-modal-icon">
-                <component :is="riToCompName(icon)" />
+                <component :is="riToCompName(icon)" style="font-size: 26px" />
               </div>
               <div class="ui-modal-header-text">
                 <h2 class="ui-modal-title">{{ title }}</h2>
@@ -152,14 +179,14 @@ onUnmounted(() => { if (props.modelValue) lockScroll(false); });
 }
 .ui-modal-panel {
   max-width: calc(100vw - 48px);
-  max-height: 90vh;
+  max-height: calc(100vh - 40px);
   background: var(--color-bg-white, #FFFFFF);
-  border-radius: 16px;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.1);
-  padding: 32px 36px;
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  padding: 28px 32px;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: hidden;
 }
 .ui-modal-header {
   display: flex;
@@ -225,7 +252,9 @@ onUnmounted(() => { if (props.modelValue) lockScroll(false); });
   display: flex;
   flex-direction: column;
   gap: 16px;
+  flex: 1;
   min-height: 0;
+  overflow-y: auto;
 }
 .ui-modal-footer {
   display: flex;
@@ -261,7 +290,7 @@ onUnmounted(() => { if (props.modelValue) lockScroll(false); });
   border: none;
   border-radius: 10px;
   background-color: var(--color-primary, #C0392B);
-  color: #fff;
+  color: var(--color-on-primary, #fff);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;

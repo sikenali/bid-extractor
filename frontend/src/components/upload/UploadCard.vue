@@ -1,15 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { ElMessage } from '@/utils/toast';
 import { uploadFile, getApiConfigStatus } from '@/api/upload';
-import StepStrip from '@/components/StepStrip.vue';
 import { UiTip } from '@/components/ui';
 import apiClient from '@/api/client';
-
-interface Step {
-  key: number;
-  label: string;
-}
 
 interface LlmSkill {
   id: string;
@@ -19,20 +13,18 @@ interface LlmSkill {
   enable_llm: number;
 }
 
-const props = withDefaults(defineProps<{
-  steps?: Step[];
+withDefaults(defineProps<{
   title?: string;
 }>(), {
-  steps: () => [
-    { key: 0, label: '文档解析' },
-    { key: 1, label: '规则抽取' },
-    { key: 2, label: '智能增强' },
-  ],
+  title: '',
 });
 
+// 状态回传给父层，便于 §3.1 把 StepStrip 平级渲染在 UploadCard 之外
 const emit = defineEmits<{
   (e: 'success', jobId: string): void;
   (e: 'replace'): void;
+  (e: 'update:file', file: File | null): void;
+  (e: 'update:uploading', uploading: boolean): void;
 }>();
 
 const uploading = ref(false);
@@ -41,6 +33,9 @@ const selectedFile = ref<File | null>(null);
 const selectedSkill = ref<string>('');
 const skills = ref<LlmSkill[]>([]);
 const modelConfigured = ref(false);
+
+watch(selectedFile, (val) => emit('update:file', val));
+watch(uploading, (val) => emit('update:uploading', val));
 
 onMounted(async () => {
   try {
@@ -137,12 +132,6 @@ function handleReplace() {
   emit('replace');
 }
 
-const btnDisabled = computed(() => uploading.value);
-const btnLabel = computed(() => {
-  if (uploading.value) return '提取中…';
-  return '一键提取';
-});
-
 function handleExtract() {
   if (uploading.value) return;
   if (!selectedFile.value) {
@@ -151,10 +140,12 @@ function handleExtract() {
   }
   startUpload(selectedFile.value);
 }
+
+// 提取按钮已迁出到父层的 StepStrip（DESIGN §3.1 平级布局），供父层调用
+defineExpose({ extract: handleExtract });
 </script>
 
 <template>
-  <div class="upload-wrapper">
     <div
       class="upload-card"
       :class="{ dragging: isDragging, hasFile: !!selectedFile && !uploading, uploading: uploading }"
@@ -183,7 +174,7 @@ function handleExtract() {
       <template v-else>
         <UiTip text="替换文件" placement="left" class="replace-tip">
           <button v-if="!uploading" class="replace-icon" @click.stop="handleReplace">
-            <RiRefreshLine class="icon" />
+            <RiCloseLine class="icon" />
           </button>
         </UiTip>
         <div class="file-centered">
@@ -246,25 +237,9 @@ function handleExtract() {
       </label>
       <span class="skill-hint">纯规则提取（未配置大模型，使用 officeparser + 正则/关键字规则）</span>
     </div>
-
-    <StepStrip
-      :steps="steps"
-      :loading="uploading"
-      :button-label="btnLabel"
-      :disabled="btnDisabled"
-      @extract="handleExtract"
-    />
-  </div>
 </template>
 
 <style scoped>
-.upload-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-}
-
 /* ── upload card ────────────────────────────────────── */
 .upload-card {
   width: min(875px, calc(100vw - 64px));
@@ -282,7 +257,6 @@ function handleExtract() {
   overflow: hidden;
   gap: 20px;
   padding: 40px 32px;
-  margin-bottom: 24px;
 }
 .upload-card.dragging {
   border-color: var(--color-primary, #C0392B);
@@ -293,6 +267,8 @@ function handleExtract() {
 }
 .upload-card.uploading {
   cursor: default;
+  opacity: 0.7;
+  pointer-events: none;
 }
 
 /* initial state */
@@ -333,14 +309,14 @@ function handleExtract() {
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-on-primary, #fff);
   font-family: "SourceHanSans-Bold", var(--font-family-cn);
   line-height: 1;
 }
 .fmt-w   { background-color: #2B579A; font-size: 11px; }
 .fmt-x   { background-color: #217346; font-size: 11px; }
 .fmt-p   { background-color: var(--color-primary, #C0392B); font-size: 11px; }
-.fmt-pdf { background-color: #B03A2E; font-size: 9px; }
+.fmt-pdf { background-color: var(--color-primary, #C0392B); font-size: 9px; }
 .fmt-md  { background-color: #4A6FA5; font-size: 9px; }
 .fmt-tx  { background-color: #5A5750; font-size: 9px; }
 
@@ -395,11 +371,11 @@ function handleExtract() {
   justify-content: center;
   flex-shrink: 0;
 }
-.file-icon.fmt-docx                      { background-color: #2B579A; color: #fff; }
-.file-icon.fmt-xlsx, .file-icon.fmt-csv   { background-color: #217346; color: #fff; }
-.file-icon.fmt-pdf, .file-icon.fmt-html   { background-color: var(--color-primary, #C0392B); color: #fff; }
-.file-icon.fmt-md                     { background-color: #4A6FA5; color: #fff; }
-.file-icon.fmt-txt                    { background-color: #5A5750; color: #fff; }
+.file-icon.fmt-docx                      { background-color: #2B579A; color: var(--color-on-primary, #fff); }
+.file-icon.fmt-xlsx, .file-icon.fmt-csv   { background-color: #217346; color: var(--color-on-primary, #fff); }
+.file-icon.fmt-pdf, .file-icon.fmt-html   { background-color: var(--color-primary, #C0392B); color: var(--color-on-primary, #fff); }
+.file-icon.fmt-md                     { background-color: #4A6FA5; color: var(--color-on-primary, #fff); }
+.file-icon.fmt-txt                    { background-color: #5A5750; color: var(--color-on-primary, #fff); }
 .file-name {
   margin: 0;
   font-size: 16px;
@@ -425,7 +401,7 @@ function handleExtract() {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-top: 20px;
   padding: 12px 20px;
   background: var(--color-bg-white, #fff);
   border: 0.7px solid var(--color-border-soft, #EDE9E0);

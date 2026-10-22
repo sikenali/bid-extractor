@@ -1,3 +1,4 @@
+import { resolveComponent } from 'vue';
 import type { Component } from 'vue';
 
 /**
@@ -13,7 +14,6 @@ export function riToCompName(riClass: string): string {
  * Falls back to RiQuestionLine if not found.
  */
 export function resolveIcon(name: string | undefined): Component {
-  if (!name) return {} as Component;
-  const compName = riToCompName(name);
-  return { __name: compName } as Component;
+  if (!name) return resolveComponent('RiQuestionLine') as unknown as Component;
+  return resolveComponent(riToCompName(name)) as unknown as Component;
 }

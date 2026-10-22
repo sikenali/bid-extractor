@@ -151,7 +151,7 @@ onUnmounted(() => {
   padding: 0 6px;
   border-radius: 9999px;
   background-color: var(--color-primary, #C0392B);
-  color: #fff;
+  color: var(--color-on-primary, #fff);
   font-size: 11.5px;
   font-weight: 600;
   display: inline-flex;

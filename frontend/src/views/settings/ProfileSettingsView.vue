@@ -2,6 +2,7 @@
 import { ref, onMounted, watch, computed } from 'vue';
 import { ElMessage } from '@/utils/toast';
 import { UiSwitch, UiInput, UiModal, UiSelect } from '@/components/ui';
+import { riToCompName } from '@/utils/icon';
 import RuleDialog from '@/components/settings/RuleDialog.vue';
 import apiClient from '@/api/client';
 import { getLlmSkills, createLlmSkill, updateLlmSkill, deleteLlmSkill, getLlmPrompts, getLlmEnhanceConfig, updateLlmEnhanceConfig, getLlmApiConfigs } from '@/api/llm';
@@ -222,7 +223,7 @@ async function handleSeedUniversal() {
     <!-- 标签导航 -->
     <div class="tab-nav">
       <button v-for="t in TABS" :key="t.key" class="tab-btn" :class="{active: mainTab===t.key}" @click="mainTab=t.key">
-        <span class="icon" :class="t.icon"></span><span>{{ t.label }}</span>
+        <component :is="riToCompName(t.icon)" class="icon" /><span>{{ t.label }}</span>
       </button>
     </div>
 
@@ -263,7 +264,7 @@ async function handleSeedUniversal() {
       <!-- LLM 增强配置区 -->
       <div class="llm-config-card">
         <div class="config-header">
-          <span class="config-title"><i class="ri-sparkling-2-line"></i>LLM 智能增强</span>
+          <span class="config-title"><RiSparkling2Line />LLM 智能增强</span>
           <UiSwitch :model-value="llmEnhanceConfig.enabled" size="sm" @update:model-value="(v:any)=>{ llmEnhanceConfig.enabled = v; saveLlmEnhanceConfig(); }" />
         </div>
         <div class="config-body" v-if="llmEnhanceConfig.enabled">
@@ -303,10 +304,10 @@ async function handleSeedUniversal() {
             </div>
             <div class="card-prompt-preview"><pre>{{ s.prompt_template }}</pre></div>
             <div class="card-meta">
-              <span class="meta clickable" :class="{on:s.enable_llm===1}" @click="toggleLlmFeature(s)" :title="s.enable_llm===1?'点击关闭LLM增强':'点击开启LLM增强'"><i class="ri-brain-line"></i>LLM增强</span>
-              <span v-if="s.bind_prompt_template_id" class="meta"><i class="ri-file-text-line"></i>已绑定模板</span>
-              <span class="meta"><i class="ri-settings-3-line"></i>t={{s.temperature}}</span>
-              <span class="meta"><i class="ri-history-line"></i>v{{s.version}}</span>
+              <span class="meta clickable" :class="{on:s.enable_llm===1}" @click="toggleLlmFeature(s)" :title="s.enable_llm===1?'点击关闭LLM增强':'点击开启LLM增强'"><RiBrainLine />LLM增强</span>
+              <span v-if="s.bind_prompt_template_id" class="meta"><RiFileTextLine />已绑定模板</span>
+              <span class="meta"><RiSettings3Line />t={{s.temperature}}</span>
+              <span class="meta"><RiHistoryLine />v{{s.version}}</span>
             </div>
             <div class="card-actions">
               <button class="act-btn edit" @click="openLlmEdit(s)">编辑</button>
@@ -358,7 +359,7 @@ async function handleSeedUniversal() {
           <UiInput v-model="rSearch" type="search" class="toolbar-search" placeholder="搜索规则字段或描述" clearable />
           <div class="group-filter">
             <button v-for="g in GROUP_META" :key="g.key" class="group-icon-btn" :class="{ active: rGroup === g.key }" @click="rGroup = rGroup === g.key ? '' : g.key" :title="g.label">
-              <span class="icon" :class="g.icon"></span>
+              <component :is="riToCompName(g.icon)" class="icon" />
             </button>
           </div>
         </div>
@@ -515,7 +516,7 @@ async function handleSeedUniversal() {
 .format-cell { flex:1; display:flex; align-items:center; gap:14px; padding:14px 18px; border:1.5px solid var(--color-border-soft,#EDE9E0); border-radius:12px; cursor:pointer; transition:all .15s; }
 .format-cell:hover { border-color:var(--color-primary,#C0392B); background:rgba(192,57,43,.02); }
 .format-cell.selected { border-color:var(--color-primary,#C0392B); background:var(--color-primary-soft,#FBE9E7); }
-.format-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:#fff; font-family:"SourceHanSans-Bold",var(--font-family-cn); flex-shrink:0; }
+.format-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color: var(--color-on-primary, #fff); font-family:"SourceHanSans-Bold",var(--font-family-cn); flex-shrink:0; }
 .format-info { display:flex; flex-direction:column; gap:2px; }
 .fi-name { font-size:15px; font-weight:500; color:var(--color-text-primary,#1F1D1A); font-family:"SourceHanSans-Medium",var(--font-family-cn); }
 .fi-desc { font-size:13px; color:var(--color-text-muted,#8A8578); font-family:"SourceHanSans-Regular",var(--font-family-cn); }
@@ -528,7 +529,7 @@ async function handleSeedUniversal() {
 
 /* Toolbar */
 .toolbar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
-.btn-primary { display:inline-flex; align-items:center; gap:6px; padding:0 16px; height:44px; border:none; border-radius:10px; background:var(--color-primary,#C0392B); color:#fff; font-size:14px; font-weight:500; cursor:pointer; font-family:"SourceHanSans-Medium",var(--font-family-cn); transition:all .2s; }
+.btn-primary { display:inline-flex; align-items:center; gap:6px; padding:0 16px; height:44px; border:none; border-radius:10px; background:var(--color-primary,#C0392B); color: var(--color-on-primary, #fff); font-size:14px; font-weight:500; cursor:pointer; font-family:"SourceHanSans-Medium",var(--font-family-cn); transition:all .2s; }
 .btn-primary:hover { background:color-mix(in srgb,var(--color-primary,#C0392B) 88%,black); }
 .btn-secondary { display:inline-flex; align-items:center; gap:6px; padding:0 16px; height:44px; border:0.7px solid var(--color-border,#E5DFD3); border-radius:10px; background:var(--color-bg-white,#fff); color:var(--color-text-body,#3A3A3A); font-size:14px; font-weight:500; cursor:pointer; font-family:"SourceHanSans-Medium",var(--font-family-cn); transition:all .2s; }
 .btn-secondary:hover { background:var(--color-bg-secondary,#F7F3EA); }
@@ -600,7 +601,7 @@ async function handleSeedUniversal() {
 .rule-toolbar { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
 .rule-toolbar-left { display:flex; gap:12px; align-items:center; }
 .rule-toolbar-right { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-.add-rule-button { display:inline-flex; align-items:center; gap:8px; padding:0 20px; height:46px; background:var(--color-primary,#C0392B); color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:500; cursor:pointer; font-family:"SourceHanSans-Medium",var(--font-family-cn); transition:all .2s; }
+.add-rule-button { display:inline-flex; align-items:center; gap:8px; padding:0 20px; height:46px; background:var(--color-primary,#C0392B); color: var(--color-on-primary, #fff); border:none; border-radius:10px; font-size:16px; font-weight:500; cursor:pointer; font-family:"SourceHanSans-Medium",var(--font-family-cn); transition:all .2s; }
 .add-rule-button:hover { filter:brightness(1.05); }
 .add-rule-button .icon { font-family:"remixicon",sans-serif; font-style:normal; font-size:20px; }
 .seed-universal-button { display:inline-flex; align-items:center; gap:6px; padding:0 16px; height:44px; border:0.7px solid var(--color-info,#4A72A8); border-radius:10px; background:rgba(74,114,168,.06); color:var(--color-info,#4A72A8); font-size:14px; font-weight:500; cursor:pointer; font-family:"SourceHanSans-Medium",var(--font-family-cn); transition:all .2s; }

@@ -93,90 +93,6 @@ watch([skills, searchTerm], ([s, t]) => {
   );
 });
 
-const MOCK_SKILLS: SkillItem[] = [
-  {
-    id: '1',
-    name: '招标文件要点提取',
-    description: '自动抽取资质门槛、工期与评分办法',
-    group: 'info',
-    type: 'rules',
-    fields: ['项目名称', '招标编号', '投标截止时间'],
-    enabled: true,
-    importedAt: new Date().toISOString(),
-    rules: [
-      { id: 'r1', fieldName: '项目名称', pattern: '项目名称[：:]\\s*(.+)', enabled: true, category: 'regex', groupName: 'info' },
-      { id: 'r2', fieldName: '招标编号', pattern: '招标编号', enabled: true, category: 'keyword', groupName: 'info' },
-      { id: 'r3', fieldName: '投标截止时间', pattern: '投标截止.*?(\\d{4}[年-/]\\d{1,2}[月-/]\\d{1,2})', enabled: true, category: 'regex', groupName: 'info' },
-    ],
-  },
-  {
-    id: '2',
-    name: '废标条款风险识别',
-    description: '比对废标红线，输出风险清单与预警',
-    group: 'business',
-    type: 'rules',
-    fields: ['废标条款', '风险等级'],
-    enabled: true,
-    importedAt: new Date().toISOString(),
-    rules: [
-      { id: 'r4', fieldName: '废标条款', pattern: '废标|否决投标|无效标', enabled: true, category: 'keyword', groupName: 'business' },
-      { id: 'r5', fieldName: '风险等级', pattern: '重大偏差|实质性偏离', enabled: true, category: 'regex', groupName: 'business' },
-    ],
-  },
-  {
-    id: '3',
-    name: '工程量清单核对',
-    description: '比对编码、单位与数量口径差异',
-    group: 'tech',
-    type: 'rules',
-    fields: ['清单编码', '工程量', '单位'],
-    enabled: true,
-    importedAt: new Date().toISOString(),
-    rules: [
-      { id: 'r6', fieldName: '清单编码', pattern: '[A-Z]{2,4}-\\d{3,6}', enabled: true, category: 'regex', groupName: 'tech' },
-      { id: 'r7', fieldName: '工程量', pattern: '工程量[:：]\\s*([\\d,\\.]+)', enabled: true, category: 'regex', groupName: 'tech' },
-    ],
-  },
-  {
-    id: '4',
-    name: '报价合理性分析',
-    description: '结合市场价区间识别异常报价项',
-    group: 'score',
-    type: 'rules',
-    fields: ['报价', '市场价'],
-    enabled: false,
-    importedAt: new Date().toISOString(),
-    rules: [
-      { id: 'r8', fieldName: '报价', pattern: '报价[:：]\\s*([\\d,\\.]+)\\s*万元', enabled: true, category: 'regex', groupName: 'score' },
-    ],
-  },
-  {
-    id: '5',
-    name: '方案相似度检测',
-    description: '检测自有方案与外部素材重合片段',
-    group: 'info',
-    type: 'rules',
-    fields: ['相似度', '重合片段'],
-    enabled: false,
-    importedAt: new Date().toISOString(),
-    rules: [
-      { id: 'r9', fieldName: '相似度', pattern: '相似度[:：]\\s*([\\d.]+)%', enabled: true, category: 'regex', groupName: 'info' },
-    ],
-  },
-  {
-    id: '6',
-    name: '公文红头自动套用',
-    description: '按 GB/T 9704 一键套合红头与版记',
-    group: 'tech',
-    type: 'prompt',
-    fields: ['公文格式'],
-    content: '请按照GB/T 9704-2012标准，对文档进行红头、版记和页码格式化。',
-    enabled: true,
-    importedAt: new Date().toISOString(),
-    rules: [],
-  },
-];
-
 async function handleResetSkills() {
   try {
     await ElMessageBox.confirm('确定恢复默认技能？已导入的自定义技能将被清除。', '确认恢复默认');
@@ -319,7 +235,7 @@ onMounted(loadSkills);
           <span>导入技能</span>
         </button>
         <button class="btn-sync" :disabled="syncLoading" @click="handleSyncSkills">
-          <span class="icon" :class="syncLoading ? 'ri-loader-4-line spinning' : 'ri-refresh-line'"></span>
+          <RiLoader4Line v-if="syncLoading" class="icon spinning" /><RiRefreshLine v-else class="icon" />
           <span>{{ syncLoading ? '同步中...' : '同步技能' }}</span>
         </button>
       </div>
@@ -586,7 +502,7 @@ onMounted(loadSkills);
   border: none;
   border-radius: 10px;
   background: var(--color-primary, #C0392B);
-  color: #fff;
+  color: var(--color-on-primary, #fff);
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;

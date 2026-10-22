@@ -10,6 +10,7 @@
  * <UiInput v-model="desc" multiline :rows="3" />
  */
 import { computed, useAttrs } from 'vue';
+import { riToCompName } from '@/utils/icon';
 
 const props = withDefaults(defineProps<{
   modelValue?: string | number;
@@ -73,7 +74,7 @@ function clear() {
     class="ui-input"
     :class="['is-' + size, { 'has-prefix': prefixIcon || type === 'search', 'has-clear': showClear, 'has-suffix': $slots.suffix, 'is-disabled': disabled }]"
   >
-    <span v-if="prefixIcon || type === 'search'" :class="['ui-input-prefix icon', prefixIcon || 'ri-search-line']"></span>
+    <component v-if="prefixIcon || type === 'search'" :is="riToCompName(prefixIcon || 'ri-search-line')" class="ui-input-prefix icon" />
     <textarea
       v-if="multiline"
       class="ui-input-el"
@@ -134,10 +135,10 @@ function clear() {
   font-family: "SourceHanSans-Regular", var(--font-family-cn), sans-serif;
 }
 .is-sm .ui-input-el { height: 36px; padding: 0 12px; font-size: 16px; }
-.is-md .ui-input-el { height: 44px; padding: 0 16px; }
-.is-lg .ui-input-el { height: 52px; padding: 0 18px; font-size: 15px; }
+.is-md .ui-input-el { height: 42px; padding: 0 16px; }
+.is-lg .ui-input-el { height: 48px; padding: 0 18px; font-size: 15px; }
 textarea.ui-input-el { height: auto; padding: 12px 16px; resize: vertical; line-height: 1.6; }
-.ui-input-el::placeholder { color: var(--color-text-faint, #A7A296); }
+.ui-input-el::placeholder { color: var(--color-text-muted, #8A8578); }
 .ui-input-el:hover:not(:disabled) { border-color: var(--color-border-hover, #D9D2C2); }
 .ui-input-el:focus {
   border-color: var(--color-primary, #C0392B);

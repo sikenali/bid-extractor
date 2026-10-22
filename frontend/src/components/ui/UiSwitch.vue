@@ -51,7 +51,7 @@ function toggle() {
   border-radius: 9999px;
   padding: 3px;
   cursor: pointer;
-  background-color: var(--color-border, #E5DFD3);
+  background-color: var(--color-bg-secondary, #F7F3EA);
   transition: background-color 0.22s ease, opacity 0.2s;
   display: flex;
   justify-content: flex-start;
@@ -65,10 +65,11 @@ function toggle() {
 }
 .ui-switch-knob {
   border-radius: 9999px;
-  background-color: #fff;
+  background-color: var(--color-text-faint, #86909C);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
-  transition: transform 0.22s ease;
+  transition: transform 0.22s ease, background-color 0.22s ease;
 }
+.ui-switch.is-on .ui-switch-knob { background-color: var(--color-on-primary, #fff); }
 .is-md .ui-switch-knob { width: 20px; height: 20px; }
 .is-sm .ui-switch-knob { width: 18px; height: 18px; }
 .ui-switch:active:not(:disabled) .ui-switch-knob { transform: scale(0.92); }

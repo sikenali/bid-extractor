@@ -1,8 +1,7 @@
 ﻿import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import * as RemixIcons from '@remixicon/vue';
-import ElementPlus from 'element-plus';
-import 'element-plus/dist/index.css';
+import 'remixicon/fonts/remixicon.css';
 import App from './App.vue';
 import router from './router';
 import './assets/global.css';
@@ -12,7 +11,6 @@ document.title = BRAND_TITLE;
 
 const app = createApp(App);
 app.use(createPinia());
-app.use(ElementPlus);
 app.use(router);
 
 for (const [name, component] of Object.entries(RemixIcons)) {

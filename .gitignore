@@ -19,6 +19,7 @@ scratch/
 *.tsbuildinfo
 vite.config.d.ts
 release/frontend/core/
+frontend/core
 frontend/core/
 
 # 本地设计参考文档（不入库）

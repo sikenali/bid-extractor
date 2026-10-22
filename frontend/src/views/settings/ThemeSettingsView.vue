@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { ElMessage } from '@/utils/toast';
-import { useRouter } from 'vue-router';
-import { useThemeStore } from '@/stores/theme';
+import { useThemeStore, THEME_STORAGE } from '@/stores/theme';
 import { UiCheck } from '@/components/ui';
 import { setTheme as saveTheme } from '@/api/settings';
 
 const themeStore = useThemeStore();
-const router = useRouter();
 
 interface ThemeOption {
   type: string;
@@ -44,15 +42,15 @@ interface AccentOption {
   key: string;
   name: string;
   color: string;
-  varName: string;
 }
 
+// 朱红取 §7 --color-primary #C0392B（§6.3 的 #BE3B2E 为规范内部冲突值，已让位于 §7）
 const accents: AccentOption[] = [
-  { key: 'vermilion', name: '朱红 · 默认', color: '#BE3B2E', varName: '--color-primary' },
-  { key: 'gold', name: '鎏金', color: '#D3A93F', varName: '--color-accent-gold' },
-  { key: 'jade', name: '玉绿', color: '#3E8C6E', varName: '--color-accent-jade' },
-  { key: 'cloud', name: '云蓝', color: '#4A72A8', varName: '--color-accent-cloud' },
-  { key: 'ink', name: '黛墨', color: '#2F3640', varName: '--color-accent-ink' },
+  { key: 'vermilion', name: '朱红 · 默认', color: '#C0392B' },
+  { key: 'gold', name: '鎏金', color: '#D3A93F' },
+  { key: 'jade', name: '玉绿', color: '#3E8C6E' },
+  { key: 'cloud', name: '云蓝', color: '#4A72A8' },
+  { key: 'ink', name: '黛墨', color: '#2F3640' },
 ];
 
 interface LayoutOption {
@@ -71,12 +69,16 @@ const selectedAccent = ref('vermilion');
 const selectedLayout = ref('topbar');
 
 onMounted(() => {
-  const savedTheme = localStorage.getItem('theme');
+  const savedTheme = localStorage.getItem(THEME_STORAGE.theme);
   if (savedTheme && themes.some(t => t.type === savedTheme)) {
     selectedTheme.value = savedTheme;
+  } else if (themeStore.currentTheme) {
+    selectedTheme.value = themeStore.currentTheme;
   }
-  selectedAccent.value = localStorage.getItem('accent') || 'vermilion';
-  selectedLayout.value = localStorage.getItem('layout') || 'topbar';
+  // localStorage 中存的是 hex，需要映射回色板 key 才能正确高亮
+  const savedAccent = localStorage.getItem(THEME_STORAGE.accent);
+  selectedAccent.value = (savedAccent && accents.find(a => a.color === savedAccent)?.key) || 'vermilion';
+  selectedLayout.value = localStorage.getItem(THEME_STORAGE.layout) || themeStore.layout;
 });
 
 async function selectTheme(type: string) {
@@ -91,13 +93,14 @@ function selectAccent(key: string) {
   selectedAccent.value = key;
   const accent = accents.find(a => a.key === key);
   if (!accent) return;
-  localStorage.setItem('accent', key);
-  themeStore.applyAccent(accent.color);
+  // 「朱红 · 默认」不覆写主色，还原主题默认 --color-primary（DESIGN §7 #C0392B）
+  // 持久化由 applyAccent 统一负责（存 hex），此处不再单独写 localStorage
+  themeStore.applyAccent(key === 'vermilion' ? null : accent.color);
 }
 
 function selectLayout(key: string) {
   selectedLayout.value = key;
-  localStorage.setItem('layout', key);
+  themeStore.setLayout(key as 'topbar' | 'sidebar');
   ElMessage.success(`已切换布局：${layouts.find(l => l.key === key)?.name || ''}，页面将刷新以生效`);
   setTimeout(() => window.location.reload(), 800);
 }
@@ -108,9 +111,8 @@ function resetAll() {
   selectedLayout.value = 'topbar';
   themeStore.setTheme('parchment');
   saveTheme('parchment').catch(() => {});
-  localStorage.setItem('accent', 'vermilion');
-  themeStore.applyAccent('#BE3B2E');
-  localStorage.setItem('layout', 'topbar');
+  themeStore.applyAccent(null);
+  themeStore.setLayout('topbar');
   ElMessage.success('已恢复默认');
 }
 </script>
@@ -446,7 +448,7 @@ function resetAll() {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 30px;
-  color: #fff;
+  color: var(--color-on-primary, #fff);
 }
 .accent-name {
   font-size: 15px;
@@ -501,7 +503,7 @@ function resetAll() {
 }
 .mockup-header {
   height: 32px;
-  background-color: #fff;
+  background-color: var(--color-on-primary, #fff);
   border-radius: 6px;
   padding: 0 12px;
   display: flex;

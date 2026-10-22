@@ -360,9 +360,10 @@ router.put('/profile', (req, res) => {
 });
 
 // 获取 LLM 模型配置状态（是否有启用的 API key）
+// 注意：SQLite 中空字符串字面量必须用单引号 ''；双引号 "" 会被当作标识符引用而抛错
 router.get('/model-config', (_req, res) => {
   const row = db.prepare(
-    'SELECT COUNT(*) as cnt FROM api_configs WHERE enabled = 1 AND api_key IS NOT NULL AND api_key != ""'
+    "SELECT COUNT(*) as cnt FROM api_configs WHERE enabled = 1 AND api_key IS NOT NULL AND TRIM(api_key) != ''"
   ).get() as { cnt: number };
   res.json({ modelConfigured: (row?.cnt ?? 0) > 0 });
 });

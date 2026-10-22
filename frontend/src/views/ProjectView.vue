@@ -7,7 +7,7 @@ import PageFooter from '@/components/layout/PageFooter.vue';
 import PreviewModal from '@/components/preview/PreviewModal.vue';
 import CreditQualificationModal from '@/components/layout/CreditQualificationModal.vue';
 import BiddingSitesModal from '@/components/layout/BiddingSitesModal.vue';
-import { UiModal, UiInput } from '@/components/ui';
+import { UiModal, UiInput, Pagination } from '@/components/ui';
 import { getParseStatus } from '@/api/upload';
 import { getExportSettings } from '@/api/settings';
 import apiClient from '@/api/client';
@@ -46,7 +46,7 @@ const showCreditModal = ref(false);
 const showBiddingModal = ref(false);
 
 function handleReupload() {
-  router.replace({ path: '/' });
+  router.replace({ path: '/upload' });
 }
 
 const activeSection = ref('info');
@@ -54,12 +54,12 @@ const currentPage = ref(1);
 const pageSize = ref(10);
 
 const sidebarItems = [
-  { key: 'info', label: '项目信息', icon: 'ri-file-list-3-line' },
-  { key: 'business', label: '商务条款', icon: 'ri-file-paper-2-line' },
-  { key: 'tech', label: '技术条款', icon: 'ri-search-eye-line' },
-  { key: 'score', label: '评分标准', icon: 'ri-layout-line' },
-  { key: 'seal', label: '封标信息', icon: 'ri-mail-send-line' },
-  { key: 'star', label: '标星条款', icon: 'ri-star-s-line' }
+  { key: 'info', label: '项目信息', icon: 'ri-file-list-3-line', color: 'var(--color-info, #4A72A8)' },
+  { key: 'business', label: '商务条款', icon: 'ri-file-paper-2-line', color: 'var(--color-primary, #C0392B)' },
+  { key: 'tech', label: '技术条款', icon: 'ri-search-eye-line', color: 'var(--color-success, #4E9B7A)' },
+  { key: 'score', label: '评分标准', icon: 'ri-layout-line', color: 'var(--color-warning, #F39C12)' },
+  { key: 'seal', label: '封标信息', icon: 'ri-mail-send-line', color: 'var(--color-error, #E74C3C)' },
+  { key: 'star', label: '标星条款', icon: 'ri-star-s-line', color: 'var(--color-text-secondary, #6E6A60)' }
 ];
 
 const fixedFields: Record<string, string[]> = {
@@ -161,6 +161,25 @@ const sectionCounts = computed<Record<string, number>>(() => {
   }
   return counts;
 });
+
+/** §4.4 统计卡片：已提取 / 提取警告 / 未命中 */
+const totalFixedFields = computed(() =>
+  Object.values(fixedFields).reduce((sum, arr) => sum + arr.length, 0)
+);
+const extractedCount = computed(() => tableData.value.length);
+const missingCount = computed(() => Math.max(0, totalFixedFields.value - extractedCount.value));
+
+function formatTime(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+const extractTime = ref('');
+const extractStats = computed(() => [
+  { key: 'pass', label: '已提取字段', value: extractedCount.value, tone: 'success' },
+  { key: 'warn', label: '提取警告', value: extractWarnings.value.length, tone: 'warning' },
+  { key: 'risk', label: '未命中字段', value: missingCount.value, tone: 'error' }
+]);
 
 function extractScore(raw: string): string {
   if (!raw) return '-';
@@ -412,6 +431,7 @@ function processResult(statusData: any) {
   fileInfo.value.pageCount = result?.pageCount || 0;
   extractMode.value = result?.extractMode || 'rule_only';
   extractWarnings.value = (result?.warningList || []) as string[];
+  extractTime.value = extractTime.value || formatTime(new Date());
 }
 
 function handleCopy(field: string) {
@@ -729,8 +749,20 @@ function triggerDownload(blob: Blob, filename: string) {
             :class="{ active: activeSection === item.key }"
             @click="selectSection(item.key)"
           >
+            <span class="sidebar-item-bar" :style="{ backgroundColor: item.color }"></span>
             <span class="sidebar-item-label">{{ item.label }}<span class="sidebar-item-count">&nbsp;·&nbsp;{{ sectionCounts[item.key] || 0 }}</span></span>
           </div>
+        </div>
+
+        <div class="conclusion-card">
+          <div class="conclusion-title">本次提取结论</div>
+          <p class="conclusion-main">
+            共识别 {{ totalFixedFields }} 项标准字段，成功提取 {{ extractedCount }} 项，{{ missingCount }} 项未命中
+          </p>
+          <p class="conclusion-detail">
+            覆盖文档 {{ fileInfo.pageCount }} 页，解析 {{ fileInfo.name || '招标文件' }}
+          </p>
+          <div class="conclusion-time">{{ extractTime || '—' }}</div>
         </div>
       </aside>
 
@@ -753,6 +785,14 @@ function triggerDownload(blob: Blob, filename: string) {
             <div v-if="exporting" class="export-progress">
               <div class="export-progress-bar" :style="{ width: exportProgress + '%' }"></div>
             </div>
+          </div>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="stats-row">
+          <div v-for="s in extractStats" :key="s.key" class="stat-card" :class="`is-${s.tone}`">
+            <span class="stat-value">{{ s.value }}</span>
+            <span class="stat-label">{{ s.label }}</span>
           </div>
         </div>
 
@@ -786,9 +826,12 @@ function triggerDownload(blob: Blob, filename: string) {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in paginatedData" :key="row.field" class="data-row">
+              <tr v-for="row in paginatedData" :key="row.field" class="data-row" :class="{ 'is-missing': !row.value }">
                 <td class="col-name">
-                  <span>{{ row.field }}</span>
+                  <div class="col-name-inner">
+                    <span class="col-name-text">{{ row.field }}</span>
+                    <span v-if="!row.value" class="status-tag is-missing"><i></i>未提取</span>
+                  </div>
                 </td>
                 <td class="col-value">
                   <span>{{ row.value || '—' }}</span>
@@ -847,21 +890,18 @@ function triggerDownload(blob: Blob, filename: string) {
           </div>
         </div>
 
-        <div class="pagination-row">
-          <span class="page-info">共 {{ totalRows }} 条 · 每页 {{ pageSize }} 条 · 第 {{ currentPage }} / {{ totalPages }} 页</span>
-          <div class="pagination">
-            <button class="page-btn" :disabled="currentPage <= 1" @click="goPage(currentPage - 1)">
-              <RiArrowLeftSLine class="icon" />
-            </button>
-            <template v-for="p in totalPages" :key="p">
-              <button
-                v-if="p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2"
-                class="page-num" :class="{ active: currentPage === p }" @click="goPage(p)">{{ p }}</button>
-            </template>
-            <button class="page-btn" :disabled="currentPage >= totalPages" @click="goPage(currentPage + 1)">
-              <RiArrowRightSLine class="icon" />
-            </button>
-          </div>
+        <Pagination :current="currentPage" :total="totalRows" :page-size="pageSize" @change="goPage" />
+
+        <div class="bottom-actions">
+          <button class="btn-back" @click="handleReupload">
+            <RiArrowLeftSLine style="font-size: 16px" class="icon" />
+            <span>返回重新上传</span>
+          </button>
+          <button class="btn-export" :disabled="exporting" @click="handleExport">
+            <RiLoader4Line v-if="exporting" style="font-size: 16px" class="icon spinning" />
+            <RiDownload2Line v-else style="font-size: 16px" class="icon" />
+            <span>{{ exporting ? '导出中…' : '导出结果' }}</span>
+          </button>
         </div>
       </main>
     </div>
@@ -909,9 +949,12 @@ function triggerDownload(blob: Blob, filename: string) {
   background-color: var(--color-bg-white, #FFFFFF);
   padding: 24px 20px;
   border-right: 0.7px solid var(--color-border-soft, #EDE9E0);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
 }
 .sidebar-title {
-  padding: 0 12px;
+  padding: 0 0 0 12px;
   font-size: 15px;
   color: var(--color-text-muted, #8A8578);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
@@ -942,13 +985,57 @@ function triggerDownload(blob: Blob, filename: string) {
   color: var(--color-text-body, #3A3A3A);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
+.sidebar-item-bar {
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  margin-right: 12px;
+}
 .sidebar-item-count {
   color: inherit;
 }
 .sidebar-item.active .sidebar-item-label {
   color: var(--color-primary, #C0392B);
-  font-weight: 500;
+  font-weight: 600;
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
+}
+.conclusion-card {
+  margin-top: auto;
+  padding: 18px;
+  border-radius: 12px;
+  background-color: var(--color-bg-secondary, #F7F3EA);
+  border: 0.7px solid var(--color-border-soft, #EDE9E0);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.conclusion-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary, #1F1D1A);
+  font-family: "SourceHanSans-Medium", var(--font-family-cn);
+}
+.conclusion-main {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-body, #3A3A3A);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+.conclusion-detail {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-muted, #8A8578);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+.conclusion-time {
+  font-size: 12px;
+  color: var(--color-text-faint, #A7A296);
+  font-family: var(--font-family);
+  border-top: 0.7px solid var(--color-border-soft, #EDE9E0);
+  padding-top: 8px;
 }
 
 .content {
@@ -971,6 +1058,36 @@ function triggerDownload(blob: Blob, filename: string) {
   font-family: "SourceHanSans-Bold", var(--font-family-cn);
   color: var(--color-text-primary, #1F1D1A);
   line-height: 1.2;
+}
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.stat-card {
+  height: 80px;
+  padding: 0 24px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.stat-card.is-success { background-color: rgba(228, 240, 234, 1); }
+.stat-card.is-warning { background-color: rgba(253, 246, 227, 1); }
+.stat-card.is-error { background-color: rgba(251, 233, 231, 1); }
+.stat-value {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  font-family: var(--font-family);
+}
+.stat-card.is-success .stat-value { color: var(--color-success, #4E9B7A); }
+.stat-card.is-warning .stat-value { color: var(--color-warning, #F39C12); }
+.stat-card.is-error .stat-value { color: var(--color-error, #E74C3C); }
+.stat-label {
+  font-size: 14px;
+  color: var(--color-text-secondary, #6E6A60);
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
 .action-group {
   display: flex;
@@ -1076,6 +1193,9 @@ function triggerDownload(blob: Blob, filename: string) {
   border-collapse: collapse;
 }
 .extract-table thead tr {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background-color: var(--color-bg-secondary, #F7F3EA);
 }
 .extract-table th {
@@ -1107,21 +1227,55 @@ function triggerDownload(blob: Blob, filename: string) {
   min-width: 130px;
 }
 .extract-table td {
-  height: 82px;
+  height: 76px;
   padding: 0 24px;
   font-size: 16px;
   vertical-align: middle;
   border-top: 0.7px solid var(--color-border-soft, #EDE9E0);
   box-sizing: border-box;
 }
-.extract-table tbody tr:nth-child(2n) {
+.extract-table tbody tr:hover {
   background-color: var(--color-bg-card, #FCFBF8);
+}
+.extract-table tbody tr.data-row.is-missing {
+  background-color: color-mix(in srgb, var(--color-error-soft, #FADCDA) 55%, transparent);
 }
 .data-row .col-name {
   font-weight: 500;
   color: var(--color-text-primary, #1F1D1A);
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
+.col-name-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.col-name-text {
+  display: block;
+}
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.2;
+  font-family: "SourceHanSans-Regular", var(--font-family-cn);
+}
+.status-tag i {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+.status-tag.is-missing {
+  background-color: var(--color-error-soft, #FADCDA);
+  color: var(--color-error, #E74C3C);
+}
+.status-tag.is-missing i { background-color: var(--color-error, #E74C3C); }
 .data-row .col-value {
   color: var(--color-text-body, #3A3A3A);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
@@ -1275,59 +1429,46 @@ function triggerDownload(blob: Blob, filename: string) {
   color: var(--color-text-primary, #1F1D1A);
 }
 
-.pagination-row {
+.bottom-actions {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 12px;
+  padding-top: 16px;
 }
-.page-info {
-  font-size: 15px;
-  color: var(--color-text-muted, #8A8578);
-  font-family: "SourceHanSans-Regular", var(--font-family-cn);
-}
-.pagination {
+.btn-back,
+.btn-export {
+  height: 46px;
+  padding: 0 24px;
   display: flex;
   align-items: center;
   gap: 8px;
-}
-.page-btn {
-  width: 40px;
-  height: 40px;
-  border: 0.7px solid var(--color-border, #E5DFD3);
-  border-radius: 10px;
-  background-color: var(--color-bg-card, #FCFBF8);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.page-btn .icon {
-  font-family: "remixicon", sans-serif;
-  font-style: normal;
-  font-size: 18px;
-  color: var(--color-text-secondary, #6E6A60);
-}
-.page-num {
-  width: 34px;
-  height: 34px;
-  border: 0.7px solid var(--color-border, #E5DFD3);
-  border-radius: 8px;
-  background-color: var(--color-bg-card, #FCFBF8);
+  border-radius: 12px;
   font-size: 15px;
-  color: var(--color-text-body, #3A3A3A);
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transition: background-color 0.2s, opacity 0.2s;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
 }
-.page-num.active {
-  background-color: var(--color-primary, #C0392B);
-  border-color: var(--color-primary, #C0392B);
-  color: #fff;
-  font-weight: 500;
+.btn-back {
+  border: 0.7px solid var(--color-border, #E5DFD3);
+  background-color: var(--color-bg-card, #FCFBF8);
+  color: var(--color-text-body, #3A3A3A);
 }
+.btn-back:hover {
+  background-color: var(--color-bg-secondary, #F7F3EA);
+}
+.btn-back .icon {
+  font-style: normal;
+  color: var(--color-text-secondary, #6E6A60);
+}
+.btn-export {
+  border: none;
+  background-color: var(--color-primary, #C0392B);
+  color: var(--color-on-primary, #fff);
+}
+.btn-export:hover:not(:disabled) { opacity: 0.92; }
+.btn-export:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-export .icon { font-style: normal; }
+.btn-export .spinning { animation: spin 1s linear infinite; display: inline-flex; }
 
 /* Loading & Error */
 .loading-overlay {

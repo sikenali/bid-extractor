@@ -30,7 +30,7 @@ const appVersion = 'V1.0.0';
     <!-- 品牌信息卡片 -->
     <div class="about-card">
       <div class="about-badge">
-        <span class="ri-target-line badge-logo"></span>
+        <RiTargetLine class="badge-logo" />
       </div>
 
       <div class="about-name">{{ BRAND_TITLE }}</div>
@@ -125,8 +125,8 @@ const appVersion = 'V1.0.0';
   width: 118px;
   height: 118px;
   border-radius: 50%;
-  border: 0.7px solid #E8D9B0;
-  background-color: #FBF5E3;
+  border: 0.7px solid var(--color-border, #E5DFD3);
+  background-color: var(--color-warning-soft, #FEF5E7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -136,7 +136,7 @@ const appVersion = 'V1.0.0';
   font-style: normal;
   font-size: 52px;
   line-height: 1;
-  color: #BE3B2E;
+  color: var(--color-primary, #C0392B);
 }
 .about-name {
   margin-top: 32px;
