@@ -247,7 +247,6 @@ defineExpose({ extract: handleExtract });
 }
 .upload-card.uploading {
   cursor: default;
-  opacity: 0.7;
   pointer-events: none;
 }
 
