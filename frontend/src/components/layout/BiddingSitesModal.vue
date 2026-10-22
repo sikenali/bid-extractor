@@ -38,7 +38,7 @@
   </UiModal>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import UiModal from '../ui/UiModal.vue'
 
 defineProps({

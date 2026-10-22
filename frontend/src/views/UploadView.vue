@@ -30,6 +30,10 @@ function handleSuccess(jobId: string) {
 function handleReplace() {
   try { sessionStorage.removeItem('bidextractor.lastJobId'); } catch {}
 }
+
+function handleExtract() {
+  cardRef.value?.extract();
+}
 </script>
 
 <template>
@@ -52,7 +56,7 @@ function handleReplace() {
         :loading="uploading"
         button-label="一键提取"
         :disabled="uploading"
-        @extract="cardRef()?.extract()"
+        @extract="handleExtract"
       />
     </div>
 

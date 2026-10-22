@@ -25,7 +25,7 @@
   </footer>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { BRAND_NAME } from '@/constants/brand';
 import { UiTip } from '@/components/ui';
