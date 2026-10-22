@@ -54,12 +54,12 @@ const currentPage = ref(1);
 const pageSize = ref(10);
 
 const sidebarItems = [
-  { key: 'info', label: '项目信息', color: 'var(--color-info, #4A72A8)' },
-  { key: 'business', label: '商务条款', color: 'var(--color-primary, #C0392B)' },
-  { key: 'tech', label: '技术条款', color: 'var(--color-success, #4E9B7A)' },
-  { key: 'score', label: '评分标准', color: 'var(--color-warning, #F39C12)' },
-  { key: 'seal', label: '封标信息', color: 'var(--color-error, #E74C3C)' },
-  { key: 'star', label: '标星条款', color: 'var(--color-text-secondary, #6E6A60)' }
+  { key: 'info', label: '项目信息', color: 'var(--color-info, #4A72A8)', icon: 'RiFolderOpenLine' },
+  { key: 'business', label: '商务条款', color: 'var(--color-primary, #C0392B)', icon: 'RiBriefcaseLine' },
+  { key: 'tech', label: '技术条款', color: 'var(--color-success, #4E9B7A)', icon: 'RiCodeSSlashLine' },
+  { key: 'score', label: '评分标准', color: 'var(--color-warning, #F39C12)', icon: 'RiStarLine' },
+  { key: 'seal', label: '封标信息', color: 'var(--color-error, #E74C3C)', icon: 'RiSealLine' },
+  { key: 'star', label: '标星条款', color: 'var(--color-text-secondary, #6E6A60)', icon: 'RiFlagLine' }
 ];
 
 const fixedFields: Record<string, string[]> = {
@@ -750,6 +750,7 @@ function triggerDownload(blob: Blob, filename: string) {
             @click="selectSection(item.key)"
           >
             <span class="sidebar-item-bar" :style="{ backgroundColor: item.color }"></span>
+            <component :is="item.icon" size="18" class="sidebar-item-icon" />
             <span class="sidebar-item-label">{{ item.label }}<span class="sidebar-item-count">&nbsp;·&nbsp;{{ sectionCounts[item.key] || 0 }}</span></span>
           </div>
         </div>
@@ -945,16 +946,17 @@ function triggerDownload(blob: Blob, filename: string) {
   min-height: 0;
 }
 .sidebar {
-  width: 300px;
+  width: 310px;
+  flex-shrink: 0;
   background-color: var(--color-bg-white, #FFFFFF);
   padding: 24px 20px;
   border-right: 0.7px solid var(--color-border-soft, #EDE9E0);
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
+  overflow-y: auto;
 }
 .sidebar-title {
-  padding: 0 0 0 12px;
+  padding: 0 12px;
   font-size: 15px;
   color: var(--color-text-muted, #8A8578);
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
@@ -966,39 +968,50 @@ function triggerDownload(blob: Blob, filename: string) {
   gap: 4px;
 }
 .sidebar-item {
-  height: 52px;
-  padding: 0 16px;
-  border-radius: 10px;
+  height: 50px;
   display: flex;
   align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  border: none;
+  border-radius: var(--radius-md, 10px);
+  background: transparent;
+  color: var(--color-text-body, #3A3A3A);
+  font-size: 16px;
+  font-weight: 400;
+  text-align: left;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
 }
 .sidebar-item:hover {
   background-color: var(--color-bg-secondary, #F7F3EA);
 }
 .sidebar-item.active {
   background-color: var(--color-primary-soft, #FBE9E7);
+  color: var(--color-primary-deep, var(--color-primary-text, #C0392B));
+  font-weight: 500;
 }
 .sidebar-item-label {
   font-size: 16px;
-  color: var(--color-text-body, #3A3A3A);
+  color: inherit;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .sidebar-item-bar {
   width: 4px;
   height: 18px;
   border-radius: 2px;
   flex-shrink: 0;
-  margin-right: 12px;
 }
-.sidebar-item-count {
+.sidebar-item-icon {
+  flex-shrink: 0;
   color: inherit;
 }
-.sidebar-item.active .sidebar-item-label {
-  color: var(--color-primary-text, #C0392B);
-  font-weight: 600;
-  font-family: "SourceHanSans-Medium", var(--font-family-cn);
+.sidebar-item-count {
+  color: var(--color-text-muted, #8A8578);
+  font-size: 14px;
 }
 .conclusion-card {
   margin-top: auto;

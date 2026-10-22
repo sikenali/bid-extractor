@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import SettingsModal from '@/components/layout/SettingsModal.vue';
 import { UiTip } from '@/components/ui';
-import { BRAND_NAME } from '@/constants/brand';
+import { BRAND_NAME, BRAND_PRODUCT } from '@/constants/brand';
 
 withDefaults(defineProps<{
   title?: string;
@@ -21,11 +21,11 @@ const showSettingsModal = ref(false);
   <header class="top-nav">
     <div class="nav-left" @click="router.push('/upload')">
       <div class="tool-mark">
-        <RiTargetLine style="font-size: 26px" class="tool-logo" />
+        <RiDownloadCloudLine size="26" class="tool-logo" />
       </div>
       <span class="brand-cn">{{ brand || BRAND_NAME }}</span>
       <span class="divider"></span>
-      <span class="page-title">{{ title || '' }}</span>
+      <span class="page-title">{{ title || BRAND_PRODUCT }}</span>
     </div>
     <div class="nav-right">
       <UiTip v-if="showBack" text="返回" placement="bottom">
@@ -71,7 +71,7 @@ const showSettingsModal = ref(false);
 }
 .tool-logo {
   line-height: 1;
-  color: var(--color-primary-text, #C0392B);
+  color: var(--brand-red, var(--color-primary-text, #C0392B));
 }
 .brand-cn {
   font-size: 20px;

@@ -35,8 +35,7 @@
     <div v-if="buttonLabel" class="btn-area">
         <button
           class="extract-btn"
-          :disabled="loading || disabled"
-          @click="!loading && !disabled && onExtract()"
+          @click="onExtract()"
         >
         <span v-if="loading" class="btn-spinner">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -162,14 +161,8 @@ onUnmounted(() => {
 
 .step-line {
   width: 48px;
-  height: 0.7px;
-  background-color: transparent;
-  background-image: repeating-linear-gradient(90deg,
-    var(--color-border, #DDD7C9) 0,
-    var(--color-border, #DDD7C9) 4px,
-    transparent 4px,
-    transparent 8px);
-  background-size: 8px 100%;
+  height: 2px;
+  background-color: var(--color-border-line, var(--color-border, #DDD7C9));
   flex-shrink: 0;
   transition: background-color 0.4s ease;
   position: relative;
@@ -381,12 +374,7 @@ onUnmounted(() => {
     width: 0.7px;
     height: 24px;
     margin-left: 22px;
-    background-image: repeating-linear-gradient(0deg,
-      var(--color-border, #DDD7C9) 0,
-      var(--color-border, #DDD7C9) 4px,
-      transparent 4px,
-      transparent 8px);
-    background-size: 100% 8px;
+    background-color: var(--color-border-line, var(--color-border, #DDD7C9));
   }
   .step-line::after {
     top: -100%;

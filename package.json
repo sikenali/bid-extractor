@@ -47,7 +47,7 @@
   },
   "build": {
     "appId": "com.wenquxing.app",
-    "productName": "文取猩",
+    "productName": "文取星",
     "directories": {
       "output": "release"
     },
@@ -82,7 +82,7 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "shortcutName": "文取猩"
+      "shortcutName": "文取星"
     },
     "mac": {
       "target": [

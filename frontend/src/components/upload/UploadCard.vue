@@ -216,27 +216,7 @@ defineExpose({ extract: handleExtract });
       />
     </div>
 
-    <!-- 技能选择器：仅在大模型已配置时显示 -->
-    <div class="skill-selector" v-if="modelConfigured && skills.length > 0 && !uploading">
-      <label class="skill-label">
-        <RiBrainLine class="icon" />
-        选择抽取技能：
-      </label>
-      <select v-model="selectedSkill" class="skill-select">
-        <option value="">默认技能（纯规则抽取）</option>
-        <option v-for="skill in skills" :key="skill.id" :value="skill.id">
-          {{ skill.skill_name }}
-        </option>
-      </select>
-    </div>
-    <!-- 未配置大模型时提示 -->
-    <div class="skill-selector" v-else-if="!modelConfigured && !uploading">
-      <label class="skill-label">
-        <RiRuleLine class="icon" />
-        当前模式：
-      </label>
-      <span class="skill-hint">纯规则提取（未配置大模型，使用 officeparser + 正则/关键字规则）</span>
-    </div>
+    <!-- 技能选择由后端默认判断，前端不再显示选择器与提示 -->
 </template>
 
 <style scoped>
@@ -255,7 +235,7 @@ defineExpose({ extract: handleExtract });
   transition: border-color 0.2s, background-color 0.2s;
   position: relative;
   overflow: hidden;
-  gap: 20px;
+  gap: 24px;
   padding: 40px 32px;
 }
 .upload-card.dragging {
@@ -284,7 +264,7 @@ defineExpose({ extract: handleExtract });
 .upload-icon-wrap .icon {
   font-family: "remixicon", sans-serif;
   font-style: normal;
-  font-size: 34px;
+  font-size: 40px;
   color: var(--color-text-muted, #8A8578);
 }
 .upload-hint {
@@ -300,10 +280,11 @@ defineExpose({ extract: handleExtract });
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-top: 8px;
 }
 .fmt {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 5px;
   display: flex;
   align-items: center;
@@ -323,8 +304,8 @@ defineExpose({ extract: handleExtract });
 /* ── file selected state: centered icon + name + size ── */
 .replace-tip {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 12px;
+  right: 12px;
   z-index: 2;
 }
 .replace-icon {

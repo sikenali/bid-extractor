@@ -1,2 +1,9 @@
-export const BRAND_NAME = '文取猩';
-export const BRAND_TITLE = '文取猩 · 智能标书解决方案平台';
+export const BRAND_NAME = '文取星';
+export const BRAND_SHORT = '文取星';
+export const BRAND_PRODUCT = '智能化文件提取工具';
+export const BRAND_TITLE = '文取星 · 智能化文件提取工具';
+export const BRAND_SLOGAN = '智能标书解决方案平台';
+export const BRAND_SERIES = '回旋标工具系列';
+export const BRAND_POWERED = 'Powered by LightOS';
+export const BRAND_POWERED_URL = 'https://lazycat.cloud/';
+export const BRAND_YEAR = 2026;

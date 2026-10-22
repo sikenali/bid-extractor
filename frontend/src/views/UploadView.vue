@@ -55,7 +55,6 @@ function handleExtract() {
         :steps="steps"
         :loading="uploading"
         button-label="一键提取"
-        :disabled="uploading"
         @extract="handleExtract"
       />
     </div>

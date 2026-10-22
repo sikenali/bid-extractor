@@ -59,7 +59,7 @@ function createWindow() {
   });
 
   const version = app.getVersion();
-  win.setTitle(`文取猩 v${version} (${process.platform}/${process.arch})`);
+  win.setTitle(`文取星 v${version} (${process.platform}/${process.arch})`);
 
   if (isDev) {
     win.loadURL('http://localhost:5173');
@@ -102,8 +102,8 @@ ipcMain.handle('get-app-info', () => ({
 ipcMain.handle('show-about-dialog', () => {
   dialog.showMessageBox({
     type: 'info',
-    title: '关于 文取猩',
-    message: `文取猩\n版本 ${app.getVersion()}\n${process.platform}/${process.arch}`,
+    title: '关于 文取星',
+    message: `文取星\n版本 ${app.getVersion()}\n${process.platform}/${process.arch}`,
     buttons: ['确定'],
   });
 });
