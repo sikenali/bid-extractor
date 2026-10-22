@@ -427,7 +427,7 @@ onMounted(() => {
   font-family: "remixicon", sans-serif; font-style: normal; font-size: 18px; color: var(--color-text-muted, #8A8578);
 }
 .view-btn.active { background: var(--color-primary-soft, #FBE9E7); }
-.view-btn.active .icon { color: var(--color-primary, #C0392B); }
+.view-btn.active .icon { color: var(--color-primary-text, #C0392B); }
 
 /* 列表视图 */
 .list-container { background-color: var(--color-bg-white, #FFFFFF); border: 0.7px solid var(--color-border-soft, #EDE9E0); border-radius: 16px; overflow: hidden; }
@@ -517,7 +517,7 @@ onMounted(() => {
 /* 弹窗表单（壳已统一为 UiModal） */
 .form-group { display: flex; flex-direction: column; gap: 8px; }
 .form-label { font-size: 14px; color: var(--color-text-body, #3A3A3A); font-weight: 500; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
-.form-label .required { color: var(--color-primary, #C0392B); }
+.form-label .required { color: var(--color-primary-text, #C0392B); }
 .form-group .ui-input { width: 100%; }
 
 /* 确认类弹窗正文 */

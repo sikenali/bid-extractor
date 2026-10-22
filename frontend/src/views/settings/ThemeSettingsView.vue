@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { ElMessage } from '@/utils/toast';
-import { useThemeStore, THEME_STORAGE } from '@/stores/theme';
+import {
+  useThemeStore,
+  THEME_STORAGE,
+  resolveAccentSurface,
+  resolveAccentForeground,
+} from '@/stores/theme';
 import { UiCheck } from '@/components/ui';
 import { setTheme as saveTheme } from '@/api/settings';
 
@@ -176,8 +181,15 @@ function resetAll() {
           class="accent-item"
           @click="selectAccent(accent.key)"
         >
-          <div class="accent-circle" :style="{ backgroundColor: accent.color }">
-            <RiCheckLine v-if="selectedAccent === accent.key" class="icon" />
+          <div
+            class="accent-circle"
+            :style="{ backgroundColor: resolveAccentSurface(accent.color, themeStore.currentTheme) }"
+          >
+            <RiCheckLine
+              v-if="selectedAccent === accent.key"
+              class="icon"
+              :style="{ color: resolveAccentForeground(accent.color, themeStore.currentTheme) }"
+            />
           </div>
           <div class="accent-name" :class="{ current: selectedAccent === accent.key }">{{ accent.name }}</div>
         </div>

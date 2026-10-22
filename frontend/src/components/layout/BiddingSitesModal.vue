@@ -134,7 +134,7 @@ const biddingSites = [
   justify-content: center;
   flex-shrink: 0;
   font-size: 18px;
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
 }
 
 .site-info {
@@ -189,7 +189,7 @@ const biddingSites = [
   border-radius: 8px;
   font-size: 12px;
   font-weight: 500;
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
   text-decoration: none;
   transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
@@ -214,7 +214,7 @@ const biddingSites = [
 
 .footer-link {
   font-size: 13px;
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
   text-decoration: none;
   padding: 6px 16px;
   border-radius: 8px;
@@ -223,6 +223,6 @@ const biddingSites = [
 
 .footer-link:hover {
   background: color-mix(in srgb, var(--color-primary, #C0392B) 14%, transparent);
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
 }
 </style>

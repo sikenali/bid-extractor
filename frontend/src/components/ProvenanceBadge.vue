@@ -37,7 +37,7 @@ const hasProvenance = computed(() => props.page != null || !!props.chapter);
 .prov-badge:hover {
   background-color: var(--color-primary-soft, #FBE9E7);
   border-color: var(--color-border-hover, #D9D2C2);
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
 }
 .prov-badge-arrow { font-size: 13px; transition: transform 0.2s; font-style: normal; }
 .prov-badge-arrow.is-open { transform: rotate(180deg); }

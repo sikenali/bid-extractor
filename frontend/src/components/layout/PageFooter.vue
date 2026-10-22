@@ -55,7 +55,7 @@ onMounted(() => { year.value = new Date().getFullYear() })
 }
 .tool-logo {
   line-height: 1;
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
   flex-shrink: 0;
 }
 .footer-brand-text {
@@ -105,7 +105,7 @@ onMounted(() => { year.value = new Date().getFullYear() })
   white-space: nowrap;
 }
 .footer-link {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   text-decoration: none;
   transition: opacity 0.2s;
 }

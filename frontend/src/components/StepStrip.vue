@@ -208,7 +208,7 @@ onUnmounted(() => {
   background-color: var(--color-primary, #C0392B);
   color: var(--color-on-primary, #fff);
 }
-.step-pill.active .step-label { color: var(--color-primary, #C0392B); font-weight: 600; }
+.step-pill.active .step-label { color: var(--color-primary-text, #C0392B); font-weight: 600; }
 
 /* --- loading: passed steps → design done colors (pulse kept) --- */
 .step-strip-root.loading .step-pill.processing {
@@ -233,7 +233,7 @@ onUnmounted(() => {
   color: var(--color-on-primary, #fff);
   animation: numBlink 0.6s ease-in-out infinite;
 }
-.step-strip-root.loading .step-pill.next .step-label { color: var(--color-primary, #C0392B); }
+.step-strip-root.loading .step-pill.next .step-label { color: var(--color-primary-text, #C0392B); }
 
 /* --- line states --- */
 .step-line.filled::after { left: 0; }

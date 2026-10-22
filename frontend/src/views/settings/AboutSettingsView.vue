@@ -136,7 +136,7 @@ const appVersion = 'V1.0.0';
   font-style: normal;
   font-size: 52px;
   line-height: 1;
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
 }
 .about-name {
   margin-top: 32px;

@@ -146,7 +146,7 @@ onUnmounted(() => {
 .ui-select-value { flex: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ui-select-value.is-empty { color: var(--color-text-faint, #A7A296); }
 .ui-select-arrow { font-size: 15px; color: var(--color-text-faint, #A7A296); transition: transform 0.2s; font-style: normal; }
-.ui-select-arrow.is-open { transform: rotate(180deg); color: var(--color-primary, #C0392B); }
+.ui-select-arrow.is-open { transform: rotate(180deg); color: var(--color-primary-text, #C0392B); }
 .is-disabled .ui-select-btn { background-color: var(--color-bg-secondary, #F7F3EA); color: var(--color-text-muted, #8A8578); cursor: not-allowed; }
 
 .ui-select-panel {
@@ -189,9 +189,9 @@ onUnmounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.ui-select-item.is-selected .ui-select-item-label { color: var(--color-primary, #C0392B); font-weight: 500; }
+.ui-select-item.is-selected .ui-select-item-label { color: var(--color-primary-text, #C0392B); font-weight: 500; }
 .ui-select-item-desc { font-size: 12px; color: var(--color-text-muted, #8A8578); }
-.ui-select-check { color: var(--color-primary, #C0392B); flex-shrink: 0; }
+.ui-select-check { color: var(--color-primary-text, #C0392B); flex-shrink: 0; }
 .ui-select-item.is-disabled { opacity: 0.45; cursor: not-allowed; }
 .ui-select-empty { padding: 14px; text-align: center; font-size: 13px; color: var(--color-text-muted, #8A8578); }
 

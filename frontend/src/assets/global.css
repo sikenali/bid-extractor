@@ -5,6 +5,8 @@
   --color-primary: #C0392B;
   --color-primary-deep: #3A5C96;
   --color-primary-soft: #FBE9E7;
+  /* 强调色作为文字/图标色时的安全色（浅色主题下为同色系深色变体） */
+  --color-primary-text: #C0392B;
   --color-on-primary: #FFFFFF;
   /* 固定底色（非强调色）上的前景色，与 --color-on-primary 解耦 */
   --color-on-brand: #FFFFFF;
@@ -420,7 +422,7 @@ h6 { font-size: var(--text-md); margin-bottom: var(--spacing-2); }
   padding: 4px 10px;
   border-radius: var(--radius-full);
   background-color: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .tag.secondary {
@@ -492,5 +494,5 @@ h6 { font-size: var(--text-md); margin-bottom: var(--spacing-2); }
 /* Selection Colors */
 ::selection {
   background-color: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }

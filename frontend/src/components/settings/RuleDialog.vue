@@ -148,7 +148,7 @@ function handleSubmit() {
   gap: 6px;
 }
 .required {
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
 }
 .form-hint {
   font-weight: 400;

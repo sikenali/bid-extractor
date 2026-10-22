@@ -60,7 +60,7 @@ const showSettingsModal = ref(false);
   cursor: pointer;
 }
 .nav-left:hover .brand-cn {
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
 }
 .tool-mark {
   width: auto;
@@ -71,7 +71,7 @@ const showSettingsModal = ref(false);
 }
 .tool-logo {
   line-height: 1;
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
 }
 .brand-cn {
   font-size: 20px;

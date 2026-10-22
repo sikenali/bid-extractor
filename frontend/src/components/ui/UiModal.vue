@@ -210,7 +210,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 26px;
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
   flex-shrink: 0;
 }
 .ui-modal-icon i { font-style: normal; }

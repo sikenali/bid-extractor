@@ -142,7 +142,7 @@ onUnmounted(() => {
 .is-md .ui-tab { height: 38px; padding: 0 18px; font-size: 14.5px; }
 .is-sm .ui-tab { height: 32px; padding: 0 14px; font-size: 13px; }
 .ui-tab:hover:not(:disabled):not(.is-active) { color: var(--color-text-primary, #1F1D1A); }
-.ui-tab.is-active { color: var(--color-primary, #C0392B); font-weight: 500; }
+.ui-tab.is-active { color: var(--color-primary-text, #C0392B); font-weight: 500; }
 .ui-tab:disabled { opacity: 0.45; cursor: not-allowed; }
 .ui-tab .icon { font-family: "remixicon", sans-serif; font-style: normal; font-size: 16px; }
 .ui-tab-badge {

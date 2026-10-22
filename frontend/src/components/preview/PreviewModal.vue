@@ -180,7 +180,7 @@ onUnmounted(() => { previewBlob.value = null; });
   box-sizing: border-box;
 }
 
-.preview-state--error { color: var(--color-primary, #C0392B); }
+.preview-state--error { color: var(--color-primary-text, #C0392B); }
 
 .preview-state .icon { font-style: normal; }
 

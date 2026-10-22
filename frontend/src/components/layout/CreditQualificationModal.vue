@@ -128,7 +128,7 @@ const creditSites = [
   justify-content: center;
   flex-shrink: 0;
   font-size: 18px;
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
 }
 
 .site-info {
@@ -183,7 +183,7 @@ const creditSites = [
   border-radius: 8px;
   font-size: 12px;
   font-weight: 500;
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
   text-decoration: none;
   transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
@@ -208,6 +208,6 @@ const creditSites = [
 
 .footer-count {
   font-size: 12px;
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
 }
 </style>

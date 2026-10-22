@@ -341,7 +341,7 @@ defineExpose({ extract: handleExtract });
   transition: color 0.2s, border-color 0.2s, background-color 0.2s, transform 0.2s;
 }
 .replace-icon:hover {
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
   border-color: var(--color-primary, #C0392B);
   background-color: var(--color-primary-soft, #FBE9E7);
 }

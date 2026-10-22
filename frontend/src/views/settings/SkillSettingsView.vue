@@ -532,7 +532,7 @@ onMounted(loadSkills);
   background: var(--color-bg-secondary, #F7F3EA);
 }
 .btn-sync .icon {
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
 }
 .toolbar-right {
   display: flex;
@@ -570,7 +570,7 @@ onMounted(loadSkills);
   background: var(--color-primary-soft, #FBE9E7);
 }
 .view-btn.active .icon {
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
 }
 
 .reset-button {
@@ -830,7 +830,7 @@ onMounted(loadSkills);
 .form-group { display: flex; flex-direction: column; gap: 8px; }
 .form-group .ui-input { width: 100%; }
 .form-label { font-size: 14px; color: var(--color-text-body, #3A3A3A); font-weight: 500; font-family: "SourceHanSans-Regular", var(--font-family-cn); }
-.form-label .required { color: var(--color-primary, #C0392B); }
+.form-label .required { color: var(--color-primary-text, #C0392B); }
 @media (max-width: 768px) {
   .grid-cards { grid-template-columns: 1fr; }
 }

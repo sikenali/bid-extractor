@@ -560,7 +560,7 @@ onMounted(loadKeys);
 }
 .saved-key-test:hover { background: var(--color-bg-secondary, #F7F3EA); }
 .saved-key-edit:hover { background: var(--color-bg-secondary, #F7F3EA); }
-.saved-key-delete:hover { background: rgba(192, 57, 43, 0.08); color: var(--color-primary, #C0392B); }
+.saved-key-delete:hover { background: color-mix(in srgb, var(--color-primary-text) 10%, transparent); color: var(--color-primary-text, #C0392B); }
 .saved-key-test:disabled { opacity: 0.4; cursor: not-allowed; }
 .saved-key-test .icon,
 .saved-key-edit .icon,

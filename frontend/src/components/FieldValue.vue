@@ -71,7 +71,7 @@ function handleLocate() {
   border-radius: 6px;
   background: var(--color-bg-card);
   font-size: 12px;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   cursor: pointer;
   vertical-align: middle;
   margin-left: 8px;

@@ -54,12 +54,12 @@ const currentPage = ref(1);
 const pageSize = ref(10);
 
 const sidebarItems = [
-  { key: 'info', label: '项目信息', icon: 'ri-file-list-3-line', color: 'var(--color-info, #4A72A8)' },
-  { key: 'business', label: '商务条款', icon: 'ri-file-paper-2-line', color: 'var(--color-primary, #C0392B)' },
-  { key: 'tech', label: '技术条款', icon: 'ri-search-eye-line', color: 'var(--color-success, #4E9B7A)' },
-  { key: 'score', label: '评分标准', icon: 'ri-layout-line', color: 'var(--color-warning, #F39C12)' },
-  { key: 'seal', label: '封标信息', icon: 'ri-mail-send-line', color: 'var(--color-error, #E74C3C)' },
-  { key: 'star', label: '标星条款', icon: 'ri-star-s-line', color: 'var(--color-text-secondary, #6E6A60)' }
+  { key: 'info', label: '项目信息', color: 'var(--color-info, #4A72A8)' },
+  { key: 'business', label: '商务条款', color: 'var(--color-primary, #C0392B)' },
+  { key: 'tech', label: '技术条款', color: 'var(--color-success, #4E9B7A)' },
+  { key: 'score', label: '评分标准', color: 'var(--color-warning, #F39C12)' },
+  { key: 'seal', label: '封标信息', color: 'var(--color-error, #E74C3C)' },
+  { key: 'star', label: '标星条款', color: 'var(--color-text-secondary, #6E6A60)' }
 ];
 
 const fixedFields: Record<string, string[]> = {
@@ -996,7 +996,7 @@ function triggerDownload(blob: Blob, filename: string) {
   color: inherit;
 }
 .sidebar-item.active .sidebar-item-label {
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
   font-weight: 600;
   font-family: "SourceHanSans-Medium", var(--font-family-cn);
 }
@@ -1101,7 +1101,7 @@ function triggerDownload(blob: Blob, filename: string) {
   padding: 6px 14px;
   border-radius: 8px;
   background: var(--color-primary-soft, #FBE9E7);
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
   font-size: 13px;
   font-weight: 500;
   font-family: "SourceHanSans-Regular", var(--font-family-cn);
@@ -1128,7 +1128,7 @@ function triggerDownload(blob: Blob, filename: string) {
   font-family: "remixicon", sans-serif;
   font-style: normal;
   font-size: 16px;
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
   flex-shrink: 0;
 }
 .banner-warn {
@@ -1322,7 +1322,7 @@ function triggerDownload(blob: Blob, filename: string) {
   font-size: 18px;
   color: var(--color-text-secondary, #6E6A60);
 }
-.icon-btn:hover .icon { color: var(--color-primary, #C0392B); }
+.icon-btn:hover .icon { color: var(--color-primary-text, #C0392B); }
 .empty-row td {
   height: auto;
   padding: 48px 0;
@@ -1400,7 +1400,7 @@ function triggerDownload(blob: Blob, filename: string) {
   padding: 1px 6px;
   border-radius: 4px;
   background-color: var(--color-primary-soft, #FBE9E7);
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
   font-size: 12px;
   font-weight: 500;
 }

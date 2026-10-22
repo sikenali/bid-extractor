@@ -140,7 +140,7 @@ function selectTab(key: string) {
 
 .nav-item.active .icon,
 .nav-item.active .label {
-  color: var(--color-primary, #C0392B);
+  color: var(--color-primary-text, #C0392B);
   font-weight: 500;
 }
 
